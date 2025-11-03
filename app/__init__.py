@@ -239,13 +239,16 @@ def register_blueprints(app):
     from app.routes.audit import audit_bp
     from app.routes.setup import setup_bp
     from app.routes.system_reset import system_reset_bp
+    from app.routes.system_admin import system_admin_bp
 
     app.register_blueprint(setup_bp)  # No prefix, setup routes at root level
     app.register_blueprint(system_reset_bp)  # No prefix, system reset at root level
+    app.register_blueprint(system_admin_bp)  # No prefix, system admin at root level
     
-    # Exempt setup and system reset from CSRF (they use JSON without CSRF tokens)
+    # Exempt setup, system reset, and system admin from CSRF (they use JSON without CSRF tokens)
     csrf.exempt(setup_bp)
     csrf.exempt(system_reset_bp)
+    csrf.exempt(system_admin_bp)
     
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admin_bp, url_prefix='/admin')

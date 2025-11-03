@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Admin Setup - Buggy Call</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 5px;
+        }
+
+        .info-box h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .info-box p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .credentials {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .credentials p {
+            margin: 5px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .credentials strong {
+            color: #1976d2;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert.warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .existing-admin {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .existing-admin .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .existing-admin h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .existing-admin p {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>🚗 Buggy Call</h1>
+            <p>System Admin Setup</p>
+        </div>
+
+        <div id="alert" class="alert"></div>
+
+        {% if admin_exists %}
+        <div class="existing-admin">
+            <div class="icon">✅</div>
+            <h2>Admin Zaten Mevcut</h2>
+            <p>Sistem admin kullanıcısı daha önce oluşturulmuş.</p>
+            <a href="/auth/login" class="btn btn-secondary" style="text-decoration: none; display: block;">
+                Giriş Sayfasına Git
+            </a>
+        </div>
+        {% else %}
+        <div class="info-box">
+            <h3>Admin Kullanıcısı Oluştur</h3>
+            <p>
+                Bu sayfa ile sistem admin kullanıcısını oluşturabilirsiniz. 
+                Admin oluşturulduktan sonra aşağıdaki bilgilerle giriş yapabilirsiniz.
+            </p>
+            <div class="credentials">
+                <p><strong>Kullanıcı Adı:</strong> admin</p>
+                <p><strong>Şifre:</strong> 518518</p>
+            </div>
+        </div>
+
+        <button id="createBtn" class="btn" onclick="createAdmin()">
+            <span id="btnText">Admin Oluştur</span>
+            <div id="spinner" class="spinner"></div>
+        </button>
+        {% endif %}
+    </div>
+
+    <script>
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = 'alert ' + type;
+            alert.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    window.location.href = '/auth/login';
+                }, 2000);
+            }
+        }
+
+        async function createAdmin() {
+            const btn = document.getElementById('createBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('spinner');
+            
+            // Disable button
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            spinner.style.display = 'block';
+            
+            try {
+                const response = await fetch('/systemadmin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('✅ ' + data.message + ' Giriş sayfasına yönlendiriliyorsunuz...', 'success');
+                } else {
+                    showAlert('❌ ' + data.message, 'error');
+                    btn.disabled = false;
+                    btnText.style.display = 'block';
+                    spinner.style.display = 'none';
+                }
+            } catch (error) {
+                showAlert('❌ Bir hata oluştu: ' + error.message, 'error');
+                btn.disabled = false;
+                btnText.style.display = 'block';
+                spinner.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
