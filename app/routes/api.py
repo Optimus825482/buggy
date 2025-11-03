@@ -309,9 +309,10 @@ def get_buggies():
 @api_bp.route('/buggies', methods=['POST'])
 @require_login
 def create_buggy():
-    """Create new buggy with driver user (admin provides username)"""
+    """Create new buggy (driver assignment is optional)"""
     try:
         from app.models.user import UserRole
+        from app.models.buggy_driver import BuggyDriver
         
         user = SystemUser.query.get(session['user_id'])
         data = request.get_json()
@@ -319,63 +320,67 @@ def create_buggy():
         if not data.get('code'):
             return jsonify({'error': 'Buggy kodu gerekli'}), 400
         
-        if not data.get('driver_username'):
-            return jsonify({'error': 'Sürücü kullanıcı adı gerekli'}), 400
-        
         buggy_code = data['code']
-        driver_username = data['driver_username'].strip().lower()
+        driver_id = data.get('driver_id')  # Optional
         
         # Check if buggy code already exists
         existing_buggy = Buggy.query.filter_by(hotel_id=user.hotel_id, code=buggy_code).first()
         if existing_buggy:
             return jsonify({'error': 'Bu buggy kodu zaten kullanılıyor'}), 400
         
-        # Check if username already exists
-        existing_user = SystemUser.query.filter_by(username=driver_username).first()
-        if existing_user:
-            return jsonify({'error': 'Bu kullanıcı adı zaten kullanılıyor'}), 400
-        
-        # Generate temporary password: username + "123*"
-        temp_password = f"{driver_username}123*"
-        
-        # Create driver user
-        driver = SystemUser(
-            username=driver_username,
-            role=UserRole.DRIVER,
-            hotel_id=user.hotel_id,
-            full_name=data.get('driver_full_name', f"{buggy_code} Sürücüsü"),
-            is_active=True,
-            must_change_password=True  # Force password change on first login
-        )
-        driver.set_password(temp_password)
-        
-        db.session.add(driver)
-        db.session.flush()  # Get driver ID
-        
-        # Create buggy and assign driver
+        # Create buggy without driver
         buggy = Buggy(
             hotel_id=user.hotel_id,
             code=buggy_code,
             license_plate=data.get('license_plate'),
             status=BuggyStatus.OFFLINE,
-            driver_id=driver.id
+            driver_id=None  # Will be managed through buggy_drivers table
         )
         
         db.session.add(buggy)
+        db.session.flush()  # Get buggy ID
+        
+        # If driver_id provided, create association
+        driver_info = None
+        if driver_id:
+            # Verify driver exists
+            driver = SystemUser.query.filter_by(
+                id=driver_id,
+                hotel_id=user.hotel_id,
+                role=UserRole.DRIVER
+            ).first()
+            
+            if driver:
+                # Create buggy-driver association
+                association = BuggyDriver(
+                    buggy_id=buggy.id,
+                    driver_id=driver_id,
+                    is_active=False,  # Will be activated when driver logs in
+                    is_primary=True,
+                    assigned_at=datetime.utcnow()
+                )
+                db.session.add(association)
+                
+                driver_info = {
+                    'id': driver.id,
+                    'username': driver.username,
+                    'full_name': driver.full_name
+                }
+        
         db.session.commit()
         
-        return jsonify({
+        response = {
             'success': True,
-            'message': 'Buggy ve sürücü başarıyla oluşturuldu',
-            'buggy': buggy.to_dict(),
-            'driver': {
-                'id': driver.id,
-                'username': driver_username,
-                'temp_password': temp_password,  # Temporary password shown once
-                'full_name': driver.full_name,
-                'must_change_password': True
-            }
-        }), 201
+            'message': 'Buggy başarıyla oluşturuldu',
+            'buggy': buggy.to_dict()
+        }
+        
+        if driver_info:
+            response['driver'] = driver_info
+            response['message'] = 'Buggy ve sürücü ataması başarıyla oluşturuldu'
+        
+        return jsonify(response), 201
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
