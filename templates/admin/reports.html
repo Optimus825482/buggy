@@ -1,0 +1,518 @@
+{% extends "base.html" %}
+
+{% block title %}Raporlar{% endblock %}
+
+{% block header_nav %}
+<nav class="nav">
+    <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
+        <i class="fas fa-home"></i> Dashboard
+    </a>
+    <a href="{{ url_for('admin.locations') }}" class="nav-link">
+        <i class="fas fa-map-marker-alt"></i> Lokasyonlar
+    </a>
+    <a href="{{ url_for('admin.buggies') }}" class="nav-link">
+        <i class="fas fa-car-alt"></i> Buggy'ler
+    </a>
+    <a href="{{ url_for('admin.reports') }}" class="nav-link active">
+        <i class="fas fa-chart-bar"></i> Raporlar
+    </a>
+    <a href="#" onclick="logout()" class="nav-link">
+        <i class="fas fa-sign-out-alt"></i> Çıkış
+    </a>
+</nav>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+    }
+
+    .stat-card.accent {
+        background: linear-gradient(135deg, var(--accent-color) 0%, #d97a2a 100%);
+    }
+
+    .stat-card.success {
+        background: linear-gradient(135deg, var(--success-color) 0%, #1e8449 100%);
+    }
+
+    .stat-card.warning {
+        background: linear-gradient(135deg, var(--warning-color) 0%, #d68910 100%);
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 1rem 0;
+    }
+
+    .filter-bar {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .filter-group {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .table-scroll {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 2rem 0;">
+    <div class="d-flex justify-between align-center" style="margin-bottom: 2rem;">
+        <h1><i class="fas fa-chart-bar text-primary"></i> Raporlar & Analitik</h1>
+        <button class="btn btn-primary" onclick="exportReport()">
+            <i class="fas fa-download"></i> Rapor İndir
+        </button>
+    </div>
+
+    <!-- Date Filter -->
+    <div class="filter-bar">
+        <div class="filter-group">
+            <label><strong>Tarih Aralığı:</strong></label>
+            <select id="date-range" class="form-control" style="width: 200px;" onchange="loadReports()">
+                <option value="today">Bugün</option>
+                <option value="yesterday">Dün</option>
+                <option value="week" selected>Son 7 Gün</option>
+                <option value="month">Son 30 Gün</option>
+                <option value="custom">Özel Tarih</option>
+            </select>
+            <input type="date" id="start-date" class="form-control d-none" style="width: 180px;">
+            <input type="date" id="end-date" class="form-control d-none" style="width: 180px;">
+            <button class="btn btn-secondary" onclick="loadReports()">
+                <i class="fas fa-sync"></i> Yenile
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label"><i class="fas fa-phone"></i> Toplam Talep</div>
+            <div class="stat-value" id="total-requests">0</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-label"><i class="fas fa-check-circle"></i> Tamamlanan</div>
+            <div class="stat-value" id="completed-requests">0</div>
+        </div>
+        <div class="stat-card accent">
+            <div class="stat-label"><i class="fas fa-clock"></i> Ortalama Süre</div>
+            <div class="stat-value" id="avg-time">0 dk</div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-label"><i class="fas fa-star"></i> Başarı Oranı</div>
+            <div class="stat-value" id="success-rate">0%</div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-2" style="margin-bottom: 2rem;">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-chart-line"></i> Günlük Trendler</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="daily-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-chart-pie"></i> Durum Dağılımı</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="status-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Performance -->
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-map-marker-alt"></i> Lokasyon Performansı</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container" style="height: 250px;">
+                <canvas id="location-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Requests Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-list"></i> Son Talepler</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-scroll">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Tarih/Saat</th>
+                            <th>Lokasyon</th>
+                            <th>Buggy</th>
+                            <th>Yanıt Süresi</th>
+                            <th>Tamamlanma Süresi</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-requests-table">
+                        <tr>
+                            <td colspan="6" class="text-center">Yükleniyor...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    let dailyChart, statusChart, locationChart;
+    let reportData = {
+        requests: [],
+        stats: {}
+    };
+
+    document.addEventListener( 'DOMContentLoaded', () => {
+        initCharts();
+        loadReports();
+
+        // Handle custom date range
+        document.getElementById( 'date-range' ).addEventListener( 'change', ( e ) => {
+            const customDates = e.target.value === 'custom';
+            document.getElementById( 'start-date' ).classList.toggle( 'd-none', !customDates );
+            document.getElementById( 'end-date' ).classList.toggle( 'd-none', !customDates );
+        } );
+    } );
+
+    function initCharts() {
+        // Daily Trend Chart
+        const dailyCtx = document.getElementById( 'daily-chart' ).getContext( '2d' );
+        dailyChart = new Chart( dailyCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Talepler',
+                    data: [],
+                    borderColor: '#1BA5A8',
+                    backgroundColor: 'rgba(27, 165, 168, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        } );
+
+        // Status Pie Chart
+        const statusCtx = document.getElementById( 'status-chart' ).getContext( '2d' );
+        statusChart = new Chart( statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Tamamlandı', 'İptal Edildi', 'Bekleyen'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: ['#27AE60', '#E74C3C', '#F39C12']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        } );
+
+        // Location Bar Chart
+        const locationCtx = document.getElementById( 'location-chart' ).getContext( '2d' );
+        locationChart = new Chart( locationCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Talep Sayısı',
+                    data: [],
+                    backgroundColor: '#F28C38'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        } );
+    }
+
+    async function loadReports() {
+        try {
+            BuggyCall.Utils.showLoading();
+
+            const dateRange = document.getElementById( 'date-range' ).value;
+            let url = `/api/requests`;
+
+            // Fetch all requests
+            const response = await fetch( url );
+            const data = await response.json();
+
+            if ( data.success ) {
+                reportData.requests = filterRequestsByDateRange( data.requests || [], dateRange );
+                calculateStats();
+                updateCharts();
+                renderRecentRequests();
+            }
+
+            BuggyCall.Utils.hideLoading();
+        } catch ( error ) {
+            console.error( 'Error loading reports:', error );
+            BuggyCall.Utils.showToast( 'Raporlar yüklenemedi', 'danger' );
+            BuggyCall.Utils.hideLoading();
+        }
+    }
+
+    function filterRequestsByDateRange( requests, range ) {
+        const now = new Date();
+        const today = new Date( now.getFullYear(), now.getMonth(), now.getDate() );
+
+        return requests.filter( req => {
+            const reqDate = new Date( req.requested_at );
+
+            switch ( range ) {
+                case 'today':
+                    return reqDate >= today;
+                case 'yesterday':
+                    const yesterday = new Date( today );
+                    yesterday.setDate( yesterday.getDate() - 1 );
+                    return reqDate >= yesterday && reqDate < today;
+                case 'week':
+                    const weekAgo = new Date( today );
+                    weekAgo.setDate( weekAgo.getDate() - 7 );
+                    return reqDate >= weekAgo;
+                case 'month':
+                    const monthAgo = new Date( today );
+                    monthAgo.setDate( monthAgo.getDate() - 30 );
+                    return reqDate >= monthAgo;
+                case 'custom':
+                    const startDate = new Date( document.getElementById( 'start-date' ).value );
+                    const endDate = new Date( document.getElementById( 'end-date' ).value );
+                    return reqDate >= startDate && reqDate <= endDate;
+                default:
+                    return true;
+            }
+        } );
+    }
+
+    function calculateStats() {
+        const requests = reportData.requests;
+        const completed = requests.filter( r => r.status === 'completed' );
+        const cancelled = requests.filter( r => r.status === 'cancelled' );
+
+        // Total requests
+        document.getElementById( 'total-requests' ).textContent = requests.length;
+        document.getElementById( 'completed-requests' ).textContent = completed.length;
+
+        // Average time (in minutes)
+        if ( completed.length > 0 ) {
+            const totalTime = completed.reduce( ( sum, r ) => {
+                const response = r.response_time_seconds || 0;
+                const completion = r.completion_time_seconds || 0;
+                return sum + response + completion;
+            }, 0 );
+            const avgMinutes = Math.round( totalTime / completed.length / 60 );
+            document.getElementById( 'avg-time' ).textContent = avgMinutes + ' dk';
+        } else {
+            document.getElementById( 'avg-time' ).textContent = '0 dk';
+        }
+
+        // Success rate
+        if ( requests.length > 0 ) {
+            const rate = Math.round( ( completed.length / requests.length ) * 100 );
+            document.getElementById( 'success-rate' ).textContent = rate + '%';
+        } else {
+            document.getElementById( 'success-rate' ).textContent = '0%';
+        }
+
+        reportData.stats = {
+            total: requests.length,
+            completed: completed.length,
+            cancelled: cancelled.length,
+            pending: requests.filter( r => r.status === 'pending' ).length
+        };
+    }
+
+    function updateCharts() {
+        // Daily trend
+        const dailyData = groupByDay( reportData.requests );
+        dailyChart.data.labels = dailyData.labels;
+        dailyChart.data.datasets[0].data = dailyData.values;
+        dailyChart.update();
+
+        // Status distribution
+        statusChart.data.datasets[0].data = [
+            reportData.stats.completed,
+            reportData.stats.cancelled,
+            reportData.stats.pending
+        ];
+        statusChart.update();
+
+        // Location performance
+        const locationData = groupByLocation( reportData.requests );
+        locationChart.data.labels = locationData.labels;
+        locationChart.data.datasets[0].data = locationData.values;
+        locationChart.update();
+    }
+
+    function groupByDay( requests ) {
+        const groups = {};
+        requests.forEach( req => {
+            const date = new Date( req.requested_at ).toLocaleDateString( 'tr-TR' );
+            groups[date] = ( groups[date] || 0 ) + 1;
+        } );
+
+        return {
+            labels: Object.keys( groups ),
+            values: Object.values( groups )
+        };
+    }
+
+    function groupByLocation( requests ) {
+        const groups = {};
+        requests.forEach( req => {
+            const location = req.location?.name || 'Bilinmiyor';
+            groups[location] = ( groups[location] || 0 ) + 1;
+        } );
+
+        return {
+            labels: Object.keys( groups ),
+            values: Object.values( groups )
+        };
+    }
+
+    function renderRecentRequests() {
+        const tbody = document.getElementById( 'recent-requests-table' );
+        const recent = reportData.requests.slice( 0, 20 ); // Show last 20
+
+        if ( recent.length === 0 ) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Henüz talep yok</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = recent.map( req => `
+            <tr>
+                <td>${BuggyCall.Utils.formatDate( req.requested_at )}</td>
+                <td>${req.location?.name || '-'}</td>
+                <td>${req.buggy?.code || '-'}</td>
+                <td>${req.response_time_seconds ? Math.round( req.response_time_seconds / 60 ) + ' dk' : '-'}</td>
+                <td>${req.completion_time_seconds ? Math.round( req.completion_time_seconds / 60 ) + ' dk' : '-'}</td>
+                <td>
+                    <span class="badge ${BuggyCall.Utils.getBadgeClass( req.status )}">
+                        ${getStatusText( req.status )}
+                    </span>
+                </td>
+            </tr>
+        `).join( '' );
+    }
+
+    function getStatusText( status ) {
+        const map = {
+            'pending': 'Bekliyor',
+            'accepted': 'Kabul Edildi',
+            'completed': 'Tamamlandı',
+            'cancelled': 'İptal'
+        };
+        return map[status] || status;
+    }
+
+    function exportReport() {
+        const dateRange = document.getElementById( 'date-range' ).value;
+        const rangeText = document.getElementById( 'date-range' ).selectedOptions[0].text;
+
+        const csvContent = generateCSV();
+        const blob = new Blob( [csvContent], { type: 'text/csv;charset=utf-8;' } );
+        const link = document.createElement( 'a' );
+        link.href = URL.createObjectURL( blob );
+        link.download = `buggy_call_rapor_${rangeText}_${new Date().toISOString().split( 'T' )[0]}.csv`;
+        link.click();
+
+        BuggyCall.Utils.showToast( 'Rapor indirildi!', 'success' );
+    }
+
+    function generateCSV() {
+        let csv = 'Tarih,Lokasyon,Buggy,Oda,Yanıt Süresi (sn),Tamamlanma Süresi (sn),Durum\n';
+
+        reportData.requests.forEach( req => {
+            csv += `"${req.requested_at}",`;
+            csv += `"${req.location?.name || '-'}",`;
+            csv += `"${req.buggy?.code || '-'}",`;
+            csv += `"${req.room_number || '-'}",`;
+            csv += `"${req.response_time_seconds || 0}",`;
+            csv += `"${req.completion_time_seconds || 0}",`;
+            csv += `"${getStatusText( req.status )}"\n`;
+        } );
+
+        return csv;
+    }
+
+    function logout() {
+        if ( confirm( 'Çıkış yapmak istediğinize emin misiniz?' ) ) {
+            localStorage.clear();
+            window.location.href = '/auth/logout';
+        }
+    }
+</script>
+{% endblock %}

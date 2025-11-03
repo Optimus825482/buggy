@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test QR Code</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(180deg, #F9FAFB 0%, #FFFFFF 100%);
+        }
+        .qr-container {
+            margin: 20px auto;
+            padding: 30px;
+            background: white;
+            border: 2px solid #1BA5A8;
+            border-radius: 15px;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f9fa;
+            border-radius: 8px;
+            word-break: break-all;
+            text-align: left;
+        }
+        h1 {
+            color: #1BA5A8;
+        }
+        .location-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2C3E50;
+            margin: 10px 0;
+        }
+        .url-text {
+            color: #1BA5A8;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #E74C3C;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 QR Kod Test Sayfası</h1>
+    <div class="qr-container">
+        <div id="content" class="loading">Yükleniyor...</div>
+    </div>
+
+    <script>
+        // Fetch latest location QR code
+        console.log('Fetching locations from API...');
+        fetch('/api/locations')
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('API Response:', data);
+                const contentDiv = document.getElementById('content');
+                
+                // API returns data in data.data.items format
+                const locations = data.data && data.data.items ? data.data.items : [];
+                
+                if (data.success && locations.length > 0) {
+                    // Get last location
+                    const location = locations[locations.length - 1];
+                    console.log('Last location:', location);
+                    
+                    contentDiv.innerHTML = `
+                        <h2>En Son Lokasyon</h2>
+                        <div class="location-name">${location.name}</div>
+                        <div style="margin: 20px 0;">
+                            <img src="${location.qr_code_image}" alt="QR Code">
+                        </div>
+                        <div class="info">
+                            <strong>📱 QR Kod İçeriği:</strong><br>
+                            <div class="url-text">${location.qr_code_data}</div>
+                        </div>
+                        <div style="margin-top: 20px; font-size: 14px; color: #666;">
+                            <p>✅ Bu QR kodu cep telefonunuzdan okutun</p>
+                            <p>✅ Yukarıdaki URL'ye yönlendirilmelisiniz</p>
+                        </div>
+                    `;
+                } else {
+                    console.error('No locations found or API error:', data);
+                    contentDiv.innerHTML = `
+                        <p class="error">❌ Lokasyon bulunamadı</p>
+                        <div class="info" style="text-align: left;">
+                            <strong>Debug Info:</strong><br>
+                            Success: ${data.success}<br>
+                            Locations count: ${locations.length}<br>
+                            Error: ${data.error || 'None'}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                document.getElementById('content').innerHTML = 
+                    `<p class="error">❌ Hata: ${error.message}</p>
+                     <div class="info">
+                        <strong>Detay:</strong><br>
+                        ${error.stack || error.toString()}
+                     </div>`;
+            });
+    </script>
+</body>
+</html>

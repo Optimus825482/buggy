@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Buggy Çağır{% endblock %}
+
+{% block extra_css %}
+<style>
+    .guest-container {
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-xl) var(--spacing-md);
+        background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-color) 100%);
+    }
+
+    .call-card {
+        width: 100%;
+        max-width: 500px;
+        box-shadow: var(--shadow-xl);
+    }
+
+    .call-header {
+        text-align: center;
+        padding: var(--spacing-xl);
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        color: var(--text-white);
+    }
+
+    .call-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto var(--spacing-md);
+        font-size: 2.5rem;
+    }
+
+    .call-button {
+        height: 60px;
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .call-button:active {
+        transform: scale(0.98);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="guest-container">
+    <!-- Call View -->
+    <div id="call-view" class="call-card card">
+        <div class="call-header">
+            <div class="call-icon">
+                <i class="fas fa-golf-cart"></i>
+            </div>
+            <h2 style="margin: 0 0 0.5rem 0;">Buggy Call</h2>
+            <p style="margin: 0; opacity: 0.9;">Your Ride, On Demand</p>
+        </div>
+
+        <div class="card-body">
+            <!-- QR Scanner Button -->
+            <button id="scan-qr-btn" class="btn btn-secondary btn-block" style="margin-bottom: 1.5rem;">
+                <i class="fas fa-qrcode"></i> QR Kod Tara
+            </button>
+
+            <!-- Location Name Display -->
+            <div id="location-name-container" class="alert alert-info d-none" style="margin-bottom: 1rem;">
+                <i class="fas fa-map-marker-alt"></i> <strong>Lokasyon:</strong> <span id="location-name"></span>
+            </div>
+
+            <!-- Call Form -->
+            <div id="call-form-container">
+                <form id="call-buggy-form">
+                    <div class="form-group">
+                        <label for="location-select" class="form-label">
+                            <i class="fas fa-map-marker-alt"></i> Konumunuz
+                        </label>
+                        <select id="location-select" class="form-control" required>
+                            <option value="">Lokasyon seçin...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="room_number" class="form-label">
+                            <i class="fas fa-door-open"></i> Oda Numaranız (Opsiyonel)
+                        </label>
+                        <input type="text" id="room_number" name="room_number" class="form-control"
+                            placeholder="Örn: 204" maxlength="20">
+                        <span class="form-text">
+                            <i class="fas fa-info-circle"></i> Oda numaranızı girmeniz opsiyoneldir
+                        </span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes" class="form-label">
+                            <i class="fas fa-comment"></i> Notlar (Opsiyonel)
+                        </label>
+                        <textarea id="notes" name="notes" class="form-control" rows="2"
+                            placeholder="Özel bir isteğiniz var mı?"></textarea>
+                    </div>
+
+                    <div class="form-check" style="margin-bottom: 1.5rem;">
+                        <input type="checkbox" id="no_room" class="form-check-input">
+                        <label for="no_room" class="form-check-label">Oda numaram yok</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-accent btn-block call-button">
+                        <i class="fas fa-phone"></i> Buggy Çağır
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card-footer text-center">
+            <p class="text-muted" style="margin: 0; font-size: 0.875rem;">
+                <i class="fas fa-clock"></i> Buggy'niz en kısa sürede gelecektir
+            </p>
+        </div>
+    </div>
+
+    <!-- Status View (Hidden by default) -->
+    <div id="status-view" class="call-card card d-none">
+        <div class="call-header">
+            <div class="call-icon">
+                <i class="fas fa-route"></i>
+            </div>
+            <h2 style="margin: 0 0 0.5rem 0;">Buggy Durumu</h2>
+            <span id="request-status-badge" class="badge badge-warning">Bekliyor</span>
+        </div>
+
+        <div class="card-body">
+            <!-- Progress Bar -->
+            <div class="progress" style="height: 30px; margin-bottom: 1.5rem;">
+                <div id="status-progress" class="progress-bar" role="progressbar" style="width: 33%" aria-valuenow="33"
+                    aria-valuemin="0" aria-valuemax="100">
+                    <span style="font-size: 0.9rem; font-weight: bold;">33%</span>
+                </div>
+            </div>
+
+            <!-- Status Message -->
+            <div class="alert alert-info text-center">
+                <p id="request-status-text" style="margin: 0; font-size: 1.1rem;">
+                    Talebiniz alındı, sürücü bekleniyor...
+                </p>
+            </div>
+
+            <!-- Driver Info (Hidden initially) -->
+            <div id="driver-info" class="d-none"></div>
+
+            <!-- ETA Info (Hidden initially) -->
+            <div id="eta-info" class="d-none"></div>
+        </div>
+
+        <div class="card-footer text-center">
+            <button class="btn btn-secondary" onclick="location.reload()">
+                <i class="fas fa-redo"></i> Yeni Talep
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- QR Scanner Modal -->
+<div class="modal fade" id="qr-scanner-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-qrcode"></i> QR Kod Tara
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="qr-reader" style="width: 100%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- HTML5 QR Code Scanner -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="{{ url_for('static', filename='js/guest.js') }}"></script>
+<script>
+    // Set hotel ID from session or URL
+    document.body.dataset.hotelId = {{ session.get( 'hotel_id', 1 ) }};
+
+    // Handle "no room" checkbox
+    const roomNumberInput = document.getElementById( 'room_number' );
+    const noRoomCheckbox = document.getElementById( 'no_room' );
+
+    if ( noRoomCheckbox && roomNumberInput ) {
+        noRoomCheckbox.addEventListener( 'change', () => {
+            if ( noRoomCheckbox.checked ) {
+                roomNumberInput.value = '';
+                roomNumberInput.disabled = true;
+            } else {
+                roomNumberInput.disabled = false;
+            }
+        } );
+    }
+</script>
+{% endblock %}

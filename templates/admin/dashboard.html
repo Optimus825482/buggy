@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block header_nav %}
+<nav class="nav">
+    <a href="{{ url_for('admin.dashboard') }}" class="nav-link active">
+        <i class="fas fa-home"></i> Dashboard
+    </a>
+    <a href="{{ url_for('admin.locations') }}" class="nav-link">
+        <i class="fas fa-map-marker-alt"></i> Lokasyonlar
+    </a>
+    <a href="{{ url_for('admin.buggies') }}" class="nav-link">
+        <i class="fas fa-car-alt"></i> Buggy'ler
+    </a>
+    <a href="{{ url_for('admin.reports') }}" class="nav-link">
+        <i class="fas fa-chart-bar"></i> Raporlar
+    </a>
+    <a href="#" onclick="logout()" class="nav-link">
+        <i class="fas fa-sign-out-alt"></i> Çıkış
+    </a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 2rem 0;">
+    <!-- Welcome Message (5 seconds) -->
+    <div class="welcome-message" id="welcomeMessage" style="
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        color: white;
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        margin-bottom: 2rem;
+        text-align: center;
+        box-shadow: var(--shadow-lg);
+        animation: fadeIn 0.5s ease-in;
+    ">
+        <h2 style="margin: 0; font-size: 1.5rem;">
+            <i class="fas fa-hand-sparkles"></i>
+            Hoş geldiniz, {{ user.full_name or user.username }}
+        </h2>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-4" style="margin-bottom: 2rem; gap: 1.5rem;">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+                <i class="fas fa-golf-cart"></i>
+            </div>
+            <div class="stat-content">
+                <h5 class="stat-label">Aktif Buggy</h5>
+                <p class="stat-value" style="color: #10b981;">
+                    <span id="active-buggies">0</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h5 class="stat-label">Bekleyen Talepler</h5>
+                <p class="stat-value" style="color: #f59e0b;">
+                    <span id="pending-requests">0</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2); color: white;">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h5 class="stat-label">Bugün Tamamlanan</h5>
+                <p class="stat-value" style="color: #06b6d4;">
+                    <span id="completed-today">0</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <div class="stat-content">
+                <h5 class="stat-label">Toplam Lokasyon</h5>
+                <p class="stat-value" style="color: #8b5cf6;">
+                    <span id="total-locations">0</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-2" style="gap: 1.5rem;">
+        <!-- Active Requests -->
+        <div class="card" style="border: 1px solid #e5e7eb; box-shadow: var(--shadow-md);">
+            <div class="card-header"
+                style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-bottom: 2px solid #e5e7eb;">
+                <h3 class="card-title" style="color: #1e293b; font-size: 1.125rem;">
+                    <i class="fas fa-list-alt" style="color: var(--primary-color);"></i> Aktif Talepler
+                </h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div id="active-requests-list" style="max-height: 400px; overflow-y: auto;">
+                    <p class="text-center text-muted" style="padding: 2rem;">Yükleniyor...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buggy Status -->
+        <div class="card" style="border: 1px solid #e5e7eb; box-shadow: var(--shadow-md);">
+            <div class="card-header"
+                style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-bottom: 2px solid #e5e7eb;">
+                <h3 class="card-title" style="color: #1e293b; font-size: 1.125rem;">
+                    <i class="fas fa-car-side" style="color: var(--primary-color);"></i> Buggy Durumu
+                </h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div id="buggy-status-list" style="max-height: 400px; overflow-y: auto;">
+                    <p class="text-center text-muted" style="padding: 2rem;">Yükleniyor...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script>
+    // Set hotel ID from session data
+    document.body.dataset.hotelId = '{{ session.get("hotel_id", 1) }}';
+
+    // Hide welcome message after 5 seconds
+    setTimeout( () => {
+        const welcomeMsg = document.getElementById( 'welcomeMessage' );
+        if ( welcomeMsg ) {
+            welcomeMsg.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+            welcomeMsg.style.opacity = '0';
+            welcomeMsg.style.transform = 'translateY(-20px)';
+            setTimeout( () => {
+                welcomeMsg.style.display = 'none';
+            }, 500 );
+        }
+    }, 5000 );
+
+    // Logout function
+    function logout() {
+        if ( confirm( 'Çıkış yapmak istediğinize emin misiniz?' ) ) {
+            localStorage.clear();
+            window.location.href = '/auth/login';
+        }
+    }
+</script>
+{% endblock %}

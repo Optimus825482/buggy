@@ -1,0 +1,794 @@
+{% extends "base.html" %}
+
+{% block title %}Buggy'ler{% endblock %}
+
+{% block header_nav %}
+<nav class="nav">
+    <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
+        <i class="fas fa-home"></i> Dashboard
+    </a>
+    <a href="{{ url_for('admin.locations') }}" class="nav-link">
+        <i class="fas fa-map-marker-alt"></i> Lokasyonlar
+    </a>
+    <a href="{{ url_for('admin.buggies') }}" class="nav-link active">
+        <i class="fas fa-golf-cart"></i> Buggy'ler
+    </a>
+    <a href="{{ url_for('admin.reports') }}" class="nav-link">
+        <i class="fas fa-chart-bar"></i> Raporlar
+    </a>
+    <a href="#" onclick="logout()" class="nav-link">
+        <i class="fas fa-sign-out-alt"></i> Çıkış
+    </a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 2rem 0;">
+    <div class="d-flex justify-between align-center" style="margin-bottom: 2rem;">
+        <h1><i class="fas fa-golf-cart text-primary"></i> Buggy Yönetimi</h1>
+        <button class="btn btn-primary" onclick="showAddBuggy()">
+            <i class="fas fa-plus"></i> Yeni Buggy
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Buggy Kodu</th>
+                            <th>Plaka</th>
+                            <th>Sürücü</th>
+                            <th>Lokasyon</th>
+                            <th>Durum</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="buggies-table">
+                        <tr>
+                            <td colspan="6" class="text-center">Yükleniyor...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let buggies = [];
+    let drivers = [];
+
+    document.addEventListener( 'DOMContentLoaded', () => {
+        loadData();
+        initializeWebSocket();
+    } );
+
+    async function loadData() {
+        await Promise.all( [loadBuggies(), loadDrivers()] );
+    }
+
+    async function loadBuggies() {
+        try {
+            const response = await fetch( '/api/buggies' );
+            const data = await response.json();
+
+            if ( response.ok && data.success ) {
+                buggies = data.buggies;
+                renderBuggies();
+            }
+        } catch ( error ) {
+            console.error( 'Error loading buggies:', error );
+            showToast( 'Buggyler yüklenemedi', 'danger' );
+        }
+    }
+
+    async function loadDrivers() {
+        try {
+            const response = await fetch( '/api/drivers' );
+            const data = await response.json();
+
+            if ( response.ok && data.success ) {
+                drivers = data.drivers;
+            }
+        } catch ( error ) {
+            console.error( 'Error loading drivers:', error );
+        }
+    }
+
+    function renderBuggies() {
+        const tbody = document.getElementById( 'buggies-table' );
+
+        if ( buggies.length === 0 ) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Henüz buggy eklenmemiş</td></tr>';
+            return;
+        }
+
+        const statusColors = {
+            'available': 'success',
+            'busy': 'warning',
+            'offline': 'secondary'
+        };
+
+        const statusLabels = {
+            'available': 'Müsait',
+            'busy': 'Meşgul',
+            'offline': 'Çevrimdışı'
+        };
+
+        tbody.innerHTML = buggies.map( buggy => `
+            <tr>
+                <td><strong>${buggy.code}</strong></td>
+                <td>${buggy.license_plate || '-'}</td>
+                <td>
+                    ${buggy.driver_name ? 
+                        `<span>${buggy.driver_name}</span>
+                         <span class="badge badge-${buggy.status === 'available' || buggy.status === 'busy' ? 'success' : 'secondary'}" style="margin-left: 0.5rem;">
+                            ${buggy.status === 'available' || buggy.status === 'busy' ? 'Aktif' : 'Çevrimdışı'}
+                         </span>` : 
+                        '<span class="text-muted">Atanmadı</span>'
+                    }
+                </td>
+                <td>
+                    ${buggy.current_location ? 
+                        `<span class="badge badge-info">
+                            <i class="fas fa-map-marker-alt"></i> ${buggy.current_location.name}
+                        </span>` : 
+                        '<span class="text-muted">Bilinmiyor</span>'
+                    }
+                </td>
+                <td>
+                    <span class="badge badge-${statusColors[buggy.status] || 'secondary'}">
+                        ${statusLabels[buggy.status] || buggy.status}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="editBuggy(${buggy.id})" title="Düzenle">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="showAssignDriverModal(${buggy.id})" title="Sürücü Ekle">
+                        <i class="fas fa-user-plus"></i>
+                    </button>
+                    ${buggy.driver_id ? 
+                        `<button class="btn btn-sm btn-warning" onclick="showTransferDriverModal(${buggy.id})" title="Transfer Et">
+                            <i class="fas fa-exchange-alt"></i>
+                        </button>` : ''
+                    }
+                    <button class="btn btn-sm btn-danger" onclick="deleteBuggy(${buggy.id})" title="Sil">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join( '' );
+    }
+
+    async function showAddBuggy() {
+        // Create driver options HTML
+        let driverOptions = '<option value="">Mevcut Sürücü Seç</option>';
+        driverOptions += '<option value="null">Atama Yapma</option>';
+        driverOptions += '<option value="new">🆕 Yeni Sürücü Oluştur</option>';
+        drivers.forEach( d => {
+            driverOptions += `<option value="${d.id}">${d.full_name || d.username}</option>`;
+        } );
+
+        const modalContent = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Buggy Kodu *</label>
+                    <input type="text" id="add-code" placeholder="BUGGY-01" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" 
+                           required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Plaka</label>
+                    <input type="text" id="add-license-plate" placeholder="34ABC123" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sürücü</label>
+                    <select id="add-driver" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            onchange="handleDriverSelection(this.value)">
+                        ${driverOptions}
+                    </select>
+                </div>
+                <!-- New driver fields (hidden by default) -->
+                <div id="new-driver-fields" class="hidden space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 class="text-sm font-semibold text-blue-900 mb-2">
+                        <i class="fas fa-user-plus"></i> Yeni Sürücü Bilgileri
+                    </h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Ad *</label>
+                            <input type="text" id="driver-first-name" 
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Soyad *</label>
+                            <input type="text" id="driver-last-name" 
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Kullanıcı Adı *</label>
+                        <input type="text" id="driver-username" 
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                               placeholder="surucu01">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Şifre *</label>
+                        <input type="password" id="driver-password" 
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                               placeholder="Minimum 6 karakter">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Telefon</label>
+                        <input type="tel" id="driver-phone" 
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                               placeholder="+90 555 123 4567">
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const result = await BuggyModal.custom( modalContent, {
+            title: '🚗 Yeni Buggy Ekle',
+            confirmText: 'Ekle',
+            cancelText: 'İptal',
+            size: 'medium'
+        } );
+
+        if ( result ) {
+            const code = document.getElementById( 'add-code' ).value.trim();
+            const licensePlate = document.getElementById( 'add-license-plate' ).value.trim();
+            const driverValue = document.getElementById( 'add-driver' ).value;
+
+            if ( !code ) {
+                await showError( 'Buggy kodu boş olamaz!' );
+                return;
+            }
+
+            let driver_id = null;
+
+            // Check if creating new driver
+            if ( driverValue === 'new' ) {
+                const firstName = document.getElementById( 'driver-first-name' ).value.trim();
+                const lastName = document.getElementById( 'driver-last-name' ).value.trim();
+                const username = document.getElementById( 'driver-username' ).value.trim();
+                const password = document.getElementById( 'driver-password' ).value;
+                const phone = document.getElementById( 'driver-phone' ).value.trim();
+
+                if ( !firstName || !lastName || !username || !password ) {
+                    await showError( 'Yeni sürücü için tüm zorunlu alanları doldurun!' );
+                    return;
+                }
+
+                if ( password.length < 6 ) {
+                    await showError( 'Şifre en az 6 karakter olmalıdır!' );
+                    return;
+                }
+
+                // Create new driver first
+                try {
+                    const driverResponse = await fetch( '/api/users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify( {
+                            username,
+                            password,
+                            first_name: firstName,
+                            last_name: lastName,
+                            phone,
+                            role: 'driver'
+                        } )
+                    } );
+
+                    const driverResult = await driverResponse.json();
+
+                    if ( driverResponse.ok && driverResult.success ) {
+                        driver_id = driverResult.user.id;
+                        await showSuccess( `Sürücü "${firstName} ${lastName}" başarıyla oluşturuldu!` );
+                    } else {
+                        await showError( 'Sürücü oluşturulamadı: ' + ( driverResult.error || 'Bilinmeyen hata' ) );
+                        return;
+                    }
+                } catch ( error ) {
+                    await showError( 'Sürücü oluşturulurken hata oluştu: ' + error.message );
+                    return;
+                }
+            } else if ( driverValue !== 'null' && driverValue !== '' ) {
+                driver_id = parseInt( driverValue );
+            }
+
+            // Now create buggy
+            await addBuggy( { code, license_plate: licensePlate, driver_id } );
+        }
+    }
+
+    // Helper function to show/hide new driver fields
+    window.handleDriverSelection = function ( value ) {
+        const newDriverFields = document.getElementById( 'new-driver-fields' );
+        if ( newDriverFields ) {
+            if ( value === 'new' ) {
+                newDriverFields.classList.remove( 'hidden' );
+            } else {
+                newDriverFields.classList.add( 'hidden' );
+            }
+        }
+    };
+
+    async function addBuggy( data ) {
+        try {
+            const response = await fetch( '/api/buggies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify( data )
+            } );
+
+            const result = await response.json();
+
+            if ( response.ok && result.success ) {
+                await showSuccess( 'Buggy başarıyla eklendi!' );
+                loadBuggies();
+                await loadDrivers(); // Refresh driver list
+            } else {
+                await showError( result.error || 'Buggy eklenemedi!' );
+            }
+        } catch ( error ) {
+            console.error( 'Error adding buggy:', error );
+            await showError( 'Buggy eklenirken bir hata oluştu: ' + error.message );
+        }
+    }
+
+    async function editBuggy( id ) {
+        const buggy = buggies.find( b => b.id === id );
+        if ( !buggy ) {
+            await showError( 'Buggy bulunamadı!' );
+            return;
+        }
+
+        // Create driver options HTML
+        let driverOptions = '<option value="">Sürücü Seçin</option>';
+        driverOptions += '<option value="null">Atama Kaldır</option>';
+        drivers.forEach( d => {
+            const selected = buggy.driver_id === d.id ? 'selected' : '';
+            driverOptions += `<option value="${d.id}" ${selected}>${d.full_name || d.username}</option>`;
+        } );
+
+        const modalContent = `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Buggy Kodu *</label>
+                    <input type="text" id="edit-code" value="${buggy.code}" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" 
+                           required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Plaka</label>
+                    <input type="text" id="edit-license-plate" value="${buggy.license_plate || ''}" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sürücü</label>
+                    <select id="edit-driver" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        ${driverOptions}
+                    </select>
+                </div>
+            </div>
+        `;
+
+        const result = await BuggyModal.custom( modalContent, {
+            title: 'Buggy Düzenle',
+            confirmText: 'Güncelle',
+            cancelText: 'İptal',
+            size: 'medium'
+        } );
+
+        if ( result ) {
+            const code = document.getElementById( 'edit-code' ).value.trim();
+            const licensePlate = document.getElementById( 'edit-license-plate' ).value.trim();
+            const driverValue = document.getElementById( 'edit-driver' ).value;
+            const driver_id = driverValue === 'null' || driverValue === '' ? null : parseInt( driverValue );
+
+            if ( !code ) {
+                await showError( 'Buggy kodu boş olamaz!' );
+                return;
+            }
+
+            try {
+                const response = await fetch( `/api/buggies/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify( { code, license_plate: licensePlate, driver_id } )
+                } );
+
+                const apiResult = await response.json();
+
+                if ( response.ok && apiResult.success ) {
+                    await showSuccess( 'Buggy başarıyla güncellendi!' );
+                    loadBuggies();
+                } else {
+                    await showError( apiResult.error || 'Buggy güncellenemedi!' );
+                }
+            } catch ( error ) {
+                console.error( 'Error updating buggy:', error );
+                await showError( 'Buggy güncellenirken bir hata oluştu: ' + error.message );
+            }
+        }
+    }
+
+    async function deleteBuggy( id ) {
+        const confirmed = await BuggyModal.confirm(
+            'Bu buggy\'i silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+            'Buggy Sil',
+            'Evet, Sil',
+            'İptal'
+        );
+
+        if ( !confirmed ) return;
+
+        try {
+            const response = await fetch( `/api/buggies/${id}`, {
+                method: 'DELETE'
+            } );
+
+            const result = await response.json();
+
+            if ( response.ok && result.success ) {
+                await showSuccess( 'Buggy başarıyla silindi!' );
+                loadBuggies();
+            } else {
+                await showError( result.error || 'Buggy silinemedi!' );
+            }
+        } catch ( error ) {
+            console.error( 'Error deleting buggy:', error );
+            await showError( 'Buggy silinirken bir hata oluştu: ' + error.message );
+        }
+    }
+
+    function showToast( message, type = 'info' ) {
+        const toast = document.createElement( 'div' );
+        toast.className = `alert alert-${type}`;
+        toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;min-width:250px;animation:slideIn 0.3s;';
+        toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'times-circle' : 'info-circle'}"></i> ${message}`;
+        document.body.appendChild( toast );
+        setTimeout( () => toast.remove(), 3000 );
+    }
+
+    function logout() {
+        if ( confirm( 'Çıkış yapmak istediğinize emin misiniz?' ) ) {
+            window.location.href = '/auth/logout';
+        }
+    }
+
+    // ==================== WebSocket Real-Time Updates ====================
+    let socket = null;
+
+    function initializeWebSocket() {
+        if (typeof io === 'undefined') {
+            console.warn('Socket.IO not available');
+            return;
+        }
+
+        // Connect to Socket.IO server
+        socket = io({
+            transports: ['polling', 'websocket'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 5
+        });
+
+        socket.on('connect', () => {
+            console.log('Socket connected');
+            // Join admin room
+            socket.emit('join_hotel', {
+                hotel_id: {{ session.get('hotel_id', 1) }},
+                role: 'admin'
+            });
+        });
+
+        // Listen for driver assigned event
+        socket.on('driver_assigned', (data) => {
+            console.log('Driver assigned:', data);
+            showToast(`${data.driver_name} ${data.buggy_code} buggy'sine atandı`, 'success');
+            loadBuggies(); // Refresh buggy list
+        });
+
+        // Listen for driver transferred event
+        socket.on('driver_transferred', (data) => {
+            console.log('Driver transferred:', data);
+            const message = `${data.driver_name} ${data.source_buggy_code}'dan ${data.target_buggy_code}'a transfer edildi`;
+            showToast(message, 'success');
+            loadBuggies(); // Refresh buggy list
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Socket disconnected');
+        });
+
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+        });
+    }
+
+    // ==================== Driver Assignment Functions ====================
+    async function showAssignDriverModal(buggyId) {
+        const buggy = buggies.find(b => b.id === buggyId);
+        if (!buggy) {
+            await showError('Buggy bulunamadı!');
+            return;
+        }
+
+        // Filter out drivers that are already assigned to other buggies
+        const assignedDriverIds = buggies
+            .filter(b => b.driver_id && b.id !== buggyId)
+            .map(b => b.driver_id);
+        
+        const availableDrivers = drivers.filter(d => !assignedDriverIds.includes(d.id));
+
+        let driverOptions = '<option value="">Sürücü Seçin</option>';
+        driverOptions += '<option value="new">🆕 Yeni Sürücü Oluştur</option>';
+        availableDrivers.forEach(d => {
+            driverOptions += `<option value="${d.id}">${d.full_name || d.username}</option>`;
+        });
+
+        const modalContent = `
+            <div class="space-y-4">
+                <p class="text-center"><strong>Buggy:</strong> ${buggy.code}</p>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sürücü Seç *</label>
+                    <select id="assign-driver-select" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            onchange="handleAssignDriverSelection(this.value)"
+                            required>
+                        ${driverOptions}
+                    </select>
+                </div>
+                <!-- New driver fields (hidden by default) -->
+                <div id="assign-new-driver-fields" class="hidden space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 class="text-sm font-semibold text-blue-900 mb-2">
+                        <i class="fas fa-user-plus"></i> Yeni Sürücü Bilgileri
+                    </h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Ad *</label>
+                            <input type="text" id="assign-driver-first-name" 
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Soyad *</label>
+                            <input type="text" id="assign-driver-last-name" 
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Kullanıcı Adı *</label>
+                        <input type="text" id="assign-driver-username" 
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                               placeholder="surucu01">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Şifre *</label>
+                        <input type="password" id="assign-driver-password" 
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                               placeholder="Minimum 6 karakter">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Telefon</label>
+                        <input type="tel" id="assign-driver-phone" 
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                               placeholder="+90 555 123 4567">
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const result = await BuggyModal.custom(modalContent, {
+            title: '👤 Sürücü Ekle',
+            confirmText: 'Ekle',
+            cancelText: 'İptal',
+            size: 'medium'
+        });
+
+        if (result) {
+            const driverValue = document.getElementById('assign-driver-select').value;
+            
+            if (!driverValue) {
+                await showError('Lütfen bir sürücü seçin!');
+                return showAssignDriverModal(buggyId); // Show again
+            }
+
+            let driverId = null;
+
+            // Check if creating new driver
+            if (driverValue === 'new') {
+                const firstName = document.getElementById('assign-driver-first-name').value.trim();
+                const lastName = document.getElementById('assign-driver-last-name').value.trim();
+                const username = document.getElementById('assign-driver-username').value.trim();
+                const password = document.getElementById('assign-driver-password').value;
+                const phone = document.getElementById('assign-driver-phone').value.trim();
+
+                if (!firstName || !lastName || !username || !password) {
+                    await showError('Yeni sürücü için tüm zorunlu alanları doldurun!');
+                    return showAssignDriverModal(buggyId);
+                }
+
+                if (password.length < 6) {
+                    await showError('Şifre en az 6 karakter olmalıdır!');
+                    return showAssignDriverModal(buggyId);
+                }
+
+                // Create new driver first
+                try {
+                    const driverResponse = await fetch('/api/users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username,
+                            password,
+                            first_name: firstName,
+                            last_name: lastName,
+                            phone,
+                            role: 'driver'
+                        })
+                    });
+
+                    const driverResult = await driverResponse.json();
+
+                    if (driverResponse.ok && driverResult.success) {
+                        driverId = driverResult.user.id;
+                        await showSuccess(`Sürücü "${firstName} ${lastName}" başarıyla oluşturuldu!`);
+                        await loadDrivers(); // Refresh driver list
+                    } else {
+                        await showError('Sürücü oluşturulamadı: ' + (driverResult.error || 'Bilinmeyen hata'));
+                        return;
+                    }
+                } catch (error) {
+                    await showError('Sürücü oluşturulurken hata oluştu: ' + error.message);
+                    return;
+                }
+            } else {
+                driverId = parseInt(driverValue);
+            }
+
+            await assignDriverToBuggy(buggyId, driverId);
+        }
+    }
+
+    // Helper function to show/hide new driver fields in assign modal
+    window.handleAssignDriverSelection = function(value) {
+        const newDriverFields = document.getElementById('assign-new-driver-fields');
+        if (newDriverFields) {
+            if (value === 'new') {
+                newDriverFields.classList.remove('hidden');
+            } else {
+                newDriverFields.classList.add('hidden');
+            }
+        }
+    };
+
+    async function assignDriverToBuggy(buggyId, driverId) {
+        try {
+            const response = await fetch('/api/admin/assign-driver-to-buggy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ buggy_id: buggyId, driver_id: driverId })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                await showSuccess(data.message || 'Sürücü başarıyla atandı!');
+                await loadBuggies();
+            } else {
+                await showError(data.error || 'Sürücü atanamadı!');
+            }
+        } catch (error) {
+            console.error('Error assigning driver:', error);
+            await showError('Sürücü atanırken bir hata oluştu: ' + error.message);
+        }
+    }
+
+    // ==================== Driver Transfer Functions ====================
+    async function showTransferDriverModal(buggyId) {
+        const sourceBuggy = buggies.find(b => b.id === buggyId);
+        if (!sourceBuggy) {
+            await showError('Buggy bulunamadı!');
+            return;
+        }
+
+        if (!sourceBuggy.driver_id) {
+            await showError('Bu buggy\'de sürücü yok!');
+            return;
+        }
+
+        // Get available target buggies (exclude source buggy)
+        const targetBuggies = buggies.filter(b => b.id !== buggyId);
+
+        if (targetBuggies.length === 0) {
+            await showError('Transfer edilebilecek başka buggy yok!');
+            return;
+        }
+
+        let buggyOptions = '<option value="">Hedef Buggy Seçin</option>';
+        targetBuggies.forEach(b => {
+            const driverInfo = b.driver_name ? ` (Sürücü: ${b.driver_name})` : ' (Boş)';
+            buggyOptions += `<option value="${b.id}">${b.code}${driverInfo}</option>`;
+        });
+
+        const modalContent = `
+            <div class="space-y-4">
+                <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p class="text-sm"><strong>Mevcut Sürücü:</strong> ${sourceBuggy.driver_name}</p>
+                    <p class="text-sm"><strong>Mevcut Buggy:</strong> ${sourceBuggy.code}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Hedef Buggy *</label>
+                    <select id="transfer-target-buggy" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            required>
+                        ${buggyOptions}
+                    </select>
+                </div>
+                <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p class="text-sm text-yellow-800">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Uyarı:</strong> Sürücünün aktif oturumu varsa kapatılacak ve her iki buggy çevrimdışı olacak.
+                    </p>
+                </div>
+            </div>
+        `;
+
+        const result = await BuggyModal.custom(modalContent, {
+            title: '🔄 Sürücü Transfer Et',
+            confirmText: 'Transfer Et',
+            cancelText: 'İptal',
+            size: 'medium'
+        });
+
+        if (result) {
+            const targetBuggyId = document.getElementById('transfer-target-buggy').value;
+            
+            if (!targetBuggyId) {
+                await showError('Lütfen hedef buggy seçin!');
+                return showTransferDriverModal(buggyId); // Show again
+            }
+
+            await transferDriver(sourceBuggy.driver_id, buggyId, parseInt(targetBuggyId));
+        }
+    }
+
+    async function transferDriver(driverId, sourceBuggyId, targetBuggyId) {
+        try {
+            const response = await fetch('/api/admin/transfer-driver', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    driver_id: driverId,
+                    source_buggy_id: sourceBuggyId,
+                    target_buggy_id: targetBuggyId
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                await showSuccess(data.message || 'Sürücü başarıyla transfer edildi!');
+                if (data.session_terminated) {
+                    await BuggyModal.alert('Sürücünün aktif oturumu sonlandırıldı ve her iki buggy çevrimdışı yapıldı.');
+                }
+                await loadBuggies();
+            } else {
+                await showError(data.error || 'Sürücü transfer edilemedi!');
+            }
+        } catch (error) {
+            console.error('Error transferring driver:', error);
+            await showError('Sürücü transfer edilirken bir hata oluştu: ' + error.message);
+        }
+    }
+</script>
+{% endblock %}

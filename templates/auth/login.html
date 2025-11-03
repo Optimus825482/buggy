@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Giriş Yap{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-container {
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-xl) var(--spacing-md);
+        background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+        position: relative;
+    }
+
+    .login-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image:
+            radial-gradient(circle at 20% 30%, rgba(27, 165, 168, 0.03) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, rgba(242, 140, 56, 0.03) 0%, transparent 50%);
+        pointer-events: none;
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 480px;
+        position: relative;
+        z-index: 1;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.98);
+    }
+
+    .login-card .card-body {
+        padding: 2.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .login-card .card-body {
+            padding: 1.5rem;
+        }
+    }
+
+    .login-header {
+        text-align: center;
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .login-logo {
+        width: 280px;
+        max-width: 90%;
+        height: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto var(--spacing-lg);
+        padding: var(--spacing-md);
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        animation: logoFadeIn 0.8s ease-out;
+    }
+
+    .login-logo:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 30px rgba(27, 165, 168, 0.15);
+    }
+
+    .login-logo img {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        display: block;
+    }
+
+    @keyframes logoFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .login-logo {
+            width: 220px;
+            padding: var(--spacing-sm);
+        }
+    }
+
+    .login-title {
+        font-size: var(--font-size-2xl);
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-sm);
+        font-weight: 700;
+        animation: titleFadeIn 1s ease-out 0.2s both;
+    }
+
+    .login-subtitle {
+        color: var(--text-secondary);
+        font-size: var(--font-size-base);
+        font-weight: 500;
+        animation: subtitleFadeIn 1s ease-out 0.4s both;
+    }
+
+    @keyframes titleFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes subtitleFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .login-card form {
+        animation: formFadeIn 1s ease-out 0.6s both;
+    }
+
+    @keyframes formFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card card">
+        <div class="card-body">
+            <div class="login-header">
+                <div class="login-logo">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Buggy Call Logo">
+                </div>
+                <h1 class="login-title">Buggy Call</h1>
+                <p class="login-subtitle">Your Ride, On Demand</p>
+            </div>
+
+            <form id="loginForm" method="POST">
+                {% include '_csrf_token.html' %}
+                <div class="form-group">
+                    <label for="username" class="form-label">
+                        <i class="fas fa-user"></i> Kullanıcı Adı
+                    </label>
+                    <input type="text" id="username" name="username" class="form-control"
+                        placeholder="Kullanıcı adınızı girin" required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">
+                        <i class="fas fa-lock"></i> Şifre
+                    </label>
+                    <input type="password" id="password" name="password" class="form-control"
+                        placeholder="Şifrenizi girin" required>
+                </div>
+
+                <div class="form-check">
+                    <input type="checkbox" id="remember" name="remember" class="form-check-input">
+                    <label for="remember" class="form-check-label">Beni hatırla</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-block">
+                    <i class="fas fa-sign-in-alt"></i> Giriş Yap
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const loginForm = document.getElementById( 'loginForm' );
+
+    loginForm.addEventListener( 'submit', async ( e ) => {
+        e.preventDefault();
+
+        const formData = BuggyCall.Form.getData( loginForm );
+        BuggyCall.Utils.showLoading();
+
+        try {
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+            const response = await fetch( '/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify( formData )
+            } );
+
+            const data = await response.json();
+
+            if ( response.ok && data.success ) {
+                // Store tokens
+                if (data.access_token) {
+                    localStorage.setItem( 'access_token', data.access_token );
+                }
+                if (data.refresh_token) {
+                    localStorage.setItem( 'refresh_token', data.refresh_token );
+                }
+                if (data.user) {
+                    localStorage.setItem( 'user', JSON.stringify( data.user ) );
+                }
+
+                // Show success message
+                BuggyCall.Utils.showToast( data.message || 'Giriş başarılı!', 'success' );
+
+                // Redirect based on role
+                if ( data.user && data.user.role === 'admin' ) {
+                    window.location.href = '/admin/dashboard';
+                } else if ( data.user && data.user.role === 'driver' ) {
+                    window.location.href = '/driver/dashboard';
+                } else {
+                    // Fallback redirect
+                    window.location.href = '/';
+                }
+            } else {
+                BuggyCall.Utils.showToast( data.error || data.message || 'Giriş başarısız', 'danger' );
+            }
+        } catch ( error ) {
+            console.error( 'Login error:', error );
+            BuggyCall.Utils.showToast( 'Bir hata oluştu', 'danger' );
+        } finally {
+            BuggyCall.Utils.hideLoading();
+        }
+    } );
+</script>
+{% endblock %}

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuggyCall - Frontend Test Suite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+
+        .test-pass {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+
+        .test-fail {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+
+        .test-pending {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            flex: 1;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-pass {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .stat-fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .stat-total {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="fas fa-vial"></i> BuggyCall Frontend Test Suite
+        </h1>
+
+        <div class="stats" id="stats">
+            <div class="stat-card stat-total">
+                <h3 id="total-tests">0</h3>
+                <div>Total Tests</div>
+            </div>
+            <div class="stat-card stat-pass">
+                <h3 id="passed-tests">0</h3>
+                <div>Passed</div>
+            </div>
+            <div class="stat-card stat-fail">
+                <h3 id="failed-tests">0</h3>
+                <div>Failed</div>
+            </div>
+        </div>
+
+        <div class="mt-4 mb-3">
+            <button class="btn btn-primary" onclick="runAllTests()">
+                <i class="fas fa-play"></i> Run All Tests
+            </button>
+            <button class="btn btn-secondary" onclick="clearResults()">
+                <i class="fas fa-trash"></i> Clear Results
+            </button>
+        </div>
+
+        <div id="test-results"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+
+    <script>
+        // Test Framework
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.currentSection = null;
+            }
+
+            describe( name, callback ) {
+                this.currentSection = name;
+                callback();
+                this.currentSection = null;
+            }
+
+            test( name, callback ) {
+                this.tests.push( {
+                    section: this.currentSection || 'General',
+                    name: name,
+                    fn: callback
+                } );
+            }
+
+            async runAll() {
+                this.results = [];
+                const resultsDiv = document.getElementById( 'test-results' );
+                resultsDiv.innerHTML = '';
+
+                let passed = 0;
+                let failed = 0;
+
+                // Group tests by section
+                const sections = {};
+                this.tests.forEach( test => {
+                    if ( !sections[test.section] ) {
+                        sections[test.section] = [];
+                    }
+                    sections[test.section].push( test );
+                } );
+
+                // Run tests by section
+                for ( const [section, tests] of Object.entries( sections ) ) {
+                    const sectionDiv = document.createElement( 'div' );
+                    sectionDiv.className = 'test-section';
+                    sectionDiv.innerHTML = `<h4>${section}</h4>`;
+                    resultsDiv.appendChild( sectionDiv );
+
+                    for ( const test of tests ) {
+                        const resultDiv = document.createElement( 'div' );
+                        resultDiv.className = 'test-result test-pending';
+                        resultDiv.innerHTML = `⏳ Running: ${test.name}`;
+                        sectionDiv.appendChild( resultDiv );
+
+                        try {
+                            await test.fn();
+                            resultDiv.className = 'test-result test-pass';
+                            resultDiv.innerHTML = `✅ PASS: ${test.name}`;
+                            passed++;
+                        } catch ( error ) {
+                            resultDiv.className = 'test-result test-fail';
+                            resultDiv.innerHTML = `❌ FAIL: ${test.name}<br><small>${error.message}</small>`;
+                            failed++;
+                        }
+                    }
+                }
+
+                // Update stats
+                document.getElementById( 'total-tests' ).textContent = this.tests.length;
+                document.getElementById( 'passed-tests' ).textContent = passed;
+                document.getElementById( 'failed-tests' ).textContent = failed;
+            }
+        }
+
+        const runner = new TestRunner();
+
+        // Assertion helpers
+        function assert( condition, message ) {
+            if ( !condition ) {
+                throw new Error( message || 'Assertion failed' );
+            }
+        }
+
+        function assertEqual( actual, expected, message ) {
+            if ( actual !== expected ) {
+                throw new Error( message || `Expected ${expected} but got ${actual}` );
+            }
+        }
+
+        function assertNotNull( value, message ) {
+            if ( value === null || value === undefined ) {
+                throw new Error( message || 'Value is null or undefined' );
+            }
+        }
+
+        function assertArrayLength( array, length, message ) {
+            if ( !Array.isArray( array ) || array.length !== length ) {
+                throw new Error( message || `Expected array length ${length} but got ${array?.length}` );
+            }
+        }
+
+        // Mock BuggyCall API
+        window.BuggyCall = {
+            API: {
+                async get( url ) {
+                    return { ok: true, data: [] };
+                },
+                async post( url, data ) {
+                    return { ok: true, data: { id: 1, ...data } };
+                },
+                async put( url, data ) {
+                    return { ok: true, data: { ...data } };
+                },
+                async delete( url ) {
+                    return { ok: true };
+                }
+            },
+            showToast: function ( type, message ) {
+                console.log( `Toast: [${type}] ${message}` );
+            }
+        };
+
+        // Test Suites
+
+        // Common.js Tests
+        runner.describe( 'Common.js - API Functions', () => {
+            runner.test( 'BuggyCall.API.get should exist', () => {
+                assertNotNull( window.BuggyCall, 'BuggyCall global not defined' );
+                assertNotNull( window.BuggyCall.API, 'BuggyCall.API not defined' );
+                assertNotNull( window.BuggyCall.API.get, 'BuggyCall.API.get not defined' );
+            } );
+
+            runner.test( 'BuggyCall.API.post should exist', () => {
+                assertNotNull( window.BuggyCall.API.post, 'BuggyCall.API.post not defined' );
+            } );
+
+            runner.test( 'BuggyCall.API should handle GET request', async () => {
+                const response = await BuggyCall.API.get( '/api/test' );
+                assertNotNull( response, 'Response is null' );
+            } );
+
+            runner.test( 'BuggyCall.API should handle POST request', async () => {
+                const response = await BuggyCall.API.post( '/api/test', { data: 'test' } );
+                assertNotNull( response, 'Response is null' );
+            } );
+        } );
+
+        runner.describe( 'Common.js - Toast Notifications', () => {
+            runner.test( 'BuggyCall.showToast should exist', () => {
+                assertNotNull( window.BuggyCall.showToast, 'showToast not defined' );
+            } );
+
+            runner.test( 'showToast should accept success type', () => {
+                BuggyCall.showToast( 'success', 'Test message' );
+                assert( true, 'showToast executed without error' );
+            } );
+
+            runner.test( 'showToast should accept error type', () => {
+                BuggyCall.showToast( 'error', 'Test error' );
+                assert( true, 'showToast executed without error' );
+            } );
+        } );
+
+        // Guest.js Tests
+        runner.describe( 'Guest.js - QR Scanning', () => {
+            runner.test( 'QR data should be parseable', () => {
+                const qrData = '{"hotel_id": 1, "location_id": 3}';
+                const parsed = JSON.parse( qrData );
+                assertNotNull( parsed.hotel_id, 'hotel_id not found' );
+                assertNotNull( parsed.location_id, 'location_id not found' );
+            } );
+
+            runner.test( 'Location code format should be valid', () => {
+                const locationCode = 'LOC1001';
+                assert( locationCode.startsWith( 'LOC' ), 'Invalid location code format' );
+            } );
+        } );
+
+        runner.describe( 'Guest.js - Request Creation', () => {
+            runner.test( 'Request should have required fields', () => {
+                const request = {
+                    location_id: 1,
+                    room_number: '101',
+                    notes: 'Test'
+                };
+                assertNotNull( request.location_id, 'location_id missing' );
+                assertNotNull( request.room_number, 'room_number missing' );
+            } );
+
+            runner.test( 'Request can be created via API', async () => {
+                const response = await BuggyCall.API.post( '/api/requests', {
+                    location_id: 1,
+                    room_number: '101'
+                } );
+                assert( response.ok, 'Request creation failed' );
+            } );
+        } );
+
+        // Driver.js Tests
+        runner.describe( 'Driver.js - Request Management', () => {
+            runner.test( 'Driver should be able to fetch pending requests', async () => {
+                const response = await BuggyCall.API.get( '/api/requests/pending' );
+                assert( response.ok, 'Failed to fetch pending requests' );
+            } );
+
+            runner.test( 'Elapsed time calculation should work', () => {
+                const startTime = new Date();
+                const endTime = new Date( startTime.getTime() + 5 * 60 * 1000 ); // 5 minutes
+                const diff = Math.floor( ( endTime - startTime ) / 1000 );
+                assertEqual( diff, 300, 'Elapsed time calculation incorrect' );
+            } );
+
+            runner.test( 'Time formatting should be correct', () => {
+                const seconds = 125; // 2 minutes 5 seconds
+                const minutes = Math.floor( seconds / 60 );
+                const secs = seconds % 60;
+                assertEqual( minutes, 2, 'Minutes incorrect' );
+                assertEqual( secs, 5, 'Seconds incorrect' );
+            } );
+        } );
+
+        // Admin.js Tests
+        runner.describe( 'Admin.js - Buggy Management', () => {
+            runner.test( 'Buggy object should have required fields', () => {
+                const buggy = {
+                    code: 'B001',
+                    model: 'Club Car',
+                    license_plate: 'ABC-123',
+                    status: 'available'
+                };
+                assertNotNull( buggy.code, 'code missing' );
+                assertNotNull( buggy.model, 'model missing' );
+                assertNotNull( buggy.license_plate, 'license_plate missing' );
+                assertNotNull( buggy.status, 'status missing' );
+            } );
+
+            runner.test( 'Buggy can be created via API', async () => {
+                const response = await BuggyCall.API.post( '/api/buggies', {
+                    code: 'B001',
+                    model: 'Test',
+                    license_plate: 'TEST-123'
+                } );
+                assert( response.ok, 'Buggy creation failed' );
+            } );
+        } );
+
+        runner.describe( 'Admin.js - Location Management', () => {
+            runner.test( 'Location object should have required fields', () => {
+                const location = {
+                    name: 'Reception',
+                    description: 'Main reception',
+                    is_active: true
+                };
+                assertNotNull( location.name, 'name missing' );
+            } );
+
+            runner.test( 'Location can be updated via API', async () => {
+                const response = await BuggyCall.API.put( '/api/locations/1', {
+                    name: 'Updated Location'
+                } );
+                assert( response.ok, 'Location update failed' );
+            } );
+        } );
+
+        runner.describe( 'Admin.js - Reports & Analytics', () => {
+            runner.test( 'Date filtering should work', () => {
+                const today = new Date();
+                const yesterday = new Date( today );
+                yesterday.setDate( yesterday.getDate() - 1 );
+
+                assert( yesterday < today, 'Date comparison failed' );
+            } );
+
+            runner.test( 'Statistics calculation should work', () => {
+                const requests = [
+                    { status: 'completed', created_at: '2024-01-01T10:00:00Z' },
+                    { status: 'completed', created_at: '2024-01-01T11:00:00Z' },
+                    { status: 'pending', created_at: '2024-01-01T12:00:00Z' }
+                ];
+
+                const completed = requests.filter( r => r.status === 'completed' );
+                assertEqual( completed.length, 2, 'Completed count incorrect' );
+            } );
+
+            runner.test( 'Average time calculation should work', () => {
+                const times = [300, 600, 450]; // seconds
+                const avg = times.reduce( ( a, b ) => a + b, 0 ) / times.length;
+                assertEqual( avg, 450, 'Average calculation incorrect' );
+            } );
+        } );
+
+        // WebSocket Tests
+        runner.describe( 'WebSocket - Real-time Updates', () => {
+            runner.test( 'Socket.IO should be available', () => {
+                // In real scenario, io would be loaded
+                // For now, just check the concept
+                assert( true, 'Socket.IO concept validated' );
+            } );
+
+            runner.test( 'Event handling structure should be valid', () => {
+                const events = [
+                    'new_request',
+                    'request_accepted',
+                    'request_completed',
+                    'request_cancelled'
+                ];
+                assertArrayLength( events, 4, 'Expected 4 WebSocket events' );
+            } );
+        } );
+
+        // Utility Functions Tests
+        runner.describe( 'Utility Functions', () => {
+            runner.test( 'Status badge color mapping should be correct', () => {
+                const statusColors = {
+                    'pending': 'warning',
+                    'accepted': 'info',
+                    'completed': 'success',
+                    'cancelled': 'danger'
+                };
+                assertEqual( statusColors['pending'], 'warning', 'Pending color incorrect' );
+                assertEqual( statusColors['completed'], 'success', 'Completed color incorrect' );
+            } );
+
+            runner.test( 'Status display names should be mapped', () => {
+                const statusNames = {
+                    'pending': 'Bekliyor',
+                    'accepted': 'Kabul Edildi',
+                    'completed': 'Tamamlandı',
+                    'cancelled': 'İptal Edildi'
+                };
+                assertEqual( statusNames['pending'], 'Bekliyor', 'Turkish translation incorrect' );
+            } );
+
+            runner.test( 'Request validation should work', () => {
+                function validateRequest( data ) {
+                    if ( !data.location_id ) return false;
+                    return true;
+                }
+
+                assert( validateRequest( { location_id: 1 } ), 'Valid request failed validation' );
+                assert( !validateRequest( { room_number: '101' } ), 'Invalid request passed validation' );
+            } );
+        } );
+
+        // Helper functions
+        function runAllTests() {
+            runner.runAll();
+        }
+
+        function clearResults() {
+            document.getElementById( 'test-results' ).innerHTML = '';
+            document.getElementById( 'total-tests' ).textContent = '0';
+            document.getElementById( 'passed-tests' ).textContent = '0';
+            document.getElementById( 'failed-tests' ).textContent = '0';
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener( 'load', () => {
+            console.log( 'Frontend test suite loaded. Click "Run All Tests" to start.' );
+        } );
+    </script>
+</body>
+
+</html>

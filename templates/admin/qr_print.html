@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Kodları Yazdır - {{ app_name }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls button {
+            padding: 0.75rem 1.5rem;
+            margin: 0.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #1BA5A8;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #158284;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(27, 165, 168, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            padding: 1rem;
+        }
+
+        .qr-card {
+            background: white;
+            border: 2px solid #1BA5A8;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            page-break-inside: avoid;
+        }
+
+        .qr-card h3 {
+            color: #1BA5A8;
+            margin-bottom: 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .qr-card .description {
+            color: #666;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            min-height: 2.5rem;
+        }
+
+        .qr-code {
+            margin: 1rem auto;
+            padding: 1rem;
+            background: white;
+            display: inline-block;
+        }
+
+        .qr-footer {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+            font-size: 0.875rem;
+            color: #666;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1BA5A8;
+            margin-bottom: 1rem;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .controls {
+                display: none;
+            }
+
+            .qr-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1.5rem;
+            }
+
+            .qr-card {
+                box-shadow: none;
+                break-inside: avoid;
+            }
+
+            @page {
+                margin: 1cm;
+                size: A4;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.25rem;
+            color: #666;
+        }
+
+        .loading i {
+            font-size: 2rem;
+            color: #1BA5A8;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="controls no-print">
+        <h1 class="logo">
+            <i class="fas fa-qrcode"></i> Buggy Call QR Kodları
+        </h1>
+        <button class="btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i> Yazdır
+        </button>
+        <button class="btn-secondary" onclick="window.close()">
+            <i class="fas fa-times"></i> Kapat
+        </button>
+    </div>
+
+    <div id="loading" class="loading">
+        <i class="fas fa-spinner"></i>
+        <p>QR Kodları oluşturuluyor...</p>
+    </div>
+
+    <div id="qr-grid" class="qr-grid" style="display: none;"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        const hotelId = {{ session.get( 'hotel_id', 1 ) }};
+
+        async function loadAndGenerateQRCodes() {
+            try {
+                const response = await fetch( `/api/locations?hotel_id=${hotelId}` );
+                const data = await response.json();
+
+                if ( data.success && data.locations ) {
+                    const grid = document.getElementById( 'qr-grid' );
+                    const loading = document.getElementById( 'loading' );
+
+                    data.locations.forEach( location => {
+                        const card = createQRCard( location );
+                        grid.appendChild( card );
+                    } );
+
+                    // Hide loading, show grid
+                    loading.style.display = 'none';
+                    grid.style.display = 'grid';
+
+                    // Generate QR codes after DOM is ready
+                    setTimeout( () => {
+                        data.locations.forEach( ( location, index ) => {
+                            generateQRCode( location, index );
+                        } );
+                    }, 100 );
+                } else {
+                    document.getElementById( 'loading' ).innerHTML = `
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Lokasyon bulunamadı</p>
+                    `;
+                }
+            } catch ( error ) {
+                console.error( 'Error loading locations:', error );
+                document.getElementById( 'loading' ).innerHTML = `
+                    <i class="fas fa-times-circle"></i>
+                    <p>Hata: Lokasyonlar yüklenemedi</p>
+                `;
+            }
+        }
+
+        function createQRCard( location ) {
+            const card = document.createElement( 'div' );
+            card.className = 'qr-card';
+            card.innerHTML = `
+                <div class="logo">Buggy Call</div>
+                <h3>${location.name}</h3>
+                <div class="description">${location.description || 'Buggy çağırmak için QR kodu tarayın'}</div>
+                <div class="qr-code" id="qr-${location.id}"></div>
+                <div class="qr-footer">
+                    <i class="fas fa-qrcode"></i> QR Kodu Tarayın<br>
+                    <small>${location.qr_code_data}</small>
+                </div>
+            `;
+            return card;
+        }
+
+        function generateQRCode( location, index ) {
+            // Use the URL directly from backend instead of JSON format
+            const qrData = location.qr_code_data;
+
+            const container = document.getElementById( `qr-${location.id}` );
+            if ( container ) {
+                new QRCode( container, {
+                    text: qrData,
+                    width: 200,
+                    height: 200,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                } );
+            }
+        }
+
+        // Load QR codes when page loads
+        document.addEventListener( 'DOMContentLoaded', loadAndGenerateQRCodes );
+    </script>
+</body>
+
+</html>

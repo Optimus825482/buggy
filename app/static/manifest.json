@@ -1,0 +1,94 @@
+{
+  "name": "Buggy Call",
+  "short_name": "BuggyCall",
+  "description": "Otel İçi Ulaşım Yönetim Sistemi - Your Ride, On Demand",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1BA5A8",
+  "theme_color": "#1BA5A8",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icons/Icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/Icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/Icon-120.png",
+      "sizes": "120x120",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/Icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/Icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/Icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/Icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/Icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["transportation", "business", "productivity"],
+  "screenshots": [
+    {
+      "src": "/static/images/screenshot1.png",
+      "type": "image/png",
+      "sizes": "1280x720"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Buggy Çağır",
+      "short_name": "Çağır",
+      "description": "Hızlıca buggy çağır",
+      "url": "/guest/call",
+      "icons": [
+        {
+          "src": "/static/icons/shortcut-call.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Admin Paneli",
+      "short_name": "Admin",
+      "description": "Admin paneline git",
+      "url": "/admin/dashboard",
+      "icons": [
+        {
+          "src": "/static/icons/shortcut-admin.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}

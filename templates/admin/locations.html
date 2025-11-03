@@ -1,0 +1,826 @@
+{% extends "base.html" %}
+
+{% block title %}Lokasyonlar{% endblock %}
+
+{% block header_nav %}
+<nav class="nav">
+    <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
+        <i class="fas fa-home"></i> Dashboard
+    </a>
+    <a href="{{ url_for('admin.locations') }}" class="nav-link active">
+        <i class="fas fa-map-marker-alt"></i> Lokasyonlar
+    </a>
+    <a href="{{ url_for('admin.buggies') }}" class="nav-link">
+        <i class="fas fa-car-alt"></i> Buggy'ler
+    </a>
+    <a href="{{ url_for('admin.reports') }}" class="nav-link">
+        <i class="fas fa-chart-bar"></i> Raporlar
+    </a>
+    <a href="#" onclick="logout()" class="nav-link">
+        <i class="fas fa-sign-out-alt"></i> Çıkış
+    </a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 2rem 0;">
+    <div class="d-flex justify-between align-center" style="margin-bottom: 2rem;">
+        <h1><i class="fas fa-map-marker-alt text-primary"></i> Lokasyonlar</h1>
+        <div>
+            <button class="btn btn-secondary" onclick="printAllQRCodes()" style="margin-right: 0.5rem;">
+                <i class="fas fa-print"></i> Toplu QR Yazdır
+            </button>
+            <button class="btn btn-primary" onclick="showAddLocation()">
+                <i class="fas fa-plus"></i> Yeni Lokasyon
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Lokasyon Adı</th>
+                            <th>Açıklama</th>
+                            <th>QR Kod</th>
+                            <th>Durum</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="locations-table">
+                        <tr>
+                            <td colspan="5" class="text-center">Yükleniyor...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script>
+    console.log('Locations page script loaded');
+    
+    // Set hotel ID
+    document.body.dataset.hotelId = '{{ session.get("hotel_id", 1) }}';
+
+    // Load locations for this page
+    async function loadLocationsPage() {
+        console.log('loadLocationsPage called');
+        try {
+            const response = await BuggyCall.API.get( '/locations' );
+            console.log( 'API Response:', response );
+            
+            // Handle multiple response formats
+            let locations = [];
+            if ( response.locations ) {
+                locations = response.locations;
+            } else if ( response.data && response.data.items ) {
+                locations = response.data.items;
+            } else if ( response.items ) {
+                locations = response.items;
+            }
+            
+            console.log( 'Parsed locations:', locations );
+
+            const tbody = document.getElementById( 'locations-table' );
+            if ( !tbody ) return;
+
+            if ( locations.length === 0 ) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Henüz lokasyon eklenmemiş</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = locations.map( loc => `
+                <tr>
+                    <td><strong>${loc.name}</strong></td>
+                    <td>${loc.description || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="showQRCode('${loc.id}', '${loc.name}', '${loc.qr_code_data}')" title="QR Kodu Göster">
+                            <i class="fas fa-qrcode"></i> QR
+                        </button>
+                        <button class="btn btn-sm btn-primary" onclick="quickPrintQR('${loc.id}', '${loc.name}', '${loc.qr_code_data}')" title="Hemen Yazdır" style="margin-left: 0.25rem;">
+                            <i class="fas fa-print"></i>
+                        </button>
+                    </td>
+                    <td>
+                        <span class="badge ${loc.is_active ? 'badge-success' : 'badge-secondary'}">
+                            ${loc.is_active ? 'Aktif' : 'Pasif'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="editLocation('${loc.id}')" title="Düzenle">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteLocation('${loc.id}', '${loc.name}')" title="Sil">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join( '' );
+        } catch ( error ) {
+            console.error( 'Error loading locations:', error );
+            const tbody = document.getElementById( 'locations-table' );
+            if ( tbody ) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Lokasyonlar yüklenemedi</td></tr>';
+            }
+        }
+    }
+
+    // Initialize when page loads
+    document.addEventListener( 'DOMContentLoaded', () => {
+        Admin.init();
+        loadLocationsPage();
+    } );
+
+    function showAddLocation() {
+        const modal = BuggyModal.showCustomModal( {
+            title: 'Yeni Lokasyon Ekle',
+            type: 'info',
+            size: 'medium',
+            customContent: `
+                <form id="location-form">
+                    <div class="form-group">
+                        <label>Lokasyon Adı *</label>
+                        <input type="text" name="name" class="form-control" required placeholder="Örn: Havuz, Plaj, Restaurant">
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Lokasyon hakkında kısa açıklama..."></textarea>
+                    </div>
+                </form>
+            `,
+            buttons: [
+                {
+                    text: 'İptal',
+                    class: 'btn-secondary',
+                    onClick: () => BuggyModal.closeModal( modal )
+                },
+                {
+                    text: 'Kaydet',
+                    class: 'btn-primary',
+                    icon: 'fas fa-save',
+                    onClick: () => saveLocation( modal )
+                }
+            ]
+        } );
+    }
+
+    async function saveLocation( modal ) {
+        const form = document.getElementById( 'location-form' );
+        const formData = new FormData( form );
+        const data = Object.fromEntries( formData );
+
+        if ( !data.name || data.name.trim() === '' ) {
+            BuggyCall.Utils.showToast( 'Lokasyon adı gerekli!', 'danger' );
+            return;
+        }
+
+        try {
+            console.log( 'Sending location data:', data );
+            const response = await BuggyCall.API.post( '/locations', data );
+            console.log( 'Location created:', response );
+            BuggyModal.closeModal( modal );
+            BuggyCall.Utils.showToast( 'Lokasyon başarıyla eklendi!', 'success' );
+
+            // Reload locations list
+            await loadLocationsPage();
+
+            // Show QR code modal immediately after creation
+            const location = response.location || response.data;
+            if (location && location.id) {
+                setTimeout(() => {
+                    showQRCodeAfterCreation(location);
+                }, 500);
+            }
+        } catch ( error ) {
+            console.error( 'Location creation error:', error );
+            BuggyCall.Utils.showToast( 'Lokasyon eklenemedi: ' + ( error.message || 'Bilinmeyen hata' ), 'danger' );
+        }
+    }
+
+    function showQRCodeAfterCreation(location) {
+        const guestUrl = location.qr_code_data || `${window.location.origin}/guest/call?location=${location.id}`;
+
+        const modal = BuggyModal.showCustomModal( {
+            title: `✅ Lokasyon Oluşturuldu - ${location.name}`,
+            type: 'success',
+            size: 'large',
+            customContent: `
+                <div style="text-align: center;">
+                    <div class="alert alert-success" style="margin-bottom: 1.5rem;">
+                        <i class="fas fa-check-circle"></i>
+                        <strong>${location.name}</strong> lokasyonu başarıyla oluşturuldu ve QR kodu hazır!
+                    </div>
+
+                    <div id="qr-code-container" style="margin: 1rem auto; padding: 2rem; background: white; display: inline-block; border: 3px solid #1BA5A8; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                        <h3 style="margin: 0 0 1rem 0; color: #1BA5A8; font-size: 1.5rem;">
+                            <i class="fas fa-map-marker-alt"></i> ${location.name}
+                        </h3>
+                        <div id="qr-code-canvas"></div>
+                        <p style="margin: 1rem 0 0 0; font-size: 1rem; color: #666; font-weight: 600;">
+                            Buggy Call - QR Kod
+                        </p>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #999;">
+                            Misafirler bu QR kodu taratarak buggy çağırabilir
+                        </p>
+                    </div>
+
+                    <p class="text-muted" style="margin-top: 1.5rem; font-size: 0.875rem;">
+                        <strong>Misafir URL:</strong><br>
+                        <code style="font-size: 0.75rem; word-break: break-all; background: #f5f5f5; padding: 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.5rem;">${guestUrl}</code>
+                    </p>
+
+                    <div class="mt-4" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="printQRCode()" style="min-width: 150px;">
+                            <i class="fas fa-print"></i> Yazdır
+                        </button>
+                        <button class="btn btn-success" onclick="downloadQRCode('${location.name}', '${location.id}')" style="min-width: 150px;">
+                            <i class="fas fa-download"></i> PNG İndir
+                        </button>
+                    </div>
+
+                    <div class="alert alert-info" style="margin-top: 1.5rem; font-size: 0.875rem;">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>İpucu:</strong> QR kodu daha sonra lokasyon listesinden de yazdırabilir veya indirebilirsiniz.
+                    </div>
+                </div>
+            `,
+            buttons: [
+                {
+                    text: 'Tamam',
+                    class: 'btn-secondary',
+                    onClick: () => BuggyModal.closeModal( modal )
+                }
+            ]
+        } );
+
+        // Generate QR code
+        setTimeout( () => {
+            const container = document.getElementById( 'qr-code-canvas' );
+            if ( container && typeof QRCode !== 'undefined' ) {
+                console.log( 'Generating QR code with URL:', guestUrl );
+                new QRCode( container, {
+                    text: guestUrl,
+                    width: 300,
+                    height: 300,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                } );
+            }
+        }, 100 );
+    }
+
+    function showQRCode( id, name, qrData ) {
+        console.log( 'showQRCode called:', { id, name, qrData } );
+
+        // qrData is the URL from backend (e.g., http://192.168.1.100:5000/guest/call?location=22)
+        const guestUrl = qrData || `${window.location.origin}/guest/call?location=${id}`;
+
+        const modal = BuggyModal.showCustomModal( {
+            title: `QR Kod - ${name}`,
+            type: 'info',
+            size: 'large',
+            customContent: `
+                <div style="text-align: center;">
+                    <div id="qr-code-container" style="margin: 1rem auto; padding: 2rem; background: white; display: inline-block; border: 3px solid #1BA5A8; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                        <h3 style="margin: 0 0 1rem 0; color: #1BA5A8; font-size: 1.5rem;">
+                            <i class="fas fa-map-marker-alt"></i> ${name}
+                        </h3>
+                        <div id="qr-code-canvas"></div>
+                        <p style="margin: 1rem 0 0 0; font-size: 1rem; color: #666; font-weight: 600;">
+                            Buggy Call - QR Kod
+                        </p>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #999;">
+                            Misafirler bu QR kodu taratarak buggy çağırabilir
+                        </p>
+                    </div>
+
+                    <p class="text-muted" style="margin-top: 1.5rem; font-size: 0.875rem;">
+                        <strong>Misafir URL:</strong><br>
+                        <code style="font-size: 0.75rem; word-break: break-all; background: #f5f5f5; padding: 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.5rem;">${guestUrl}</code>
+                    </p>
+
+                    <div class="mt-4" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="printQRCode()" style="min-width: 150px;">
+                            <i class="fas fa-print"></i> Yazdır
+                        </button>
+                        <button class="btn btn-success" onclick="downloadQRCode('${name}', '${id}')" style="min-width: 150px;">
+                            <i class="fas fa-download"></i> PNG İndir
+                        </button>
+                    </div>
+
+                    <div class="alert alert-info" style="margin-top: 1.5rem; font-size: 0.875rem;">
+                        <i class="fas fa-lightbulb"></i>
+                        <strong>İpucu:</strong> QR kodu yazdırdıktan sonra lokasyona asabilir veya masa üzerine koyabilirsiniz.
+                    </div>
+                </div>
+            `,
+            buttons: [
+                {
+                    text: 'Kapat',
+                    class: 'btn-secondary',
+                    onClick: () => BuggyModal.closeModal( modal )
+                }
+            ]
+        } );
+
+        // Generate QR code using qrcodejs library
+        setTimeout( () => {
+            const container = document.getElementById( 'qr-code-canvas' );
+            if ( container && typeof QRCode !== 'undefined' ) {
+                console.log( 'Generating QR code with URL:', guestUrl );
+                new QRCode( container, {
+                    text: guestUrl,  // Use the URL directly
+                    width: 300,
+                    height: 300,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                } );
+            } else if ( container ) {
+                // Fallback if QRCode library not loaded
+                container.innerHTML = '<p style="color: red;">QR kod kütüphanesi yüklenemedi</p>';
+                console.error( 'QRCode library not loaded' );
+            }
+        }, 100 );
+    }
+
+    function escapeHtml( text ) {
+        const div = document.createElement( 'div' );
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function downloadQRCode( name, locationId ) {
+        const container = document.getElementById( 'qr-code-container' );
+        if ( !container ) {
+            console.error( 'QR code container not found' );
+            return;
+        }
+
+        // Use html2canvas to capture the QR code container
+        if ( typeof html2canvas !== 'undefined' ) {
+            html2canvas( container, {
+                backgroundColor: '#ffffff',
+                scale: 2
+            } ).then( canvas => {
+                const link = document.createElement( 'a' );
+                link.download = `QR_${name.replace( /[^a-z0-9]/gi, '_' )}.png`;
+                link.href = canvas.toDataURL( 'image/png' );
+                link.click();
+                BuggyCall.Utils.showToast( 'QR kod indirildi!', 'success' );
+            } ).catch( error => {
+                console.error( 'QR download error:', error );
+                BuggyCall.Utils.showToast( 'QR kod indirilemedi', 'danger' );
+            } );
+        } else {
+            console.error( 'html2canvas library not loaded' );
+            BuggyCall.Utils.showToast( 'html2canvas kütüphanesi yüklenemedi', 'danger' );
+        }
+    }
+
+    function quickPrintQR(id, name, qrData) {
+        // Generate QR code in a hidden container and print directly
+        const guestUrl = qrData || `${window.location.origin}/guest/call?location=${id}`;
+
+        // Create a temporary container
+        const tempDiv = document.createElement('div');
+        tempDiv.style.display = 'none';
+        tempDiv.id = 'temp-qr-container';
+        tempDiv.innerHTML = `
+            <div id="temp-qr-code-container" style="padding: 2rem; background: white; display: inline-block; border: 3px solid #1BA5A8; border-radius: 12px; text-align: center;">
+                <h3 style="margin: 0 0 1rem 0; color: #1BA5A8; font-size: 1.5rem;">
+                    <i class="fas fa-map-marker-alt"></i> ${name}
+                </h3>
+                <div id="temp-qr-code-canvas"></div>
+                <p style="margin: 1rem 0 0 0; font-size: 1rem; color: #666; font-weight: 600;">
+                    Buggy Call - QR Kod
+                </p>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #999;">
+                    Misafirler bu QR kodu taratarak buggy çağırabilir
+                </p>
+            </div>
+        `;
+        document.body.appendChild(tempDiv);
+
+        // Generate QR code
+        setTimeout(() => {
+            const canvas = document.getElementById('temp-qr-code-canvas');
+            if (canvas && typeof QRCode !== 'undefined') {
+                new QRCode(canvas, {
+                    text: guestUrl,
+                    width: 300,
+                    height: 300,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                // Wait for QR code to render then print
+                setTimeout(() => {
+                    const container = document.getElementById('temp-qr-code-container');
+                    const printWindow = window.open('', '_blank', 'width=800,height=600');
+                    printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <title>QR Kod - ${name}</title>
+                            <style>
+                                * { margin: 0; padding: 0; box-sizing: border-box; }
+                                body {
+                                    font-family: 'Inter', 'Arial', sans-serif;
+                                    background: white;
+                                    display: flex;
+                                    justify-content: center;
+                                    align-items: center;
+                                    min-height: 100vh;
+                                    padding: 20px;
+                                }
+                                .print-container { text-align: center; max-width: 600px; }
+                                .qr-container {
+                                    padding: 2rem;
+                                    background: white;
+                                    border: 3px solid #1BA5A8;
+                                    border-radius: 12px;
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                                    margin: 0 auto;
+                                }
+                                .qr-container h3 {
+                                    margin: 0 0 1rem 0;
+                                    color: #1BA5A8;
+                                    font-size: 1.5rem;
+                                    font-weight: 700;
+                                }
+                                .qr-container img, .qr-container canvas {
+                                    max-width: 100%;
+                                    height: auto;
+                                    display: block;
+                                    margin: 0 auto;
+                                }
+                                .qr-container p { margin: 0.5rem 0; color: #666; }
+                                .logo {
+                                    font-size: 1.25rem;
+                                    font-weight: 700;
+                                    color: #1BA5A8;
+                                    margin-bottom: 0.5rem;
+                                }
+                                .instructions {
+                                    margin-top: 1.5rem;
+                                    padding: 1rem;
+                                    background: #f8f9fa;
+                                    border-radius: 8px;
+                                    font-size: 0.875rem;
+                                    text-align: left;
+                                }
+                                .instructions h4 {
+                                    color: #1BA5A8;
+                                    margin-bottom: 0.5rem;
+                                    font-size: 1rem;
+                                }
+                                .instructions ol { margin-left: 1.5rem; line-height: 1.8; }
+                                .footer {
+                                    margin-top: 2rem;
+                                    padding-top: 1rem;
+                                    border-top: 2px dashed #ddd;
+                                    font-size: 0.875rem;
+                                    color: #999;
+                                }
+                                @media print {
+                                    body { padding: 0; background: white; }
+                                    .print-container { max-width: 100%; }
+                                    @page { margin: 1cm; size: A4 portrait; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="print-container">
+                                <div class="logo">🚗 Buggy Call</div>
+                                ${container.outerHTML}
+                                <div class="instructions">
+                                    <h4>📱 Nasıl Kullanılır?</h4>
+                                    <ol>
+                                        <li>Mobil cihazınızdan kamera uygulamasını açın</li>
+                                        <li>QR kodu kameranıza gösterin</li>
+                                        <li>Ekrana çıkan bağlantıya dokunun</li>
+                                        <li>Buggy talep edin!</li>
+                                    </ol>
+                                </div>
+                                <div class="footer">
+                                    <p style="margin-bottom: 0.5rem;"><strong>Buggy Call</strong> - Otel İçi Ulaşım Sistemi</p>
+                                    <p style="font-size: 0.75rem;">Your Ride, On Demand</p>
+                                    <p style="font-size: 0.75rem; margin-top: 1rem;">© 2025 Powered by Erkan ERDEM</p>
+                                </div>
+                            </div>
+                            <scr` + `ipt>
+                                window.onload = function() {
+                                    setTimeout(function() { window.print(); }, 500);
+                                };
+                                window.onafterprint = function() {
+                                    setTimeout(function() { window.close(); }, 1000);
+                                };
+                            </scr` + `ipt>
+                        </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+
+                    // Clean up temp container
+                    setTimeout(() => {
+                        document.body.removeChild(tempDiv);
+                    }, 1000);
+
+                    BuggyCall.Utils.showToast('Yazdırma penceresi açılıyor...', 'info');
+                }, 300);
+            } else {
+                BuggyCall.Utils.showToast('QR kod oluşturulamadı!', 'danger');
+                document.body.removeChild(tempDiv);
+            }
+        }, 100);
+    }
+
+    function printQRCode() {
+        const container = document.getElementById( 'qr-code-container' );
+        if ( !container ) {
+            BuggyCall.Utils.showToast('QR kod bulunamadı!', 'danger');
+            return;
+        }
+
+        const printWindow = window.open( '', '_blank', 'width=800,height=600' );
+        printWindow.document.write( `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>QR Kod Yazdır - Buggy Call</title>
+                <style>
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    body {
+                        font-family: 'Inter', 'Arial', sans-serif;
+                        background: white;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                        padding: 20px;
+                    }
+                    .print-container {
+                        text-align: center;
+                        max-width: 600px;
+                    }
+                    .qr-container {
+                        padding: 2rem;
+                        background: white;
+                        border: 3px solid #1BA5A8;
+                        border-radius: 12px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                        margin: 0 auto;
+                    }
+                    .qr-container h3 {
+                        margin: 0 0 1rem 0;
+                        color: #1BA5A8;
+                        font-size: 1.5rem;
+                        font-weight: 700;
+                    }
+                    .qr-container img,
+                    .qr-container canvas {
+                        max-width: 100%;
+                        height: auto;
+                        display: block;
+                        margin: 0 auto;
+                    }
+                    .qr-container p {
+                        margin: 0.5rem 0;
+                        color: #666;
+                    }
+                    .footer {
+                        margin-top: 2rem;
+                        padding-top: 1rem;
+                        border-top: 2px dashed #ddd;
+                        font-size: 0.875rem;
+                        color: #999;
+                    }
+                    .logo {
+                        font-size: 1.25rem;
+                        font-weight: 700;
+                        color: #1BA5A8;
+                        margin-bottom: 0.5rem;
+                    }
+                    .instructions {
+                        margin-top: 1.5rem;
+                        padding: 1rem;
+                        background: #f8f9fa;
+                        border-radius: 8px;
+                        font-size: 0.875rem;
+                        text-align: left;
+                    }
+                    .instructions h4 {
+                        color: #1BA5A8;
+                        margin-bottom: 0.5rem;
+                        font-size: 1rem;
+                    }
+                    .instructions ol {
+                        margin-left: 1.5rem;
+                        line-height: 1.8;
+                    }
+                    @media print {
+                        body {
+                            padding: 0;
+                            background: white;
+                        }
+                        .print-container {
+                            max-width: 100%;
+                        }
+                        .no-print {
+                            display: none !important;
+                        }
+                        @page {
+                            margin: 1cm;
+                            size: A4 portrait;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="print-container">
+                    <div class="logo">
+                        🚗 Buggy Call
+                    </div>
+                    ${container.outerHTML}
+
+                    <div class="instructions">
+                        <h4>📱 Nasıl Kullanılır?</h4>
+                        <ol>
+                            <li>Mobil cihazınızdan kamera uygulamasını açın</li>
+                            <li>QR kodu kameranıza gösterin</li>
+                            <li>Ekrana çıkan bağlantıya dokunun</li>
+                            <li>Buggy talep edin!</li>
+                        </ol>
+                    </div>
+
+                    <div class="footer">
+                        <p style="margin-bottom: 0.5rem;"><strong>Buggy Call</strong> - Otel İçi Ulaşım Sistemi</p>
+                        <p style="font-size: 0.75rem;">Your Ride, On Demand</p>
+                        <p style="font-size: 0.75rem; margin-top: 1rem;">© 2025 Powered by Erkan ERDEM</p>
+                    </div>
+                </div>
+                <scr` + `ipt>
+                    window.onload = function() {
+                        setTimeout(function() { window.print(); }, 500);
+                    };
+                    window.onafterprint = function() {
+                        setTimeout(function() { window.close(); }, 1000);
+                    };
+                </scr` + `ipt>
+            </body>
+            </html>
+        ` );
+        printWindow.document.close();
+
+        BuggyCall.Utils.showToast('Yazdırma penceresi açılıyor...', 'info');
+    }
+
+    async function editLocation( id ) {
+        try {
+            // Fetch location data
+            const response = await BuggyCall.API.get( `/locations/${id}` );
+            const location = response.location;
+
+            if ( !location ) {
+                await showError( 'Lokasyon bulunamadı!' );
+                return;
+            }
+
+            const modalContent = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Lokasyon Adı *</label>
+                        <input type="text" id="edit-name" value="${location.name}" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" 
+                               required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Açıklama</label>
+                        <textarea id="edit-description" rows="3" 
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">${location.description || ''}</textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Enlem (Latitude)</label>
+                            <input type="number" id="edit-latitude" value="${location.latitude !== null && location.latitude !== undefined ? location.latitude : ''}" 
+                                   step="0.000001" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Boylam (Longitude)</label>
+                            <input type="number" id="edit-longitude" value="${location.longitude !== null && location.longitude !== undefined ? location.longitude : ''}" 
+                                   step="0.000001" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Görüntülenme Sırası</label>
+                        <input type="number" id="edit-display-order" value="${location.display_order !== null && location.display_order !== undefined ? location.display_order : 0}" 
+                               min="0" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="edit-is-active" ${location.is_active ? 'checked' : ''} 
+                               class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                        <label for="edit-is-active" class="ml-2 text-sm font-medium text-gray-700">Aktif</label>
+                    </div>
+                </div>
+            `;
+
+            const result = await BuggyModal.custom( modalContent, {
+                title: 'Lokasyon Düzenle',
+                confirmText: 'Güncelle',
+                cancelText: 'İptal',
+                size: 'medium'
+            } );
+
+            if ( result ) {
+                const name = document.getElementById( 'edit-name' ).value.trim();
+                const description = document.getElementById( 'edit-description' ).value.trim();
+                const latitude = document.getElementById( 'edit-latitude' ).value;
+                const longitude = document.getElementById( 'edit-longitude' ).value;
+                const displayOrder = parseInt( document.getElementById( 'edit-display-order' ).value ) || 0;
+                const isActive = document.getElementById( 'edit-is-active' ).checked;
+
+                if ( !name ) {
+                    BuggyCall.Utils.showToast( 'Lokasyon adı boş olamaz!', 'danger' );
+                    return;
+                }
+
+                const updateData = {
+                    name,
+                    description,
+                    display_order: displayOrder,
+                    is_active: isActive
+                };
+
+                if ( latitude ) updateData.latitude = parseFloat( latitude );
+                if ( longitude ) updateData.longitude = parseFloat( longitude );
+
+                try {
+                    await BuggyCall.API.put( `/locations/${id}`, updateData );
+                    BuggyCall.Utils.showToast( 'Lokasyon başarıyla güncellendi!', 'success' );
+                    loadLocationsPage();
+                } catch ( error ) {
+                    BuggyCall.Utils.showToast( 'Lokasyon güncellenemedi: ' + ( error.message || 'Bilinmeyen hata' ), 'danger' );
+                }
+            }
+        } catch ( error ) {
+            console.error( 'Error editing location:', error );
+            BuggyCall.Utils.showToast( 'Lokasyon bilgileri yüklenirken hata oluştu: ' + error.message, 'danger' );
+        }
+    }
+
+    async function deleteLocation( id, name ) {
+        const confirmed = await BuggyModal.confirm(
+            `"${name}" lokasyonunu silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve bu lokasyona ait tüm QR kodlar geçersiz olacaktır.`,
+            'Lokasyonu Sil',
+            'Evet, Sil',
+            'İptal'
+        );
+
+        if ( confirmed ) {
+            try {
+                await BuggyCall.API.delete( `/locations/${id}` );
+                BuggyCall.Utils.showToast( 'Lokasyon başarıyla silindi!', 'success' );
+                loadLocationsPage();
+            } catch ( error ) {
+                BuggyCall.Utils.showToast( 'Lokasyon silinemedi: ' + ( error.message || 'Bilinmeyen hata' ), 'danger' );
+            }
+        }
+    }
+
+    function printAllQRCodes() {
+        window.open( '/admin/qr-print', '_blank', 'width=1024,height=768' );
+    }
+
+    async function logout() {
+        const confirmed = await BuggyModal.confirm(
+            'Oturumunuzu kapatmak istediğinize emin misiniz?',
+            'Çıkış Yap',
+            'Evet, Çıkış Yap',
+            'İptal'
+        );
+
+        if ( confirmed ) {
+            window.location.href = '/auth/logout';
+        }
+    }
+</script>
+{% endblock %}

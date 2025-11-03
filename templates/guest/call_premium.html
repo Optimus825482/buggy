@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Buggy Çağır{% endblock %}
+
+{% block extra_css %}
+<style>
+body {
+  background: linear-gradient(180deg, #F9FAFB 0%, #FFFFFF 100%);
+}
+
+.header {
+  display: none; /* Hide header for cleaner guest experience */
+}
+
+.footer {
+  display: none; /* Hide footer */
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="guest-container">
+    <!-- Hero Section -->
+    <div class="guest-hero">
+        <div class="guest-logo">
+            <img src="{{ url_for('static', filename='icons/Icon-192.png') }}" alt="Buggy Call">
+        </div>
+        <h1 class="guest-title">Buggy Call</h1>
+        <p class="guest-subtitle">Your Ride, On Demand</p>
+    </div>
+
+    <!-- QR Scanner Card (hidden if location already provided) -->
+    <div class="qr-scanner-card" id="qr-scanner-card">
+        <div class="qr-scanner-icon">
+            <i class="fas fa-qrcode"></i>
+        </div>
+        <h2 class="qr-scanner-title">QR Kod Okutun</h2>
+        <p class="qr-scanner-description">
+            Bulunduğunuz lokasyondaki QR kodu okutarak kolayca buggy çağırabilirsiniz
+        </p>
+        <button class="btn-scan-qr ripple-effect" onclick="startQRScanner()">
+            <i class="fas fa-camera"></i>
+            QR Kod Okut
+        </button>
+    </div>
+
+    <!-- Room Number Input (Optional) -->
+    <div class="glass-card" id="room-number-card" style="padding: 24px; margin-top: 24px; display: none;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div class="icon-primary">
+                <i class="fas fa-door-open"></i>
+            </div>
+            <h3 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0;">
+                Oda Numaranız (Opsiyonel)
+            </h3>
+        </div>
+        <div class="form-group" style="margin-bottom: 16px;">
+            <input type="text"
+                   class="form-control"
+                   id="room-number"
+                   placeholder="Örn: A-101"
+                   maxlength="20">
+        </div>
+        <button class="btn-primary" onclick="submitRequest()" style="width: 100%;">
+            <i class="fas fa-paper-plane"></i>
+            Buggy Çağır
+        </button>
+    </div>
+
+    <!-- Hotel Name & Powered By -->
+    <div style="text-align: center; margin-top: 40px; padding-bottom: 32px;">
+        <p id="hotel-name" style="font-size: 18px; font-weight: 600; color: #2C3E50; margin-bottom: 16px;">
+            <!-- Hotel name will be loaded here -->
+        </p>
+        <p style="font-size: 12px; color: #9CA3AF; margin-bottom: 8px;">
+            Powered by
+        </p>
+        <p style="font-size: 14px; font-weight: 700;">
+            <span style="background: linear-gradient(135deg, #1BA5A8, #F28C38); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                Erkan ERDEM
+            </span>
+        </p>
+    </div>
+</div>
+
+<!-- QR Scanner Modal -->
+<div id="qr-scanner-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="fas fa-qrcode"></i> QR Kod Okut
+            </h3>
+            <button class="modal-close" onclick="closeQRScanner()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="qr-reader" style="width: 100%; border-radius: 12px; overflow: hidden;"></div>
+            <p style="text-align: center; margin-top: 16px; color: #6B7280; font-size: 14px;">
+                QR kodu kameranıza gösterin
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- HTML5 QR Code Scanner -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+let html5QrCode;
+let selectedLocationId = null;
+
+// Check if location is already provided via URL
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const locationId = urlParams.get('location');
+    
+    if (locationId) {
+        // Location already provided, hide QR scanner and show room number input
+        selectedLocationId = parseInt(locationId);
+        hideQRScanner();
+        showRoomNumberInput();
+        loadLocationInfo(locationId);
+    } else {
+        // No location, load hotel name
+        loadHotelName();
+    }
+});
+
+function hideQRScanner() {
+    const qrCard = document.getElementById('qr-scanner-card');
+    if (qrCard) {
+        qrCard.style.display = 'none';
+    }
+}
+
+function showRoomNumberInput() {
+    const card = document.getElementById('room-number-card');
+    if (card) {
+        card.style.display = 'block';
+    }
+}
+
+function loadLocationInfo(locationId) {
+    fetch(`/api/locations/${locationId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.location) {
+                // Show location name in subtitle
+                const subtitle = document.querySelector('.guest-subtitle');
+                if (subtitle) {
+                    subtitle.textContent = `Lokasyon: ${data.location.name}`;
+                }
+            }
+        })
+        .catch(error => console.error('Error loading location:', error));
+}
+
+function loadHotelName() {
+    // Load hotel name from API
+    fetch('/api/locations')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data && data.data.items && data.data.items.length > 0) {
+                // Get hotel name from first location (all locations have same hotel_id)
+                const hotelNameEl = document.getElementById('hotel-name');
+                if (hotelNameEl) {
+                    hotelNameEl.textContent = 'Buggy Call System';
+                }
+            }
+        })
+        .catch(error => console.error('Error loading hotel:', error));
+}
+
+function startQRScanner() {
+    const modal = document.getElementById('qr-scanner-modal');
+    modal.style.display = 'flex';
+
+    html5QrCode = new Html5Qrcode("qr-reader");
+
+    html5QrCode.start(
+        { facingMode: "environment" },
+        {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+        },
+        onScanSuccess,
+        onScanError
+    ).catch(err => {
+        console.error('Error starting QR scanner:', err);
+        Utils.showToast('Kamera erişimi reddedildi', 'error');
+        closeQRScanner();
+    });
+}
+
+function onScanSuccess(decodedText, decodedResult) {
+    console.log(`QR Code detected: ${decodedText}`);
+
+    // Stop scanner
+    html5QrCode.stop().then(() => {
+        closeQRScanner();
+
+        // Process QR code data (supports both URL and LOC formats)
+        processQRCode(decodedText);
+    });
+}
+
+function onScanError(errorMessage) {
+    // Handle scan error silently
+}
+
+function closeQRScanner() {
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            html5QrCode.clear();
+        }).catch(err => {
+            console.error('Error stopping scanner:', err);
+        });
+    }
+
+    const modal = document.getElementById('qr-scanner-modal');
+    modal.style.display = 'none';
+}
+
+function processQRCode(qrData) {
+    // Check if QR code contains a URL format
+    if (qrData.startsWith('http://') || qrData.startsWith('https://')) {
+        // URL format - redirect directly (will reload page with location parameter)
+        console.log('URL format detected, redirecting to:', qrData);
+        window.location.href = qrData;
+        return;
+    }
+    
+    // Check if QR code is in legacy LOC format
+    if (qrData.startsWith('LOC')) {
+        // Legacy LOC format - find location by QR code data
+        console.log('Legacy LOC format detected:', qrData);
+        Utils.showLoading('Lokasyon doğrulanıyor...');
+
+        fetch(`/api/locations`)
+            .then(response => response.json())
+            .then(data => {
+                Utils.hideLoading();
+
+                if (data.success) {
+                    const location = data.locations.find(loc => loc.qr_code_data === qrData);
+
+                    if (location) {
+                        // Set location and show room number input
+                        selectedLocationId = location.id;
+                        Utils.showToast(`Lokasyon: ${location.name}`, 'success');
+                        showRoomNumberInput();
+                    } else {
+                        Utils.showToast('Lokasyon bulunamadı', 'error');
+                    }
+                } else {
+                    Utils.showToast('Lokasyon yüklenemedi', 'error');
+                }
+            })
+            .catch(error => {
+                Utils.hideLoading();
+                Utils.showToast('Bir hata oluştu', 'error');
+                console.error('Error:', error);
+            });
+    } else {
+        // Invalid format
+        console.error('Invalid QR code format:', qrData);
+        Utils.showToast('Geçersiz QR kod formatı', 'error');
+    }
+}
+
+function submitRequest() {
+    if (!selectedLocationId) {
+        Utils.showToast('Lütfen önce QR kod okutun', 'error');
+        return;
+    }
+
+    const roomNumber = document.getElementById('room-number').value;
+
+    Utils.showLoading('Buggy çağrılıyor...');
+
+    fetch('/api/requests', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            location_id: selectedLocationId,
+            room_number: roomNumber || null
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        Utils.hideLoading();
+
+        if (data.success) {
+            // Redirect to status page
+            window.location.href = `/guest/status/${data.request.id}`;
+        } else {
+            Utils.showToast(data.error || 'Talep oluşturulamadı', 'error');
+        }
+    })
+    .catch(error => {
+        Utils.hideLoading();
+        Utils.showToast('Bir hata oluştu', 'error');
+        console.error('Error:', error);
+    });
+}
+
+// Smooth scroll animations
+document.querySelectorAll('.glass-card').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-4px)';
+    });
+
+    card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+    });
+});
+</script>
+{% endblock %}

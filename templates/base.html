@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- SEO Meta Tags -->
+    <meta name="description"
+        content="{% block meta_description %}Buggy Call - Otel İçi Ulaşım Yönetim Sistemi{% endblock %}">
+    <meta name="keywords" content="buggy, otel, ulaşım, qr kod, talep yönetimi">
+    <meta name="author" content="Buggy Call">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}Buggy Call{% endblock %}">
+    <meta property="og:description" content="Your Ride, On Demand">
+    <meta property="og:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="{% block twitter_title %}Buggy Call{% endblock %}">
+    <meta property="twitter:description" content="Your Ride, On Demand">
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1BA5A8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Buggy Call">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icons/favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <!-- Google Fonts - Inter (Modern & Clean) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#1BA5A8',
+                            50: '#E6F7F8',
+                            100: '#CCEFF0',
+                            200: '#99DFE1',
+                            300: '#66CFD2',
+                            400: '#33BFC3',
+                            500: '#1BA5A8',
+                            600: '#158B8E',
+                            700: '#106F71',
+                            800: '#0C5355',
+                            900: '#083738'
+                        },
+                        accent: {
+                            DEFAULT: '#F28C38',
+                            50: '#FEF4EC',
+                            100: '#FDE9D9',
+                            200: '#FBD3B3',
+                            300: '#F9BD8D',
+                            400: '#F7A767',
+                            500: '#F28C38',
+                            600: '#D97826',
+                            700: '#B7641F',
+                            800: '#945017',
+                            900: '#723C10'
+                        },
+                        success: '#1BA5A8',
+                        danger: '#E74C3C',
+                        warning: '#F28C38',
+                        info: '#1BA5A8'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                        display: ['Inter', 'system-ui', 'sans-serif']
+                    },
+                    fontSize: {
+                        xs: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.02em' }],
+                        sm: ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0.01em' }],
+                        base: ['1rem', { lineHeight: '1.5rem', letterSpacing: '0' }],
+                        lg: ['1.125rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
+                        xl: ['1.25rem', { lineHeight: '1.875rem', letterSpacing: '-0.01em' }],
+                        '2xl': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.02em' }],
+                        '3xl': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em' }],
+                        '4xl': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.03em' }]
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
+                        'soft-lg': '0 10px 40px -10px rgba(0, 0, 0, 0.1)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+        integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Custom Stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/professional.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
+    {% block extra_css %}{% endblock %}
+
+    <title>{% block title %}Buggy Call{% endblock %} - {{ app_name }}</title>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header no-print">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <img src="{{ url_for('static', filename='icons/Icon-72.png') }}" alt="{{ app_name }}"
+                        class="logo-image">
+                    <span class="logo-text">{{ app_name }}</span>
+                </a>
+
+                <h1 class="header-title">{{ app_name }}</h1>
+
+                <!-- Mobile Menu Toggle -->
+                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                {% block header_nav %}{% endblock %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="container" style="padding-top: 1rem;">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                <i
+                    class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'warning' else 'info-circle' if category == 'info' else 'times-circle' }}"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer no-print">
+        {% block footer %}
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2025 {{ app_name }}. Tüm hakları saklıdır.</p>
+                <p class="text-muted">Your Ride, On Demand.</p>
+                <p class="powered-by" style="margin-top: 0.5rem; font-size: 0.9rem;">
+                    <i class="fas fa-code" style="color: var(--accent-color);"></i>
+                    Powered by <strong style="color: var(--primary-color);">Erkan ERDEM</strong>
+                </p>
+            </div>
+        </div>
+        {% endblock %}
+    </footer>
+
+    <!-- Mobile Navigation Bar (Premium Design) -->
+    {% block mobile_nav %}{% endblock %}
+
+    <!-- Loading Overlay (Hidden by default) -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Connection Indicator -->
+    <div id="connection-indicator" class="connection-indicator online">
+        <div class="connection-status">
+            <span class="connection-dot"></span>
+            <span class="connection-text">Çevrimiçi</span>
+        </div>
+    </div>
+
+    <style>
+        .connection-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 9998;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        body.offline .connection-indicator {
+            opacity: 1;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .connection-indicator.online .connection-status {
+            background: #10b981;
+            color: white;
+        }
+
+        .connection-indicator.offline .connection-status {
+            background: #ef4444;
+            color: white;
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .connection-indicator.online .connection-dot {
+            background: white;
+        }
+
+        .connection-indicator.offline .connection-dot {
+            background: white;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        @media (max-width: 768px) {
+            .connection-indicator {
+                top: 70px;
+                right: 10px;
+            }
+
+            .connection-status {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .connection-dot {
+                width: 6px;
+                height: 6px;
+            }
+        }
+
+        /* Offline styling for the whole page */
+        body.offline {
+            filter: grayscale(20%);
+        }
+
+        body.offline::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: repeating-linear-gradient(
+                90deg,
+                #ef4444 0px,
+                #ef4444 10px,
+                #fca5a5 10px,
+                #fca5a5 20px
+            );
+            z-index: 9999;
+            animation: slide 1s linear infinite;
+        }
+
+        @keyframes slide {
+            0% { background-position: 0 0; }
+            100% { background-position: 20px 0; }
+        }
+    </style>
+
+    <!-- Scripts -->
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"
+        integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+"
+        crossorigin="anonymous"></script>
+    <!-- QR Code Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+        integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- html2canvas for QR export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+        integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Offline Storage -->
+    <script src="{{ url_for('static', filename='js/offline-storage.js') }}"></script>
+    <!-- Network Manager -->
+    <script src="{{ url_for('static', filename='js/network-manager.js') }}"></script>
+    <!-- Push Notifications -->
+    <script src="{{ url_for('static', filename='js/push-notifications.js') }}"></script>
+    <!-- Common JS -->
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <!-- Modal System -->
+    <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
+
+    <!-- Mobile Menu Toggle -->
+    <script>
+        function toggleMobileMenu() {
+            const nav = document.querySelector( '.nav' );
+            const menuIcon = document.querySelector( '.mobile-menu-toggle i' );
+
+            if ( nav ) {
+                nav.classList.toggle( 'active' );
+
+                // Change icon
+                if ( nav.classList.contains( 'active' ) ) {
+                    menuIcon.classList.remove( 'fa-bars' );
+                    menuIcon.classList.add( 'fa-times' );
+                } else {
+                    menuIcon.classList.remove( 'fa-times' );
+                    menuIcon.classList.add( 'fa-bars' );
+                }
+            }
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener( 'click', function ( event ) {
+            const nav = document.querySelector( '.nav' );
+            const toggle = document.querySelector( '.mobile-menu-toggle' );
+            const header = document.querySelector( '.header' );
+
+            if ( nav && nav.classList.contains( 'active' ) ) {
+                if ( !header.contains( event.target ) || ( event.target.classList.contains( 'nav-link' ) ) ) {
+                    nav.classList.remove( 'active' );
+                    const menuIcon = document.querySelector( '.mobile-menu-toggle i' );
+                    if ( menuIcon ) {
+                        menuIcon.classList.remove( 'fa-times' );
+                        menuIcon.classList.add( 'fa-bars' );
+                    }
+                }
+            }
+        } );
+
+        // Close menu on window resize to desktop
+        window.addEventListener( 'resize', function () {
+            if ( window.innerWidth > 768 ) {
+                const nav = document.querySelector( '.nav' );
+                if ( nav ) {
+                    nav.classList.remove( 'active' );
+                    const menuIcon = document.querySelector( '.mobile-menu-toggle i' );
+                    if ( menuIcon ) {
+                        menuIcon.classList.remove( 'fa-times' );
+                        menuIcon.classList.add( 'fa-bars' );
+                    }
+                }
+            }
+        } );
+    </script>
+
+    {% block extra_js %}{% endblock %}
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ( 'serviceWorker' in navigator ) {
+            let refreshing = false;
+
+            // Reload page when new service worker takes control
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    console.log('[SW] New service worker activated, reloading page...');
+
+                    // Show update notification
+                    showUpdateNotification();
+                }
+            });
+
+            window.addEventListener( 'load', () => {
+                navigator.serviceWorker.register( '/sw.js' )
+                    .then( registration => {
+                        console.log( 'ServiceWorker registered:', registration.scope );
+
+                        // Check for updates periodically
+                        setInterval(() => {
+                            registration.update();
+                        }, 60000); // Check every minute
+
+                        // Check for updates when page becomes visible
+                        document.addEventListener('visibilitychange', () => {
+                            if (!document.hidden) {
+                                registration.update();
+                            }
+                        });
+
+                        // Listen for waiting service worker
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            console.log('[SW] New service worker found, installing...');
+
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New service worker installed and waiting
+                                    console.log('[SW] New service worker waiting to activate');
+                                    showUpdatePrompt(newWorker);
+                                }
+                            });
+                        });
+                    } )
+                    .catch( error => {
+                        console.log( 'ServiceWorker registration failed:', error );
+                    } );
+            } );
+
+            // Show update prompt
+            function showUpdatePrompt(worker) {
+                const updateBanner = document.createElement('div');
+                updateBanner.id = 'update-banner';
+                updateBanner.className = 'update-banner';
+                updateBanner.innerHTML = `
+                    <div class="update-banner-content">
+                        <div class="update-banner-icon">🔄</div>
+                        <div class="update-banner-text">
+                            <strong>Yeni Sürüm Hazır!</strong>
+                            <p>Uygulamanın yeni bir sürümü mevcut</p>
+                        </div>
+                        <div class="update-banner-actions">
+                            <button class="update-btn-primary" onclick="updateServiceWorker()">
+                                Güncelle
+                            </button>
+                            <button class="update-btn-secondary" onclick="dismissUpdate()">
+                                Daha Sonra
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                // Add styles
+                const style = document.createElement('style');
+                style.textContent = `
+                    .update-banner {
+                        position: fixed;
+                        bottom: 20px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        max-width: 600px;
+                        width: calc(100% - 40px);
+                        background: linear-gradient(135deg, #1BA5A8 0%, #158B8E 100%);
+                        color: white;
+                        border-radius: 16px;
+                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                        padding: 20px;
+                        z-index: 9999;
+                        animation: slideUp 0.4s ease-out;
+                    }
+
+                    @keyframes slideUp {
+                        from {
+                            transform: translate(-50%, 100px);
+                            opacity: 0;
+                        }
+                        to {
+                            transform: translate(-50%, 0);
+                            opacity: 1;
+                        }
+                    }
+
+                    .update-banner-content {
+                        display: flex;
+                        align-items: center;
+                        gap: 16px;
+                    }
+
+                    .update-banner-icon {
+                        font-size: 48px;
+                        animation: rotate 2s linear infinite;
+                    }
+
+                    @keyframes rotate {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                    }
+
+                    .update-banner-text {
+                        flex: 1;
+                    }
+
+                    .update-banner-text strong {
+                        display: block;
+                        font-size: 18px;
+                        margin-bottom: 4px;
+                    }
+
+                    .update-banner-text p {
+                        margin: 0;
+                        font-size: 14px;
+                        opacity: 0.9;
+                    }
+
+                    .update-banner-actions {
+                        display: flex;
+                        gap: 8px;
+                    }
+
+                    .update-btn-primary,
+                    .update-btn-secondary {
+                        padding: 10px 20px;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+
+                    .update-btn-primary {
+                        background: white;
+                        color: #1BA5A8;
+                    }
+
+                    .update-btn-primary:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+                    }
+
+                    .update-btn-secondary {
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                    }
+
+                    .update-btn-secondary:hover {
+                        background: rgba(255, 255, 255, 0.3);
+                    }
+
+                    @media (max-width: 768px) {
+                        .update-banner {
+                            bottom: 10px;
+                            width: calc(100% - 20px);
+                            padding: 16px;
+                        }
+
+                        .update-banner-content {
+                            flex-direction: column;
+                            text-align: center;
+                        }
+
+                        .update-banner-actions {
+                            width: 100%;
+                            flex-direction: column;
+                        }
+
+                        .update-btn-primary,
+                        .update-btn-secondary {
+                            width: 100%;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+                document.body.appendChild(updateBanner);
+
+                // Store worker reference
+                window.waitingWorker = worker;
+            }
+
+            // Update service worker
+            window.updateServiceWorker = function() {
+                if (window.waitingWorker) {
+                    window.waitingWorker.postMessage({ action: 'skipWaiting' });
+
+                    // Remove banner
+                    const banner = document.getElementById('update-banner');
+                    if (banner) {
+                        banner.remove();
+                    }
+                }
+            };
+
+            // Dismiss update
+            window.dismissUpdate = function() {
+                const banner = document.getElementById('update-banner');
+                if (banner) {
+                    banner.style.animation = 'slideUp 0.3s ease-in reverse';
+                    setTimeout(() => banner.remove(), 300);
+                }
+            };
+
+            // Show update notification after reload
+            function showUpdateNotification() {
+                const toast = document.createElement('div');
+                toast.className = 'update-toast';
+                toast.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink: 0;">
+                            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Uygulama başarıyla güncellendi!</span>
+                    </div>
+                `;
+                toast.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #10b981;
+                    color: white;
+                    padding: 16px 20px;
+                    border-radius: 12px;
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+                    z-index: 10000;
+                    animation: slideIn 0.3s ease-out;
+                `;
+
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.style.animation = 'slideIn 0.3s ease-in reverse';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+        }
+    </script>
+
+    <!-- PWA Install Prompt -->
+    <script src="{{ url_for('static', filename='js/pwa-install.js') }}"></script>
+</body>
+
+</html>

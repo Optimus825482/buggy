@@ -1,0 +1,256 @@
+/**
+ * Buggy Call - Modal System CSS
+ * Modern, animated, theme-compatible modals
+ */
+
+/* Modal Overlay */
+.buggy-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.buggy-modal-overlay.show {
+    opacity: 1;
+}
+
+.buggy-modal-overlay.show .buggy-modal {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* Modal Container */
+.buggy-modal {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    max-width: 90%;
+    max-height: 90vh;
+    overflow: hidden;
+    transform: scale(0.9);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.buggy-modal-small {
+    width: 400px;
+}
+
+.buggy-modal-medium {
+    width: 500px;
+}
+
+.buggy-modal-large {
+    width: 700px;
+}
+
+/* Modal Header */
+.buggy-modal-header {
+    padding: 1rem 1.5rem;
+    position: relative;
+    text-align: center;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    min-height: auto;
+}
+
+.buggy-modal-header.success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.buggy-modal-header.danger {
+    background: linear-gradient(135deg, #dc3545, #e74c3c);
+}
+
+.buggy-modal-header.warning {
+    background: linear-gradient(135deg, #ffc107, #ff9800);
+}
+
+.buggy-modal-header.info {
+    background: linear-gradient(135deg, #17a2b8, #3498db);
+}
+
+.buggy-modal-icon {
+    font-size: 2rem;
+    margin-bottom: 0.25rem;
+    animation: iconPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes iconPop {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.buggy-modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: white;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.buggy-modal-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+/* Modal Body */
+.buggy-modal-body {
+    padding: 1.5rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.buggy-modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem 0;
+    color: var(--text-color);
+}
+
+.buggy-modal-message {
+    font-size: 1rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Modal Footer */
+.buggy-modal-footer {
+    padding: 1.5rem 2rem;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.buggy-modal-footer .btn {
+    min-width: 100px;
+    padding: 0.625rem 1.25rem;
+    font-weight: 500;
+}
+
+/* Form Styles in Modal */
+.buggy-modal-body .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.buggy-modal-body label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.buggy-modal-body input,
+.buggy-modal-body textarea,
+.buggy-modal-body select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.buggy-modal-body input:focus,
+.buggy-modal-body textarea:focus,
+.buggy-modal-body select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 176, 176, 0.1);
+}
+
+.buggy-modal-body textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .buggy-modal {
+        max-width: 95%;
+        margin: 1rem;
+    }
+
+    .buggy-modal-small,
+    .buggy-modal-medium,
+    .buggy-modal-large {
+        width: 100%;
+    }
+
+    .buggy-modal-header {
+        padding: 0.875rem 1rem;
+    }
+
+    .buggy-modal-body {
+        padding: 1rem;
+    }
+
+    .buggy-modal-footer {
+        flex-direction: column;
+    }
+
+    .buggy-modal-footer .btn {
+        width: 100%;
+    }
+}
+
+/* Loading Spinner in Modal */
+.buggy-modal-loading {
+    text-align: center;
+    padding: 2rem;
+}
+
+.buggy-modal-loading .spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
