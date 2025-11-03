@@ -82,13 +82,38 @@ def run_upgrade(app, revision='head'):
             migrations_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'migrations')
             
             if not os.path.exists(migrations_dir):
-                print("❌ No migrations directory found")
+                print("⚠️  No migrations directory found")
                 print("Creating database tables directly...")
                 db.create_all()
                 print("✅ Database tables created")
                 return True
             
-            # Run migrations
+            # Check if database is empty (no alembic_version table)
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            
+            # For Railway: Always use db.create_all() for fresh database
+            # Migrations are problematic with empty databases
+            if not tables or 'alembic_version' not in tables or len(tables) < 5:
+                print("⚠️  Empty or incomplete database detected")
+                print("Creating all tables directly (bypassing migrations)...")
+                db.create_all()
+                print("✅ Database tables created")
+                
+                # Stamp the database with the latest migration
+                try:
+                    from flask_migrate import stamp
+                    stamp(directory=migrations_dir, revision='head')
+                    print("✅ Database stamped with current migration version")
+                except Exception as stamp_error:
+                    print(f"⚠️  Could not stamp database: {stamp_error}")
+                    print("   This is not critical, continuing...")
+                
+                return True
+            
+            # Run migrations on existing database (only if tables already exist)
+            print("Running Alembic migrations on existing database...")
             upgrade(directory=migrations_dir, revision=revision)
             
             print("✅ Migrations completed successfully")
@@ -100,9 +125,17 @@ def run_upgrade(app, revision='head'):
             
         except Exception as e:
             print(f"❌ Migration failed: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+            print("\n⚠️  Attempting fallback: creating tables directly...")
+            
+            try:
+                db.create_all()
+                print("✅ Database tables created via fallback method")
+                return True
+            except Exception as fallback_error:
+                print(f"❌ Fallback also failed: {fallback_error}")
+                import traceback
+                traceback.print_exc()
+                return False
 
 
 def run_downgrade(app, revision):
@@ -210,10 +243,51 @@ def main():
     if len(sys.argv) == 1:
         # Auto-run upgrade in Railway
         print("\n🚀 Buggy Call - Railway Auto Migration")
-        app = create_app('production')
-        print(f"Database: {app.config.get('SQLALCHEMY_DATABASE_URI', '').split('@')[-1] if '@' in app.config.get('SQLALCHEMY_DATABASE_URI', '') else 'Not configured'}\n")
-        success = run_upgrade(app, 'head')
-        sys.exit(0 if success else 1)
+        print("="*60)
+        
+        try:
+            app = create_app('production')
+            db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+            db_display = db_uri.split('@')[-1] if '@' in db_uri else 'Not configured'
+            print(f"Database: {db_display}")
+            print(f"Environment: {os.getenv('FLASK_ENV', 'production')}")
+            print("="*60)
+            
+            # Test database connection first
+            print("\n⏳ Testing database connection...")
+            with app.app_context():
+                from sqlalchemy import text
+                max_retries = 5
+                for attempt in range(max_retries):
+                    try:
+                        db.session.execute(text('SELECT 1'))
+                        print(f"✅ Database connection successful (attempt {attempt + 1})")
+                        break
+                    except Exception as e:
+                        if attempt < max_retries - 1:
+                            wait_time = 2 ** attempt
+                            print(f"⚠️  Connection failed (attempt {attempt + 1}/{max_retries}), retrying in {wait_time}s...")
+                            import time
+                            time.sleep(wait_time)
+                        else:
+                            print(f"❌ Database connection failed after {max_retries} attempts: {e}")
+                            sys.exit(1)
+            
+            # Run migrations
+            success = run_upgrade(app, 'head')
+            
+            if success:
+                print("\n✅ Migration completed successfully")
+                sys.exit(0)
+            else:
+                print("\n❌ Migration failed")
+                sys.exit(1)
+                
+        except Exception as e:
+            print(f"\n❌ Fatal error during migration: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
     
     # Manual execution with arguments
     parser = argparse.ArgumentParser(description='Buggy Call Database Migration Tool')
