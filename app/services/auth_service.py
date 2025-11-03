@@ -74,38 +74,62 @@ class AuthService:
         
         # For drivers: Check if they need to set initial location
         from app.models.user import UserRole
-        from app.models.buggy import BuggyStatus
+        from app.models.buggy import Buggy, BuggyStatus
+        from app.models.buggy_driver import BuggyDriver
         
-        if user.role == UserRole.DRIVER and user.buggy:
-            # Close any other active sessions for this buggy
-            from app.models.session import Session as SessionModel
-            from app.models.buggy import Buggy
+        if user.role == UserRole.DRIVER:
+            # Get all buggies assigned to this driver
+            driver_associations = BuggyDriver.query.filter_by(driver_id=user.id).all()
             
-            # Get user's buggy
-            user_buggy = Buggy.query.filter_by(driver_id=user.id).first()
-            
-            if user_buggy:
-                # Find other users assigned to the same buggy
-                other_sessions = SessionModel.query.filter(
-                    SessionModel.user_id != user.id,
-                    SessionModel.is_active == True
-                ).join(SystemUser).join(Buggy, Buggy.driver_id == SystemUser.id).filter(
-                    Buggy.id == user_buggy.id
+            for assoc in driver_associations:
+                buggy = Buggy.query.get(assoc.buggy_id)
+                if not buggy:
+                    continue
+                
+                # Deactivate all other drivers on this buggy
+                other_drivers = BuggyDriver.query.filter(
+                    BuggyDriver.buggy_id == buggy.id,
+                    BuggyDriver.driver_id != user.id,
+                    BuggyDriver.is_active == True
                 ).all()
-            else:
-                other_sessions = []
-            
-            for other_session in other_sessions:
-                other_session.is_active = False
-                other_session.revoked_at = datetime.utcnow()
-            
-            # If buggy has no location, driver needs to set it
-            if user_buggy and not user_buggy.current_location_id:
-                session['needs_location_setup'] = True
-                # Buggy stays offline until location is set
-            else:
-                # Buggy already has location, set to available
-                user.buggy.status = BuggyStatus.AVAILABLE
+                
+                for other_assoc in other_drivers:
+                    other_assoc.is_active = False
+                    # Emit WebSocket event for other driver logout
+                    try:
+                        from app import socketio
+                        socketio.emit('driver_logged_out', {
+                            'buggy_id': buggy.id,
+                            'buggy_code': buggy.code,
+                            'driver_id': other_assoc.driver_id
+                        }, room=f'hotel_{user.hotel_id}_admin')
+                    except:
+                        pass
+                
+                # Activate this driver on this buggy
+                assoc.is_active = True
+                assoc.last_active_at = datetime.utcnow()
+                
+                # If buggy has no location, driver needs to set it
+                if not buggy.current_location_id:
+                    session['needs_location_setup'] = True
+                    # Buggy stays offline until location is set
+                else:
+                    # Buggy already has location, set to available
+                    buggy.status = BuggyStatus.AVAILABLE
+                
+                # Emit WebSocket event for driver login
+                try:
+                    from app import socketio
+                    socketio.emit('driver_logged_in', {
+                        'buggy_id': buggy.id,
+                        'buggy_code': buggy.code,
+                        'driver_id': user.id,
+                        'driver_name': user.full_name if user.full_name else user.username,
+                        'status': buggy.status.value
+                    }, room=f'hotel_{user.hotel_id}_admin')
+                except:
+                    pass
         
         db.session.commit()
         
@@ -121,11 +145,39 @@ class AuthService:
         hotel_id = session.get('hotel_id')
         
         if user_id and hotel_id:
-            # If driver, set buggy to offline
+            # If driver, deactivate and set buggy to offline
             user = SystemUser.query.get(user_id)
-            if user and user.role == UserRole.DRIVER and user.buggy:
-                from app.models.buggy import BuggyStatus
-                user.buggy.status = BuggyStatus.OFFLINE
+            if user and user.role == UserRole.DRIVER:
+                from app.models.buggy import Buggy, BuggyStatus
+                from app.models.buggy_driver import BuggyDriver
+                
+                # Get all active associations for this driver
+                active_associations = BuggyDriver.query.filter_by(
+                    driver_id=user_id,
+                    is_active=True
+                ).all()
+                
+                for assoc in active_associations:
+                    # Deactivate driver
+                    assoc.is_active = False
+                    
+                    # Set buggy to offline
+                    buggy = Buggy.query.get(assoc.buggy_id)
+                    if buggy:
+                        buggy.status = BuggyStatus.OFFLINE
+                        
+                        # Emit WebSocket event for driver logout
+                        try:
+                            from app import socketio
+                            socketio.emit('driver_logged_out', {
+                                'buggy_id': buggy.id,
+                                'buggy_code': buggy.code,
+                                'driver_id': user_id,
+                                'status': 'offline'
+                            }, room=f'hotel_{hotel_id}_admin')
+                        except:
+                            pass
+                
                 db.session.commit()
             
             # Log logout

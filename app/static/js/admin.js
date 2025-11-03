@@ -753,6 +753,13 @@ const Admin = {
     async refreshRequests() {
         await this.loadRequests();
     },
+    
+    /**
+     * Refresh buggies
+     */
+    async refreshBuggies() {
+        await this.loadBuggies();
+    },
 
     /**
      * Update buggy status
