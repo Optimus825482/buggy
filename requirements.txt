@@ -38,6 +38,8 @@ pytz==2023.3
 # WebSocket
 python-socketio==5.10.0
 eventlet==0.33.3
+gevent==24.2.1
+gevent-websocket==0.10.1
 
 # Caching
 redis==5.0.1
