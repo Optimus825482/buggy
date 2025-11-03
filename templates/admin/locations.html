@@ -801,7 +801,10 @@
                 BuggyCall.Utils.showToast( 'Lokasyon başarıyla silindi!', 'success' );
                 loadLocationsPage();
             } catch ( error ) {
-                BuggyCall.Utils.showToast( 'Lokasyon silinemedi: ' + ( error.message || 'Bilinmeyen hata' ), 'danger' );
+                console.error( 'Delete location error:', error );
+                // Show the error message from the API
+                const errorMsg = error.message || 'Bilinmeyen hata';
+                await BuggyModal.error( errorMsg );
             }
         }
     }

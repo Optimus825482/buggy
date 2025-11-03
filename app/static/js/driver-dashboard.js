@@ -160,12 +160,16 @@ const DriverDashboard = {
             reconnectionAttempts: 5
         });
         
-        // Join hotel drivers room
+        // Join hotel drivers room and user-specific room
         this.socket.on('connect', () => {
             console.log('Socket connected');
             this.socket.emit('join_hotel', {
                 hotel_id: this.hotelId,
                 role: 'driver'
+            });
+            // Join user-specific room for session management
+            this.socket.emit('join_user', {
+                user_id: this.userId
             });
         });
         
@@ -188,6 +192,14 @@ const DriverDashboard = {
                 this.currentRequest = null;
             }
             this.removeRequest(data.request_id);
+        });
+        
+        // Listen to force logout
+        this.socket.on('force_logout', (data) => {
+            console.log('Force logout received:', data);
+            // Show message and redirect to login
+            alert(data.message || 'Oturumunuz kapatıldı. Lütfen tekrar giriş yapın.');
+            window.location.href = '/auth/logout';
         });
         
         this.socket.on('disconnect', () => {

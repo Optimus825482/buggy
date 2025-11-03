@@ -270,10 +270,21 @@
                     </div>
                     <div>
                         <h2 style="margin: 0; color: #333;">{{ user.full_name or user.username }}</h2>
-                        <p style="margin: 0; color: #6c757d;">
+                        <p style="margin: 0.25rem 0 0 0; color: #6c757d;">
                             <i class="fas fa-golf-cart"></i> 
                             {% if user.buggy %}Buggy: {{ user.buggy.code }}{% else %}Buggy Atanmamış{% endif %}
                         </p>
+                        {% if user.buggy and user.buggy.current_location %}
+                        <p style="margin: 0.25rem 0 0 0; color: #1BA5A8; font-weight: 600;">
+                            <i class="fas fa-map-marker-alt"></i> 
+                            Şu Anki Lokasyon: {{ user.buggy.current_location.name }}
+                        </p>
+                        {% elif user.buggy %}
+                        <p style="margin: 0.25rem 0 0 0; color: #E67E22; font-weight: 600;">
+                            <i class="fas fa-map-marker-alt"></i> 
+                            Lokasyon Belirlenmemiş
+                        </p>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -283,6 +294,20 @@
         {% if user.buggy %}
         <!-- Stats Cards -->
         <div class="stats-grid">
+            <div class="stat-card" style="{% if user.buggy.current_location %}background: linear-gradient(135deg, #E0F5F5 0%, #ffffff 100%); border: 2px solid #1BA5A8;{% else %}background: linear-gradient(135deg, #FEF3E2 0%, #ffffff 100%); border: 2px solid #E67E22;{% endif %}">
+                <div class="stat-icon" style="{% if user.buggy.current_location %}background: #1BA5A8; color: white;{% else %}background: #E67E22; color: white;{% endif %}">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <div class="stat-label">Şu Anki Lokasyon</div>
+                <div style="font-size: 1.25rem; font-weight: 600; margin: 0.5rem 0; color: {% if user.buggy.current_location %}#1BA5A8{% else %}#E67E22{% endif %};">
+                    {% if user.buggy.current_location %}
+                        {{ user.buggy.current_location.name }}
+                    {% else %}
+                        Belirlenmemiş
+                    {% endif %}
+                </div>
+            </div>
+
             <div class="stat-card">
                 <div class="stat-icon warning">
                     <i class="fas fa-clock"></i>
@@ -407,28 +432,61 @@
     document.addEventListener('DOMContentLoaded', async function() {
         const needsLocationSetup = document.body.dataset.needsLocationSetup === 'true';
         
+        console.log('DOMContentLoaded - needsLocationSetup:', needsLocationSetup);
+        
         if (needsLocationSetup) {
+            console.log('Loading locations...');
+            
+            // Show modal first
+            const modal = document.getElementById('locationSetupModal');
+            modal.style.display = 'flex';
+            
             // Load locations
             try {
                 const response = await fetch('/api/locations');
-                const data = await response.json();
+                console.log('API Response status:', response.status);
                 
-                if (data.success && data.locations) {
+                const responseData = await response.json();
+                console.log('API Response full:', responseData);
+                
+                // APIResponse.success wraps data in 'data' key
+                const data = responseData.data || responseData;
+                console.log('Unwrapped data:', data);
+                
+                // Check different possible data structures
+                let locations = [];
+                if (data.items) {
+                    locations = data.items;
+                } else if (data.locations) {
+                    locations = data.locations;
+                } else if (Array.isArray(data)) {
+                    locations = data;
+                }
+                
+                console.log('Parsed locations:', locations);
+                console.log('Locations count:', locations.length);
+                
+                if (locations.length > 0) {
                     const select = document.getElementById('initial-location');
-                    data.locations.forEach(location => {
+                    console.log('Select element:', select);
+                    
+                    locations.forEach((location, index) => {
+                        console.log(`Adding location ${index}:`, location);
                         const option = document.createElement('option');
                         option.value = location.id;
                         option.textContent = location.name;
                         select.appendChild(option);
                     });
+                    
+                    console.log('All locations added to select');
+                } else {
+                    console.warn('No locations found in response');
+                    alert('Sistemde lokasyon bulunamadı. Lütfen yöneticinizle iletişime geçin.');
                 }
             } catch (error) {
                 console.error('Error loading locations:', error);
+                alert('Lokasyonlar yüklenirken hata oluştu: ' + error.message);
             }
-            
-            // Show modal
-            const modal = document.getElementById('locationSetupModal');
-            modal.style.display = 'flex';
         }
     });
 

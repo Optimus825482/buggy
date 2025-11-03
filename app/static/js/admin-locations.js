@@ -274,7 +274,9 @@ async function deleteLocation(locationId, locationName) {
                 await BuggyModal.success('Lokasyon başarıyla silindi!');
                 loadLocations();
             } else {
-                await BuggyModal.error(result.error || 'Lokasyon silinemedi');
+                // Show the error message from the API in a modal
+                const errorMsg = result.error || result.message || 'Lokasyon silinemedi';
+                await BuggyModal.error(errorMsg);
             }
         } catch (error) {
             console.error('Failed to delete location:', error);

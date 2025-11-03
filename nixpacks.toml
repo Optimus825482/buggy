@@ -1,15 +1,21 @@
 # Railway deployment configuration
 [phases.setup]
-nixPkgs = ["python3", "gcc", "pkg-config", "mysql-client"]
+nixPkgs = ["python311", "python311Packages.pip", "gcc", "mysql80"]
 
 [phases.install]
 cmds = [
-  "python -m venv --copies /opt/venv",
+  "python -m venv /opt/venv",
+  ". /opt/venv/bin/activate && pip install --upgrade pip setuptools wheel",
   ". /opt/venv/bin/activate && pip install -r requirements.txt"
 ]
 
 [phases.build]
-cmds = []
+cmds = [
+  "python --version",
+  ". /opt/venv/bin/activate && pip --version",
+  ". /opt/venv/bin/activate && python -c 'import flask; import gevent; print(\"✅ Dependencies OK\")'",
+  "echo '✅ Build completed successfully'"
+]
 
 [start]
-cmd = "python scripts/run_migrations.py && gunicorn --worker-class gthread --workers 1 --threads 4 --bind 0.0.0.0:$PORT --timeout 120 --keep-alive 5 --log-level info wsgi:app"
+cmd = ". /opt/venv/bin/activate && python scripts/run_migrations.py && gunicorn --worker-class gevent -w 1 --bind 0.0.0.0:$PORT --timeout 180 --keep-alive 5 --log-level info --access-logfile - --error-logfile - wsgi:app"

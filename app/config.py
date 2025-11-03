@@ -53,7 +53,8 @@ class Config:
     # SocketIO Configuration (works without Redis)
     SOCKETIO_MESSAGE_QUEUE = os.getenv('SOCKETIO_MESSAGE_QUEUE', None)  # None = single instance mode
     SOCKETIO_CORS_ALLOWED_ORIGINS = CORS_ORIGINS
-    SOCKETIO_ASYNC_MODE = 'threading'  # Use threading mode (works without eventlet)
+    # Auto-detect best async mode: threading for local dev, gevent for production
+    SOCKETIO_ASYNC_MODE = os.getenv('SOCKETIO_ASYNC_MODE', 'threading')
     
     # Upload Configuration
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app', 'static', 'uploads')
@@ -154,8 +155,8 @@ class ProductionConfig(Config):
         'pool_timeout': 30
     }
     
-    # Use threading for production WebSocket support (Python 3.12 compatible)
-    SOCKETIO_ASYNC_MODE = 'threading'
+    # Use gevent for production WebSocket support (works with Python 3.11+)
+    SOCKETIO_ASYNC_MODE = 'gevent'
     
     @classmethod
     def init_app(cls, app):
@@ -170,10 +171,18 @@ class ProductionConfig(Config):
             try:
                 parsed = urlparse(mysql_url)
                 
+                # Validate parsed components
+                if not parsed.hostname:
+                    raise ValueError("MySQL hostname is missing from MYSQL_PUBLIC_URL")
+                if not parsed.username:
+                    raise ValueError("MySQL username is missing from MYSQL_PUBLIC_URL")
+                if not parsed.password:
+                    raise ValueError("MySQL password is missing from MYSQL_PUBLIC_URL")
+                
                 # Update database configuration
                 app.config['DB_HOST'] = parsed.hostname
                 app.config['DB_PORT'] = parsed.port or 3306
-                app.config['DB_NAME'] = parsed.path.lstrip('/')
+                app.config['DB_NAME'] = parsed.path.lstrip('/') or 'railway'
                 app.config['DB_USER'] = parsed.username
                 app.config['DB_PASSWORD'] = parsed.password
                 
@@ -181,12 +190,19 @@ class ProductionConfig(Config):
                 app.config['SQLALCHEMY_DATABASE_URI'] = (
                     f"mysql+pymysql://{parsed.username}:{parsed.password}"
                     f"@{parsed.hostname}:{parsed.port or 3306}"
-                    f"/{parsed.path.lstrip('/')}?charset=utf8mb4"
+                    f"/{parsed.path.lstrip('/') or 'railway'}?charset=utf8mb4"
                 )
                 
-                app.logger.info(f"Railway MySQL configured: {parsed.hostname}:{parsed.port or 3306}")
+                app.logger.info(f"✅ Railway MySQL configured: {parsed.hostname}:{parsed.port or 3306}")
+                app.logger.info(f"   Database: {parsed.path.lstrip('/') or 'railway'}")
+            except ValueError as e:
+                app.logger.error(f"❌ Invalid MYSQL_PUBLIC_URL: {e}")
+                app.logger.error(f"   Expected format: mysql://user:pass@host:port/database")
+                app.logger.error(f"   Check Railway MySQL service variables")
+                raise
             except Exception as e:
-                app.logger.error(f"Failed to parse MYSQL_PUBLIC_URL: {e}")
+                app.logger.error(f"❌ Failed to parse MYSQL_PUBLIC_URL: {e}")
+                app.logger.error(f"   URL format may be incorrect")
                 raise
 
 

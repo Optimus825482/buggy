@@ -1,0 +1,83 @@
+# Railway Ignore File
+# Exclude unnecessary files from deployment to reduce build time
+
+# Tests
+tests/
+test_*.py
+*_test.py
+pytest.ini
+.pytest_cache/
+
+# Documentation
+docs/
+*.md
+!README.md
+!RAILWAY_DEPLOYMENT.md
+
+# Development files
+.env.example
+.env.local
+.env.development
+.vscode/
+.idea/
+*.code-workspace
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Local development
+venv/
+env/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+*.swp
+*.swo
+*~
+
+# Coverage
+.coverage
+htmlcov/
+.tox/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OpenSpec (not needed in production)
+openspec/
+
+# Kiro specs (not needed in production)
+.kiro/

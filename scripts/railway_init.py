@@ -157,10 +157,9 @@ def create_initial_data(app):
 
 
 def verify_database_health(app):
-    """Verify database connectivity and health"""
+    """Verify database connectivity and health with exponential backoff"""
     with app.app_context():
         max_retries = 5
-        retry_delay = 2
         
         for attempt in range(max_retries):
             try:
@@ -190,14 +189,20 @@ def verify_database_health(app):
                 
             except Exception as e:
                 if attempt < max_retries - 1:
-                    wait_time = retry_delay * (2 ** attempt)
+                    wait_time = 2 ** attempt  # Exponential backoff: 1, 2, 4, 8, 16 seconds
                     app.logger.warning(
-                        f"Database connection failed (attempt {attempt + 1}/{max_retries}), "
-                        f"retrying in {wait_time}s... Error: {e}"
+                        f"⚠️  Database connection failed (attempt {attempt + 1}/{max_retries})"
                     )
+                    app.logger.warning(f"   Error: {str(e)}")
+                    app.logger.warning(f"   Retrying in {wait_time}s...")
                     time.sleep(wait_time)
                 else:
-                    app.logger.error(f"❌ Database health check failed after {max_retries} attempts: {e}")
+                    app.logger.error(f"❌ Database health check failed after {max_retries} attempts")
+                    app.logger.error(f"   Final error: {str(e)}")
+                    app.logger.error(f"   Troubleshooting:")
+                    app.logger.error(f"   1. Check MYSQL_PUBLIC_URL is set correctly")
+                    app.logger.error(f"   2. Verify MySQL service is running in Railway")
+                    app.logger.error(f"   3. Check network connectivity")
                     raise
 
 
