@@ -125,12 +125,13 @@ def create_app(config_name=None):
          origins=app.config['CORS_ORIGINS'],
          supports_credentials=True)
     
-    # Initialize SocketIO
-    # Use threading mode in testing to prevent blocking
-    socketio.init_app(app,
-                     cors_allowed_origins=app.config['SOCKETIO_CORS_ALLOWED_ORIGINS'],
-                     async_mode='threading' if app.config['TESTING'] else app.config['SOCKETIO_ASYNC_MODE'],
-                     message_queue=app.config['SOCKETIO_MESSAGE_QUEUE'])
+    # Initialize SocketIO (skip during migrations)
+    if not os.getenv('SKIP_SOCKETIO'):
+        # Use threading mode in testing to prevent blocking
+        socketio.init_app(app,
+                         cors_allowed_origins=app.config['SOCKETIO_CORS_ALLOWED_ORIGINS'],
+                         async_mode='threading' if app.config['TESTING'] else app.config['SOCKETIO_ASYNC_MODE'],
+                         message_queue=app.config['SOCKETIO_MESSAGE_QUEUE'])
     
     # Setup logging
     setup_logging(app)

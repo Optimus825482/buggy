@@ -4,6 +4,10 @@ Allows manual execution of database migrations with status checks and rollback
 """
 import sys
 import os
+
+# Set flag to skip SocketIO initialization during migrations
+os.environ['SKIP_SOCKETIO'] = '1'
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from flask_migrate import upgrade, downgrade, current, history
