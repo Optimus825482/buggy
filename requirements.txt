@@ -9,7 +9,7 @@ Flask-SocketIO==5.3.5
 
 # Database
 PyMySQL==1.1.0
-mysqlclient==2.2.0
+# mysqlclient==2.2.0  # Removed for Railway compatibility - PyMySQL is sufficient
 
 # Validation & Serialization
 marshmallow==3.20.1
