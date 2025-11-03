@@ -51,6 +51,26 @@ class SystemUser(db.Model, BaseModel):
     # Many-to-many relationship with buggies
     buggy_associations = relationship('BuggyDriver', foreign_keys='BuggyDriver.driver_id', backref='driver', cascade='all, delete-orphan')
     
+    @property
+    def buggy(self):
+        """Get the buggy assigned to this driver (if any)"""
+        if self.role != UserRole.DRIVER:
+            return None
+        
+        from app.models.buggy_driver import BuggyDriver
+        from app.models.buggy import Buggy
+        
+        # Get active buggy association
+        active_assoc = BuggyDriver.query.filter_by(
+            driver_id=self.id,
+            is_primary=True
+        ).first()
+        
+        if active_assoc:
+            return Buggy.query.get(active_assoc.buggy_id)
+        
+        return None
+    
     def set_password(self, password):
         """Set password hash"""
         self.password_hash = generate_password_hash(password)
