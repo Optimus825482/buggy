@@ -178,12 +178,20 @@ def create_location():
         db.session.flush()  # Get the location ID without committing
         
         # Generate QR code data as URL with location ID
-        # Always use request.host_url to get the actual server URL
-        base_url = request.host_url.rstrip('/')
+        # Priority: 1) Railway URL env var, 2) Config BASE_URL, 3) Request host
+        import os
         
-        # Override with config BASE_URL only if it's not localhost
-        if Config.BASE_URL and Config.BASE_URL != 'http://localhost:5000':
-            base_url = Config.BASE_URL
+        railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN')
+        railway_static_url = os.getenv('RAILWAY_STATIC_URL')
+        
+        if railway_domain:
+            base_url = f"https://{railway_domain}"
+        elif railway_static_url:
+            base_url = railway_static_url.rstrip('/')
+        elif current_app.config.get('BASE_URL') and current_app.config.get('BASE_URL') != 'http://localhost:5000':
+            base_url = current_app.config.get('BASE_URL')
+        else:
+            base_url = request.host_url.rstrip('/')
         
         qr_code_data = f"{base_url}/guest/call?location={location.id}"
         location.qr_code_data = qr_code_data
