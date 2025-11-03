@@ -154,8 +154,8 @@ class ProductionConfig(Config):
         'pool_timeout': 30
     }
     
-    # Use eventlet for production WebSocket support
-    SOCKETIO_ASYNC_MODE = 'eventlet'
+    # Use threading for production WebSocket support (Python 3.12 compatible)
+    SOCKETIO_ASYNC_MODE = 'threading'
     
     @classmethod
     def init_app(cls, app):

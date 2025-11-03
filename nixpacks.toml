@@ -11,4 +11,4 @@ cmds = [
 cmds = []
 
 [start]
-cmd = "python scripts/run_migrations.py && gunicorn --worker-class gevent -w 1 --bind 0.0.0.0:$PORT --timeout 120 --keep-alive 5 --log-level info wsgi:app"
+cmd = "python scripts/run_migrations.py && gunicorn --worker-class gthread --workers 1 --threads 4 --bind 0.0.0.0:$PORT --timeout 120 --keep-alive 5 --log-level info wsgi:app"
