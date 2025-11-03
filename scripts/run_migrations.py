@@ -202,6 +202,16 @@ def verify_tables(app):
 
 def main():
     """Main function"""
+    # Check if running in Railway (no arguments provided during build)
+    if len(sys.argv) == 1:
+        # Auto-run upgrade in Railway
+        print("\n🚀 Buggy Call - Railway Auto Migration")
+        app = create_app('production')
+        print(f"Database: {app.config.get('SQLALCHEMY_DATABASE_URI', '').split('@')[-1] if '@' in app.config.get('SQLALCHEMY_DATABASE_URI', '') else 'Not configured'}\n")
+        success = run_upgrade(app, 'head')
+        sys.exit(0 if success else 1)
+    
+    # Manual execution with arguments
     parser = argparse.ArgumentParser(description='Buggy Call Database Migration Tool')
     parser.add_argument('command', choices=['status', 'upgrade', 'downgrade', 'history', 'verify'],
                        help='Migration command to execute')

@@ -157,6 +157,11 @@
                             <i class="fas fa-exchange-alt"></i>
                         </button>` : ''
                     }
+                    ${buggy.driver_id && (buggy.status === 'available' || buggy.status === 'busy') ? 
+                        `<button class="btn btn-sm btn-danger" onclick="closeDriverSession(${buggy.driver_id})" title="Oturumu Kapat">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>` : ''
+                    }
                     <button class="btn btn-sm btn-danger" onclick="deleteBuggy(${buggy.id})" title="Sil">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -788,6 +793,36 @@
         } catch (error) {
             console.error('Error transferring driver:', error);
             await showError('Sürücü transfer edilirken bir hata oluştu: ' + error.message);
+        }
+    }
+
+    // ==================== Close Driver Session ====================
+    async function closeDriverSession(driverId) {
+        const confirmed = await BuggyModal.confirm(
+            'Bu sürücünün oturumunu kapatmak istediğinize emin misiniz? Sürücü çıkış yapmış gibi olacak ve buggy çevrimdışı olacak.',
+            'Oturumu Kapat',
+            'Evet, Kapat',
+            'İptal'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            const response = await fetch(`/api/admin/close-driver-session/${driverId}`, {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                await showSuccess(data.message || 'Sürücü oturumu başarıyla kapatıldı!');
+                await loadBuggies();
+            } else {
+                await showError(data.error || 'Oturum kapatılamadı!');
+            }
+        } catch (error) {
+            console.error('Error closing driver session:', error);
+            await showError('Oturum kapatılırken bir hata oluştu: ' + error.message);
         }
     }
 </script>

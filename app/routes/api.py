@@ -1924,14 +1924,20 @@ def transfer_driver():
         if not source_buggy:
             return jsonify({'success': False, 'error': 'Kaynak buggy bulunamadı'}), 404
         
-        # Verify driver is assigned to source buggy
-        if source_buggy.driver_id != driver_id:
-            return jsonify({'success': False, 'error': 'Sürücü kaynak buggy\'ye atanmamış'}), 400
-        
         # Get target buggy
         target_buggy = Buggy.query.filter_by(id=target_buggy_id, hotel_id=admin.hotel_id).first()
         if not target_buggy:
             return jsonify({'success': False, 'error': 'Hedef buggy bulunamadı'}), 404
+        
+        # Verify driver is assigned to source buggy using buggy_drivers table
+        from app.models.buggy_driver import BuggyDriver
+        source_association = BuggyDriver.query.filter_by(
+            buggy_id=source_buggy_id,
+            driver_id=driver_id
+        ).first()
+        
+        if not source_association:
+            return jsonify({'success': False, 'error': 'Sürücü kaynak buggy\'ye atanmamış'}), 400
         
         # Check if driver has active session
         from app.models.session import Session as SessionModel
@@ -1947,13 +1953,36 @@ def transfer_driver():
             active_session.is_active = False
             active_session.revoked_at = datetime.utcnow()
             
+            # Deactivate driver association from source buggy
+            source_association.is_active = False
+            
             # Set both buggies to OFFLINE
             source_buggy.status = BuggyStatus.OFFLINE
             target_buggy.status = BuggyStatus.OFFLINE
+        else:
+            # Just deactivate the association without changing buggy status
+            source_association.is_active = False
         
-        # Transfer driver
-        source_buggy.driver_id = None
-        target_buggy.driver_id = driver_id
+        # Create or activate driver association with target buggy
+        target_association = BuggyDriver.query.filter_by(
+            buggy_id=target_buggy_id,
+            driver_id=driver_id
+        ).first()
+        
+        if target_association:
+            # Reactivate existing association
+            target_association.is_active = False  # Will be activated when driver logs in
+            target_association.assigned_at = datetime.utcnow()
+        else:
+            # Create new association
+            target_association = BuggyDriver(
+                buggy_id=target_buggy_id,
+                driver_id=driver_id,
+                is_active=False,  # Will be activated when driver logs in
+                is_primary=True,
+                assigned_at=datetime.utcnow()
+            )
+            db.session.add(target_association)
         
         db.session.commit()
         

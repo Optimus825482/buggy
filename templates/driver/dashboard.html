@@ -360,6 +360,30 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Initial Location Setup Modal -->
+<div id="locationSetupModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="width: 80px; height: 80px; margin: 0 auto 1rem; background: linear-gradient(135deg, #1BA5A8 0%, #158587 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-map-marker-alt" style="font-size: 2rem; color: white;"></i>
+            </div>
+            <h2 style="margin: 0 0 0.5rem 0; color: #333;">Hoş Geldiniz!</h2>
+            <p style="color: #6c757d; margin: 0;">Lütfen şu anki lokasyonunuzu seçin</p>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Lokasyon *</label>
+            <select id="initial-location" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 0.5rem; font-size: 1rem; transition: border-color 0.3s;" required>
+                <option value="">Lokasyon Seçin</option>
+            </select>
+        </div>
+        
+        <button onclick="setInitialLocation()" style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #1BA5A8 0%, #158587 100%); color: white; border: none; border-radius: 0.5rem; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+            <i class="fas fa-check"></i> Devam Et
+        </button>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -376,6 +400,70 @@
         if ( confirm( 'Çıkış yapmak istediğinize emin misiniz?' ) ) {
             localStorage.clear();
             window.location.href = '/auth/login';
+        }
+    }
+
+    // Initial location setup
+    document.addEventListener('DOMContentLoaded', async function() {
+        const needsLocationSetup = document.body.dataset.needsLocationSetup === 'true';
+        
+        if (needsLocationSetup) {
+            // Load locations
+            try {
+                const response = await fetch('/api/locations');
+                const data = await response.json();
+                
+                if (data.success && data.locations) {
+                    const select = document.getElementById('initial-location');
+                    data.locations.forEach(location => {
+                        const option = document.createElement('option');
+                        option.value = location.id;
+                        option.textContent = location.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading locations:', error);
+            }
+            
+            // Show modal
+            const modal = document.getElementById('locationSetupModal');
+            modal.style.display = 'flex';
+        }
+    });
+
+    async function setInitialLocation() {
+        const locationId = document.getElementById('initial-location').value;
+        
+        if (!locationId) {
+            alert('Lütfen lokasyon seçin!');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/driver/set-initial-location', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ location_id: parseInt(locationId) })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Hide modal
+                document.getElementById('locationSetupModal').style.display = 'none';
+                
+                // Show success message
+                alert(data.message || 'Lokasyon başarıyla ayarlandı!');
+                
+                // Reload page to refresh dashboard
+                window.location.reload();
+            } else {
+                alert(data.error || 'Lokasyon ayarlanamadı!');
+            }
+        } catch (error) {
+            console.error('Error setting initial location:', error);
+            alert('Lokasyon ayarlanırken bir hata oluştu: ' + error.message);
         }
     }
 </script>

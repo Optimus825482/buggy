@@ -8,7 +8,9 @@ cmds = [
 ]
 
 [phases.build]
-cmds = []
+cmds = [
+  ". /opt/venv/bin/activate && python scripts/run_migrations.py"
+]
 
 [start]
 cmd = "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 120 --keep-alive 5 --log-level info wsgi:app"
