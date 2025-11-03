@@ -1,0 +1,64 @@
+{
+  "hotel": {
+    "name": "Railway Demo Hotel",
+    "address": "Cloud Deployment",
+    "phone": "+90 242 000 0000",
+    "email": "info@buggycall.railway.app",
+    "timezone": "Europe/Istanbul"
+  },
+  "admin": {
+    "username": "admin",
+    "password": "Admin123!Railway",
+    "full_name": "System Administrator",
+    "email": "admin@buggycall.railway.app",
+    "role": "admin"
+  },
+  "drivers": {
+    "count": 3,
+    "password": "Driver123!",
+    "prefix": "driver"
+  },
+  "locations": [
+    {
+      "name": "Reception",
+      "description": "Main entrance and reception area"
+    },
+    {
+      "name": "Beach",
+      "description": "Hotel beach area"
+    },
+    {
+      "name": "Restaurant",
+      "description": "Main restaurant"
+    },
+    {
+      "name": "Spa",
+      "description": "Spa and wellness center"
+    },
+    {
+      "name": "Pool",
+      "description": "Swimming pool area"
+    },
+    {
+      "name": "Tennis Court",
+      "description": "Tennis courts"
+    }
+  ],
+  "buggies": {
+    "model_prefix": "Golf Cart Model",
+    "code_prefix": "B",
+    "license_plate_prefix": "RW"
+  },
+  "notes": {
+    "password_security": "Default passwords should be changed after first login",
+    "customization": "Override these values using environment variables",
+    "environment_vars": {
+      "INITIAL_HOTEL_NAME": "Override hotel name",
+      "INITIAL_ADMIN_USERNAME": "Override admin username",
+      "INITIAL_ADMIN_PASSWORD": "Override admin password (REQUIRED for production)",
+      "INITIAL_ADMIN_EMAIL": "Override admin email",
+      "INITIAL_DRIVER_PASSWORD": "Override driver password",
+      "INITIAL_DRIVER_COUNT": "Number of drivers to create (default: 3)"
+    }
+  }
+}

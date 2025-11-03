@@ -79,3 +79,6 @@ migrations/versions/*.pyc
 # Backup
 *.bak
 *.backup
+
+#Openspec
+openspec/

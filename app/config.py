@@ -134,7 +134,7 @@ class DevelopmentConfig(Config):
 
 
 class ProductionConfig(Config):
-    """Production configuration"""
+    """Production configuration with Railway support"""
     DEBUG = False
     TESTING = False
     
@@ -144,6 +144,50 @@ class ProductionConfig(Config):
     
     # Stricter rate limits for production
     RATELIMIT_DEFAULT = "50 per hour"
+    
+    # Production-specific SQLAlchemy settings
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,
+        'pool_recycle': 3600,
+        'pool_pre_ping': True,
+        'max_overflow': 5,
+        'pool_timeout': 30
+    }
+    
+    # Use eventlet for production WebSocket support
+    SOCKETIO_ASYNC_MODE = 'eventlet'
+    
+    @classmethod
+    def init_app(cls, app):
+        """Initialize production configuration with Railway support"""
+        Config.init_app(app) if hasattr(Config, 'init_app') else None
+        
+        # Parse Railway MySQL URL if provided
+        mysql_url = os.getenv('MYSQL_PUBLIC_URL')
+        if mysql_url:
+            from urllib.parse import urlparse
+            
+            try:
+                parsed = urlparse(mysql_url)
+                
+                # Update database configuration
+                app.config['DB_HOST'] = parsed.hostname
+                app.config['DB_PORT'] = parsed.port or 3306
+                app.config['DB_NAME'] = parsed.path.lstrip('/')
+                app.config['DB_USER'] = parsed.username
+                app.config['DB_PASSWORD'] = parsed.password
+                
+                # Rebuild SQLAlchemy URI with PyMySQL driver
+                app.config['SQLALCHEMY_DATABASE_URI'] = (
+                    f"mysql+pymysql://{parsed.username}:{parsed.password}"
+                    f"@{parsed.hostname}:{parsed.port or 3306}"
+                    f"/{parsed.path.lstrip('/')}?charset=utf8mb4"
+                )
+                
+                app.logger.info(f"Railway MySQL configured: {parsed.hostname}:{parsed.port or 3306}")
+            except Exception as e:
+                app.logger.error(f"Failed to parse MYSQL_PUBLIC_URL: {e}")
+                raise
 
 
 class TestingConfig(Config):

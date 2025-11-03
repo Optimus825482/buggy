@@ -25,6 +25,45 @@ csrf = CSRFProtect()
 cache = Cache()
 
 
+def connect_with_retry(app, max_retries=5, delay=2):
+    """
+    Connect to database with exponential backoff retry logic
+    
+    Args:
+        app: Flask application instance
+        max_retries: Maximum number of retry attempts
+        delay: Initial delay between retries in seconds
+        
+    Returns:
+        bool: True if connection successful
+        
+    Raises:
+        Exception: If connection fails after all retries
+    """
+    import time
+    from sqlalchemy import text
+    
+    for attempt in range(max_retries):
+        try:
+            with app.app_context():
+                db.session.execute(text('SELECT 1'))
+                app.logger.info("✅ Database connection successful")
+                return True
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait_time = delay * (2 ** attempt)
+                app.logger.warning(
+                    f"Database connection failed (attempt {attempt + 1}/{max_retries}), "
+                    f"retrying in {wait_time}s... Error: {str(e)}"
+                )
+                time.sleep(wait_time)
+            else:
+                app.logger.error(
+                    f"❌ Database connection failed after {max_retries} attempts: {str(e)}"
+                )
+                raise
+
+
 def create_app(config_name=None):
     """Application factory pattern"""
     
@@ -107,6 +146,9 @@ def create_app(config_name=None):
         from app.middleware.suspicious_activity import detect_suspicious_activity
         detect_suspicious_activity(app)
     
+    # Apply security headers
+    apply_security_headers(app)
+    
     # Register context processors
     register_context_processors(app)
     
@@ -120,27 +162,68 @@ def create_app(config_name=None):
 
 
 def setup_logging(app):
-    """Setup logging configuration"""
+    """Setup comprehensive logging configuration"""
+    
+    # Set log level
+    log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO'))
+    app.logger.setLevel(log_level)
+    
+    # Structured logging format
+    log_format = logging.Formatter(
+        '%(asctime)s [%(levelname)s] %(name)s: %(message)s [in %(pathname)s:%(lineno)d]',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
     if not app.debug and not app.testing:
         # Create logs directory if it doesn't exist
-        if not os.path.exists('logs'):
-            os.mkdir('logs')
+        try:
+            if not os.path.exists('logs'):
+                os.makedirs('logs', mode=0o755, exist_ok=True)
+        except Exception as e:
+            # If we can't create logs dir, just use console
+            app.logger.warning(f"Could not create logs directory: {e}")
         
         # Setup file handler
-        file_handler = RotatingFileHandler(
-            app.config['LOG_FILE'],
-            maxBytes=app.config['LOG_MAX_BYTES'],
-            backupCount=app.config['LOG_BACKUP_COUNT']
-        )
-        
-        file_handler.setFormatter(logging.Formatter(
-            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-        ))
-        
-        file_handler.setLevel(getattr(logging, app.config['LOG_LEVEL']))
-        app.logger.addHandler(file_handler)
-        app.logger.setLevel(getattr(logging, app.config['LOG_LEVEL']))
-        app.logger.info('Buggy Call startup')
+        try:
+            file_handler = RotatingFileHandler(
+                app.config['LOG_FILE'],
+                maxBytes=app.config['LOG_MAX_BYTES'],
+                backupCount=app.config['LOG_BACKUP_COUNT']
+            )
+            file_handler.setFormatter(log_format)
+            file_handler.setLevel(log_level)
+            app.logger.addHandler(file_handler)
+        except Exception as e:
+            app.logger.warning(f"Could not setup file logging: {e}")
+    
+    # Always add console handler for Railway logs
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(log_format)
+    console_handler.setLevel(log_level)
+    app.logger.addHandler(console_handler)
+    
+    # Log startup info
+    app.logger.info('='*60)
+    app.logger.info(f'Buggy Call starting - Environment: {app.config.get("FLASK_ENV")}')
+    app.logger.info(f'Debug mode: {app.config.get("DEBUG")}')
+    app.logger.info(f'Database: {app.config.get("SQLALCHEMY_DATABASE_URI", "").split("@")[-1] if "@" in app.config.get("SQLALCHEMY_DATABASE_URI", "") else "Not configured"}')
+    app.logger.info('='*60)
+    
+    # Add request logging middleware
+    @app.before_request
+    def log_request():
+        """Log all HTTP requests"""
+        from flask import request
+        if not request.path.startswith('/static'):
+            app.logger.debug(f'{request.method} {request.path} - {request.remote_addr}')
+    
+    @app.after_request
+    def log_response(response):
+        """Log HTTP responses"""
+        from flask import request
+        if not request.path.startswith('/static'):
+            app.logger.debug(f'{request.method} {request.path} - {response.status_code}')
+        return response
 
 
 def register_blueprints(app):
@@ -212,17 +295,48 @@ def register_error_handlers(app):
     
     @app.errorhandler(404)
     def not_found_error(error):
+        """Handle not found errors"""
+        from flask import request
+        app.logger.warning(f'404 Not Found: {request.method} {request.path}')
+        
         if app.config['DEBUG']:
+            return jsonify({'error': 'Not found', 'path': request.path}), 404
+        
+        try:
+            return render_template('errors/404.html'), 404
+        except:
             return jsonify({'error': 'Not found'}), 404
-        return render_template('errors/404.html'), 404
     
     @app.errorhandler(500)
     def internal_error(error):
+        """Handle internal server errors with logging"""
         db.session.rollback()
-        app.logger.error(f'Internal error: {str(error)}')
+        
+        # Log error with full stack trace
+        import traceback
+        app.logger.error('='*60)
+        app.logger.error('Internal Server Error')
+        app.logger.error(f'Error: {str(error)}')
+        app.logger.error('Stack trace:')
+        app.logger.error(traceback.format_exc())
+        app.logger.error('='*60)
+        
         if app.config['DEBUG']:
-            return jsonify({'error': 'Internal server error', 'details': str(error)}), 500
-        return render_template('errors/500.html'), 500
+            return jsonify({
+                'error': 'Internal server error',
+                'details': str(error),
+                'traceback': traceback.format_exc()
+            }), 500
+        
+        # Production: Don't expose error details
+        try:
+            return render_template('errors/500.html'), 500
+        except:
+            # Fallback if template rendering fails
+            return jsonify({
+                'error': 'Internal server error',
+                'message': 'An unexpected error occurred. Please try again later.'
+            }), 500
     
     @app.errorhandler(403)
     def forbidden_error(error):
@@ -235,10 +349,73 @@ def register_error_handlers(app):
     @app.errorhandler(429)
     def ratelimit_handler(error):
         """Handle rate limit exceeded"""
+        from flask import request
+        app.logger.warning(
+            f'Rate limit exceeded: {request.remote_addr} - '
+            f'{request.method} {request.path}'
+        )
+        
         return jsonify({
             'error': 'Rate limit exceeded',
-            'message': 'Too many requests. Please try again later.'
+            'message': 'Too many requests. Please try again later.',
+            'retry_after': '60 seconds'
         }), 429
+    
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(error):
+        """Catch-all handler for unexpected errors"""
+        import traceback
+        
+        # Log the error
+        app.logger.error('='*60)
+        app.logger.error('Unexpected Error')
+        app.logger.error(f'Error type: {type(error).__name__}')
+        app.logger.error(f'Error: {str(error)}')
+        app.logger.error('Stack trace:')
+        app.logger.error(traceback.format_exc())
+        app.logger.error('='*60)
+        
+        # Rollback database session
+        try:
+            db.session.rollback()
+        except:
+            pass
+        
+        if app.config['DEBUG']:
+            return jsonify({
+                'error': 'Unexpected error',
+                'type': type(error).__name__,
+                'details': str(error),
+                'traceback': traceback.format_exc()
+            }), 500
+        
+        # Production: Generic error message
+        return jsonify({
+            'error': 'Internal server error',
+            'message': 'An unexpected error occurred. Please try again later.'
+        }), 500
+
+
+def apply_security_headers(app):
+    """Apply security headers to all responses"""
+    
+    @app.after_request
+    def set_security_headers(response):
+        """Set security headers on all responses"""
+        
+        # Get security headers from config
+        security_headers = app.config.get('SECURITY_HEADERS', {})
+        
+        for header, value in security_headers.items():
+            response.headers[header] = value
+        
+        # Force HTTPS in production
+        if not app.config.get('DEBUG') and not app.config.get('TESTING'):
+            # Enforce HTTPS
+            if app.config.get('SESSION_COOKIE_SECURE'):
+                response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        
+        return response
 
 
 def register_context_processors(app):
@@ -253,15 +430,26 @@ def register_context_processors(app):
 
 
 def create_upload_folders(app):
-    """Create upload folders if they don't exist"""
+    """
+    Create upload folders if they don't exist
+    Handles errors gracefully for production environments
+    """
     folders = [
         app.config['UPLOAD_FOLDER'],
         app.config['QR_CODE_FOLDER']
     ]
     
     for folder in folders:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
+        try:
+            if not os.path.exists(folder):
+                os.makedirs(folder, mode=0o755, exist_ok=True)
+                app.logger.info(f"✅ Created upload folder: {folder}")
+            else:
+                app.logger.debug(f"Upload folder exists: {folder}")
+        except Exception as e:
+            app.logger.error(f"❌ Failed to create upload folder {folder}: {e}")
+            # Don't raise - app can still function without uploads
+            pass
 
 
 def register_shell_context(app):
