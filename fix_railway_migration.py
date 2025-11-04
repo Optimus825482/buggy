@@ -32,7 +32,7 @@ def add_missing_columns(engine):
         ('must_change_password', 'BOOLEAN NOT NULL DEFAULT 0'),
         ('push_subscription', 'TEXT'),
         ('push_subscription_date', 'DATETIME'),
-        ('notification_preferences', 'TEXT')
+        ('notification_preferences', 'JSON')  # JSON olarak değiştirdim
     ]
     
     with engine.connect() as conn:
