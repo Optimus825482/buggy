@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Buggy'ler{% endblock %}
+{% block title %}Shuttle'lar{% endblock %}
 
 {% block header_nav %}
 <nav class="nav">
@@ -11,7 +11,7 @@
         <i class="fas fa-map-marker-alt"></i> Lokasyonlar
     </a>
     <a href="{{ url_for('admin.buggies') }}" class="nav-link active">
-        <i class="fas fa-truck-pickup"></i> Buggy'ler
+        <i class="fas fa-truck-pickup"></i> Shuttle'lar
     </a>
     <a href="{{ url_for('admin.reports') }}" class="nav-link">
         <i class="fas fa-chart-bar"></i> Raporlar
@@ -25,9 +25,9 @@
 {% block content %}
 <div class="container" style="padding: 2rem 0;">
     <div class="d-flex justify-between align-center" style="margin-bottom: 2rem;">
-        <h1><i class="fas fa-truck-pickup text-primary"></i> Buggy Yönetimi</h1>
+        <h1><i class="fas fa-truck-pickup text-primary"></i> Shuttle Yönetimi</h1>
         <button class="btn btn-primary" onclick="showAddBuggy()">
-            <i class="fas fa-plus"></i> Yeni Buggy
+            <i class="fas fa-plus"></i> Yeni Shuttle
         </button>
     </div>
 
@@ -38,7 +38,7 @@
                     <thead>
                         <tr>
                             <th>Icon</th>
-                            <th>Buggy Kodu</th>
+                            <th>Shuttle Kodu</th>
                             <th>Plaka</th>
                             <th>Sürücü</th>
                             <th>Lokasyon</th>
@@ -85,8 +85,8 @@
                 renderBuggies();
             }
         } catch ( error ) {
-            console.error( 'Error loading buggies:', error );
-            showToast( 'Buggyler yüklenemedi', 'danger' );
+            console.error( 'Error loading shuttles:', error );
+            showToast( 'Shuttle\'lar yüklenemedi', 'danger' );
         }
     }
 
@@ -107,7 +107,7 @@
         const tbody = document.getElementById( 'buggies-table' );
 
         if ( buggies.length === 0 ) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Henüz buggy eklenmemiş</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Henüz shuttle eklenmemiş</td></tr>';
             return;
         }
 
@@ -187,8 +187,8 @@
         const modalContent = `
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Buggy Kodu *</label>
-                    <input type="text" id="add-code" placeholder="BUGGY-01" 
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Shuttle Kodu *</label>
+                    <input type="text" id="add-code" placeholder="SHUTTLE-01" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" 
                            required>
                 </div>
@@ -252,7 +252,7 @@
         `;
 
         const result = await BuggyModal.custom( modalContent, {
-            title: '🚗 Yeni Buggy Ekle',
+            title: '🚗 Yeni Shuttle Ekle',
             confirmText: 'Ekle',
             cancelText: 'İptal',
             size: 'medium'
@@ -349,22 +349,22 @@
             const result = await response.json();
 
             if ( response.ok && result.success ) {
-                await showSuccess( 'Buggy başarıyla eklendi!' );
+                await showSuccess( 'Shuttle başarıyla eklendi!' );
                 loadBuggies();
                 await loadDrivers(); // Refresh driver list
             } else {
-                await showError( result.error || 'Buggy eklenemedi!' );
+                await showError( result.error || 'Shuttle eklenemedi!' );
             }
         } catch ( error ) {
-            console.error( 'Error adding buggy:', error );
-            await showError( 'Buggy eklenirken bir hata oluştu: ' + error.message );
+            console.error( 'Error adding shuttle:', error );
+            await showError( 'Shuttle eklenirken bir hata oluştu: ' + error.message );
         }
     }
 
     async function editBuggy( id ) {
         const buggy = buggies.find( b => b.id === id );
         if ( !buggy ) {
-            await showError( 'Buggy bulunamadı!' );
+            await showError( 'Shuttle bulunamadı!' );
             return;
         }
 
@@ -379,7 +379,7 @@
         const modalContent = `
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Buggy Kodu *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Shuttle Kodu *</label>
                     <input type="text" id="edit-code" value="${buggy.code}" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" 
                            required>
@@ -407,7 +407,7 @@
         `;
 
         const result = await BuggyModal.custom( modalContent, {
-            title: 'Buggy Düzenle',
+            title: 'Shuttle Düzenle',
             confirmText: 'Güncelle',
             cancelText: 'İptal',
             size: 'medium'
@@ -421,7 +421,7 @@
             const driver_id = driverValue === 'null' || driverValue === '' ? null : parseInt( driverValue );
 
             if ( !code ) {
-                await showError( 'Buggy kodu boş olamaz!' );
+                await showError( 'Shuttle kodu boş olamaz!' );
                 return;
             }
 
@@ -435,22 +435,22 @@
                 const apiResult = await response.json();
 
                 if ( response.ok && apiResult.success ) {
-                    await showSuccess( 'Buggy başarıyla güncellendi!' );
+                    await showSuccess( 'Shuttle başarıyla güncellendi!' );
                     loadBuggies();
                 } else {
-                    await showError( apiResult.error || 'Buggy güncellenemedi!' );
+                    await showError( apiResult.error || 'Shuttle güncellenemedi!' );
                 }
             } catch ( error ) {
-                console.error( 'Error updating buggy:', error );
-                await showError( 'Buggy güncellenirken bir hata oluştu: ' + error.message );
+                console.error( 'Error updating shuttle:', error );
+                await showError( 'Shuttle güncellenirken bir hata oluştu: ' + error.message );
             }
         }
     }
 
     async function deleteBuggy( id ) {
         const confirmed = await BuggyModal.confirm(
-            'Bu buggy\'i silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
-            'Buggy Sil',
+            'Bu shuttle\'ı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+            'Shuttle Sil',
             'Evet, Sil',
             'İptal'
         );
@@ -465,14 +465,14 @@
             const result = await response.json();
 
             if ( response.ok && result.success ) {
-                await showSuccess( 'Buggy başarıyla silindi!' );
+                await showSuccess( 'Shuttle başarıyla silindi!' );
                 loadBuggies();
             } else {
-                await showError( result.error || 'Buggy silinemedi!' );
+                await showError( result.error || 'Shuttle silinemedi!' );
             }
         } catch ( error ) {
-            console.error( 'Error deleting buggy:', error );
-            await showError( 'Buggy silinirken bir hata oluştu: ' + error.message );
+            console.error( 'Error deleting shuttle:', error );
+            await showError( 'Shuttle silinirken bir hata oluştu: ' + error.message );
         }
     }
 
@@ -520,8 +520,8 @@
         // Listen for driver assigned event
         socket.on('driver_assigned', (data) => {
             console.log('Driver assigned:', data);
-            showToast(`${data.driver_name} ${data.buggy_code} buggy'sine atandı`, 'success');
-            loadBuggies(); // Refresh buggy list
+            showToast(`${data.driver_name} ${data.buggy_code} shuttle'ına atandı`, 'success');
+            loadBuggies(); // Refresh shuttle list
         });
 
         // Listen for driver transferred event
@@ -529,7 +529,7 @@
             console.log('Driver transferred:', data);
             const message = `${data.driver_name} ${data.source_buggy_code}'dan ${data.target_buggy_code}'a transfer edildi`;
             showToast(message, 'success');
-            loadBuggies(); // Refresh buggy list
+            loadBuggies(); // Refresh shuttle list
         });
 
         socket.on('disconnect', () => {
@@ -545,7 +545,7 @@
     async function showAssignDriverModal(buggyId) {
         const buggy = buggies.find(b => b.id === buggyId);
         if (!buggy) {
-            await showError('Buggy bulunamadı!');
+            await showError('Shuttle bulunamadı!');
             return;
         }
 
@@ -723,12 +723,12 @@
     async function showTransferDriverModal(buggyId) {
         const sourceBuggy = buggies.find(b => b.id === buggyId);
         if (!sourceBuggy) {
-            await showError('Buggy bulunamadı!');
+            await showError('Shuttle bulunamadı!');
             return;
         }
 
         if (!sourceBuggy.driver_id) {
-            await showError('Bu buggy\'de sürücü yok!');
+            await showError('Bu shuttle\'da sürücü yok!');
             return;
         }
 
@@ -736,11 +736,11 @@
         const targetBuggies = buggies.filter(b => b.id !== buggyId);
 
         if (targetBuggies.length === 0) {
-            await showError('Transfer edilebilecek başka buggy yok!');
+            await showError('Transfer edilebilecek başka shuttle yok!');
             return;
         }
 
-        let buggyOptions = '<option value="">Hedef Buggy Seçin</option>';
+        let buggyOptions = '<option value="">Hedef Shuttle Seçin</option>';
         targetBuggies.forEach(b => {
             const driverInfo = b.driver_name ? ` (Sürücü: ${b.driver_name})` : ' (Boş)';
             buggyOptions += `<option value="${b.id}">${b.code}${driverInfo}</option>`;
@@ -753,7 +753,7 @@
                     <p class="text-sm"><strong>Mevcut Shuttle:</strong> ${sourceBuggy.code}</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Hedef Buggy *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Hedef Shuttle *</label>
                     <select id="transfer-target-buggy" 
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                             required>
@@ -763,7 +763,7 @@
                 <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                     <p class="text-sm text-yellow-800">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Uyarı:</strong> Sürücünün aktif oturumu varsa kapatılacak ve her iki buggy çevrimdışı olacak.
+                        <strong>Uyarı:</strong> Sürücünün aktif oturumu varsa kapatılacak ve her iki shuttle çevrimdışı olacak.
                     </p>
                 </div>
             </div>
@@ -780,7 +780,7 @@
             const targetBuggyId = document.getElementById('transfer-target-buggy').value;
             
             if (!targetBuggyId) {
-                await showError('Lütfen hedef buggy seçin!');
+                await showError('Lütfen hedef shuttle seçin!');
                 return showTransferDriverModal(buggyId); // Show again
             }
 
@@ -805,7 +805,7 @@
             if (response.ok && data.success) {
                 await showSuccess(data.message || 'Sürücü başarıyla transfer edildi!');
                 if (data.session_terminated) {
-                    await BuggyModal.alert('Sürücünün aktif oturumu sonlandırıldı ve her iki buggy çevrimdışı yapıldı.');
+                    await BuggyModal.alert('Sürücünün aktif oturumu sonlandırıldı ve her iki shuttle çevrimdışı yapıldı.');
                 }
                 await loadBuggies();
             } else {
@@ -820,7 +820,7 @@
     // ==================== Close Driver Session ====================
     async function closeDriverSession(driverId) {
         const confirmed = await BuggyModal.confirm(
-            'Bu sürücünün oturumunu kapatmak istediğinize emin misiniz? Sürücü çıkış yapmış gibi olacak ve buggy çevrimdışı olacak.',
+            'Bu sürücünün oturumunu kapatmak istediğinize emin misiniz? Sürücü çıkış yapmış gibi olacak ve shuttle çevrimdışı olacak.',
             'Oturumu Kapat',
             'Evet, Kapat',
             'İptal'
