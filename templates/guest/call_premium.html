@@ -843,9 +843,27 @@ const GuestCall = (() => {
 
             if (data.success && location) {
                 console.log('✅ Location found:', location);
-                console.log('📸 Location image:', location.location_image);
+                console.log('📸 Location image (raw):', location.location_image);
+                
                 state.selectedLocationName = location.name;
-                updateLocationDisplay(`<strong>${location.name}</strong>`, '#1A2B4A', location.location_image);
+                
+                // Resim yolunu tam URL'e çevir
+                let imageUrl = null;
+                if (location.location_image) {
+                    // Eğer relative path ise tam URL yap
+                    if (location.location_image.startsWith('/')) {
+                        imageUrl = window.location.origin + location.location_image;
+                    } else if (location.location_image.startsWith('http')) {
+                        // Zaten tam URL
+                        imageUrl = location.location_image;
+                    } else {
+                        // Relative path (static/ ile başlıyor olabilir)
+                        imageUrl = window.location.origin + '/' + location.location_image;
+                    }
+                    console.log('📸 Location image (full URL):', imageUrl);
+                }
+                
+                updateLocationDisplay(`<strong>${location.name}</strong>`, '#1A2B4A', imageUrl);
                 console.log('✅ updateLocationDisplay called');
            
             } else {
@@ -898,23 +916,34 @@ const GuestCall = (() => {
         }
         
         // Büyük görsel varsa göster, yoksa icon göster
-        if (locationImage && mainImageContainer && mainImage && mainIconContainer) {
+        if (locationImage && locationImage.trim() !== '' && mainImageContainer && mainImage && mainIconContainer) {
             console.log('🖼️ Setting image src:', locationImage);
-            mainImage.src = locationImage;
+            
+            // Önce icon göster, resim yüklenince değiştir
+            mainImageContainer.style.display = 'none';
+            mainIconContainer.style.display = 'flex';
+            
             mainImage.onerror = () => {
                 console.error('❌ Image failed to load:', locationImage);
                 mainImageContainer.style.display = 'none';
                 mainIconContainer.style.display = 'flex';
             };
+            
             mainImage.onload = () => {
                 console.log('✅ Image loaded successfully');
                 mainImageContainer.style.display = 'block';
                 mainIconContainer.style.display = 'none';
             };
-        } else if (mainImageContainer && mainIconContainer) {
-            mainImageContainer.style.display = 'none';
-            mainIconContainer.style.display = 'flex';
-            console.log('✅ Icon displayed (no image)');
+            
+            // Resmi yükle
+            mainImage.src = locationImage;
+        } else {
+            // Resim yoksa icon göster
+            if (mainImageContainer && mainIconContainer) {
+                mainImageContainer.style.display = 'none';
+                mainIconContainer.style.display = 'flex';
+                console.log('✅ Icon displayed (no image)');
+            }
         }
     };
 
