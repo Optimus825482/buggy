@@ -9,7 +9,7 @@ const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 
 // IndexedDB Configuration
 const DB_NAME = 'ShuttleCallDB';
-const DB_VERSION = 3; // Incremented for DB name change
+const DB_VERSION = 4; // Incremented to force schema recreation
 const STORE_NOTIFICATIONS = 'notifications';
 const STORE_PENDING_ACTIONS = 'pendingActions';
 const STORE_DELIVERY_LOG = 'deliveryLog';
@@ -846,8 +846,13 @@ async function setAppBadge(count) {
  */
 async function loadBadgeCount() {
   try {
-    const db = await openDB();
-    const tx = db.transaction([STORE_BADGE_COUNT], 'readonly');
+    const tx = await safeTransaction(STORE_BADGE_COUNT, 'readonly');
+    if (!tx) {
+      console.warn('[SW] Cannot load badge count - store not available, using default 0');
+      badgeCount = 0;
+      return 0;
+    }
+    
     const store = tx.objectStore(STORE_BADGE_COUNT);
     const result = await promisifyRequest(store.get('count'));
     
@@ -878,24 +883,11 @@ async function loadBadgeCount() {
  */
 async function storeBadgeCount(count) {
   try {
-    const db = await openDB();
-    const tx = db.transaction([STORE_BADGE_COUNT], 'readwrite');
-    const store = tx.objectStore(STORE_BADGE_COUNT);
-    await promisifyRequest(store.put({ id: 'count', value: count, updatedAt: Date.now() }));
-    console.log(`[SW] Badge count stored: ${count}`);
-  } catch (error) {
-    console.error('[SW] Error storing badge count:', error);
-  }
-}
-
-/**
- * Store badge count to IndexedDB for persistence
- * @param {number} count - Badge count to store
- */
-async function storeBadgeCount(count) {
-  try {
-    const db = await openDB();
-    const tx = db.transaction([STORE_BADGE_COUNT], 'readwrite');
+    const tx = await safeTransaction(STORE_BADGE_COUNT, 'readwrite');
+    if (!tx) {
+      console.warn('[SW] Cannot store badge count - store not available');
+      return;
+    }
     const store = tx.objectStore(STORE_BADGE_COUNT);
     await promisifyRequest(store.put({ id: 'count', value: count, updatedAt: Date.now() }));
     console.log(`[SW] Badge count stored: ${count}`);
@@ -914,8 +906,12 @@ async function storeBadgeCount(count) {
  */
 async function storeNotification(notificationData) {
   try {
-    const db = await openDB();
-    const tx = db.transaction([STORE_NOTIFICATIONS], 'readwrite');
+    const tx = await safeTransaction(STORE_NOTIFICATIONS, 'readwrite');
+    if (!tx) {
+      console.warn('[SW] Cannot store notification - store not available');
+      return;
+    }
+    
     const store = tx.objectStore(STORE_NOTIFICATIONS);
     
     await promisifyRequest(store.add({
@@ -939,8 +935,12 @@ async function storeNotification(notificationData) {
  */
 async function queueNotification(notificationData) {
   try {
-    const db = await openDB();
-    const tx = db.transaction([STORE_NOTIFICATIONS], 'readwrite');
+    const tx = await safeTransaction(STORE_NOTIFICATIONS, 'readwrite');
+    if (!tx) {
+      console.warn('[SW] Cannot queue notification - store not available');
+      return false;
+    }
+    
     const store = tx.objectStore(STORE_NOTIFICATIONS);
     
     const queuedData = {
@@ -978,8 +978,12 @@ async function queueNotification(notificationData) {
  */
 async function getQueuedNotifications() {
   try {
-    const db = await openDB();
-    const tx = db.transaction([STORE_NOTIFICATIONS], 'readonly');
+    const tx = await safeTransaction(STORE_NOTIFICATIONS, 'readonly');
+    if (!tx) {
+      console.warn('[SW] Cannot get queued notifications - store not available');
+      return [];
+    }
+    
     const store = tx.objectStore(STORE_NOTIFICATIONS);
     const index = store.index('status');
     
@@ -998,8 +1002,12 @@ async function getQueuedNotifications() {
  */
 async function queuePendingAction(actionData) {
   try {
-    const db = await openDB();
-    const tx = db.transaction([STORE_PENDING_ACTIONS], 'readwrite');
+    const tx = await safeTransaction(STORE_PENDING_ACTIONS, 'readwrite');
+    if (!tx) {
+      console.warn('[SW] Cannot queue action - store not available');
+      return false;
+    }
+    
     const store = tx.objectStore(STORE_PENDING_ACTIONS);
     
     await promisifyRequest(store.add({
@@ -1275,8 +1283,12 @@ async function incrementRetryCount(id) {
 
 async function pruneOldNotifications() {
   try {
-    const db = await openDB();
-    const tx = db.transaction([STORE_NOTIFICATIONS], 'readwrite');
+    const tx = await safeTransaction(STORE_NOTIFICATIONS, 'readwrite');
+    if (!tx) {
+      console.warn('[SW] Cannot prune notifications - store not available');
+      return;
+    }
+    
     const store = tx.objectStore(STORE_NOTIFICATIONS);
     const index = store.index('timestamp');
     
@@ -1316,10 +1328,13 @@ async function logNotificationDelivery(data, status, errorMessage = null) {
   
   // Store in delivery log
   try {
-    const db = await openDB();
-    const tx = db.transaction([STORE_DELIVERY_LOG], 'readwrite');
-    const store = tx.objectStore(STORE_DELIVERY_LOG);
-    await promisifyRequest(store.add(logEntry));
+    const tx = await safeTransaction(STORE_DELIVERY_LOG, 'readwrite');
+    if (tx) {
+      const store = tx.objectStore(STORE_DELIVERY_LOG);
+      await promisifyRequest(store.add(logEntry));
+    } else {
+      console.warn('[SW] Cannot store delivery log - store not available');
+    }
   } catch (error) {
     console.error('[SW] Error storing delivery log:', error);
   }
@@ -1460,6 +1475,29 @@ function promisifyRequest(request) {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+}
+
+/**
+ * Safely get a transaction - returns null if store doesn't exist
+ */
+async function safeTransaction(storeName, mode = 'readonly') {
+  try {
+    const db = await openDB();
+    if (!db.objectStoreNames.contains(storeName)) {
+      console.warn(`[SW] Store '${storeName}' not found, reinitializing DB...`);
+      await initializeDatabase();
+      const newDb = await openDB();
+      if (!newDb.objectStoreNames.contains(storeName)) {
+        console.error(`[SW] Store '${storeName}' still not found after reinitialization`);
+        return null;
+      }
+      return newDb.transaction(storeName, mode);
+    }
+    return db.transaction(storeName, mode);
+  } catch (error) {
+    console.error(`[SW] Error creating transaction for '${storeName}':`, error);
+    return null;
+  }
 }
 
 // ============================================================================
@@ -1907,8 +1945,12 @@ async function performMemoryCleanup() {
  */
 async function cleanOldDeliveryLogs() {
   try {
-    const db = await openDB();
-    const tx = db.transaction([STORE_DELIVERY_LOG], 'readwrite');
+    const tx = await safeTransaction(STORE_DELIVERY_LOG, 'readwrite');
+    if (!tx) {
+      console.warn('[SW] Cannot clean delivery logs - store not available');
+      return;
+    }
+    
     const store = tx.objectStore(STORE_DELIVERY_LOG);
     const index = store.index('timestamp');
     

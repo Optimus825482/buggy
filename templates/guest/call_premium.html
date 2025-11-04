@@ -925,7 +925,7 @@ const GuestCall = (() => {
             mainIconContainer.style.display = 'flex';
             
             mainImage.onerror = () => {
-                console.error('❌ Image failed to load:', locationImage);
+                console.warn('⚠️ Image failed to load, using icon fallback:', locationImage);
                 mainImageContainer.style.display = 'none';
                 mainIconContainer.style.display = 'flex';
             };
@@ -936,7 +936,7 @@ const GuestCall = (() => {
                 mainIconContainer.style.display = 'none';
             };
             
-            // Resmi yükle
+            // Resmi yükle - önce icon göster
             mainImage.src = locationImage;
         } else {
             // Resim yoksa icon göster
