@@ -116,22 +116,12 @@
                 // Image cell
                 const tdImage = document.createElement('td');
                 if (loc.location_image && loc.location_image.length > 0) {
-                    console.log('Creating image for:', loc.name, 'Image length:', loc.location_image.length);
+                    console.log('Creating image for:', loc.name, 'Image path:', loc.location_image);
                     const img = document.createElement('img');
                     
-                    // Set src directly as property (not attribute) to handle long base64
-                    try {
-                        // Check if already has data URL prefix
-                        if (loc.location_image.startsWith('data:image')) {
-                            img.src = loc.location_image;
-                        } else {
-                            // Add data URL prefix for base64 string
-                            img.src = 'data:image/png;base64,' + loc.location_image;
-                        }
-                    } catch(e) {
-                        console.error('Error setting image src for:', loc.name, e);
-                    }
-                    
+                    // location_image is now a file path like /static/uploads/locations/xxx.png
+                    // NOT base64 anymore!
+                    img.src = loc.location_image;
                     img.alt = loc.name;
                     img.style.width = '60px';
                     img.style.height = '60px';
@@ -876,7 +866,7 @@
                         <label>Lokasyon Görseli</label>
                         ${location.location_image ? `
                             <div id="current-image-container" style="margin-bottom: 1rem;">
-                                <img src="${location.location_image}" style="max-width: 100%; max-height: 150px; border-radius: 8px; border: 2px solid #ddd;">
+                                <img src="${escapeHtml(location.location_image)}" style="max-width: 100%; max-height: 150px; border-radius: 8px; border: 2px solid #ddd;" onerror="this.style.display='none'">
                                 <button type="button" onclick="removeEditImage()" class="btn btn-sm btn-danger" style="margin-top: 0.5rem;">
                                     <i class="fas fa-trash"></i> Görseli Kaldır
                                 </button>
