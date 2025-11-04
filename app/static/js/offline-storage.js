@@ -6,7 +6,7 @@
 class OfflineStorage {
     constructor() {
         this.dbName = 'ShuttleCallDB';
-        this.dbVersion = 3; // Incremented for DB name change
+        this.dbVersion = 4; // Synced with sw.js version
         this.db = null;
         this.init();
     }

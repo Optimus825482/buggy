@@ -25,27 +25,30 @@ const DriverDashboard = {
         
         // Check if driver has buggy assigned
         if (!this.buggyId || this.buggyId === '0') {
-            console.warn('No buggy assigned to driver');
-            return;
+            console.warn('⚠️ No buggy assigned to driver - limited functionality');
+            // Don't return - still initialize dashboard for UI
         }
         
         // Location setup is now handled by separate page (select_location.html)
         // No need for modal anymore
         
-        // Initialize Socket.IO if available
+        // Initialize Socket.IO if available (even without buggy for status updates)
         if (typeof io !== 'undefined') {
             this.initSocket();
         } else {
             console.warn('Socket.IO not available');
         }
         
-        // Load initial data
+        // Load initial data (even if no buggy, show empty state)
         await this.loadDriverData();
         
         // Setup event listeners
         this.setupEventListeners();
         
-        console.log('Driver dashboard initialized');
+        console.log('✅ Driver dashboard initialized', {
+            buggyId: this.buggyId,
+            hasBuggy: !!this.buggyId
+        });
     },
 
     /**
@@ -397,8 +400,26 @@ const DriverDashboard = {
             window.location.href = '/auth/logout';
         });
         
-        this.socket.on('disconnect', () => {
-            console.log('Socket disconnected');
+        this.socket.on('disconnect', async () => {
+            console.log('🔌 Socket disconnected - updating buggy status to available');
+            
+            // Update buggy status to available when disconnecting
+            if (this.buggyId) {
+                try {
+                    await fetch(`/api/buggies/${this.buggyId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            status: 'available'
+                        })
+                    });
+                    console.log('✅ Buggy status updated to available on disconnect');
+                } catch (error) {
+                    console.error('❌ Failed to update buggy status on disconnect:', error);
+                }
+            }
         });
     },
 
@@ -1166,9 +1187,35 @@ const DriverDashboard = {
      * Setup event listeners
      */
     setupEventListeners() {
-        // WebSocket disconnect handler will automatically cleanup
-        // No need for beforeunload - it's unreliable and causes issues
-        console.log('Event listeners setup complete');
+        // Handle page unload - update buggy status
+        window.addEventListener('beforeunload', () => {
+            if (this.buggyId) {
+                // Use sendBeacon for reliable delivery even when page is closing
+                const data = JSON.stringify({ status: 'available' });
+                const blob = new Blob([data], { type: 'application/json' });
+                navigator.sendBeacon(`/api/buggies/${this.buggyId}/status`, blob);
+                console.log('📤 Buggy status update sent via beacon');
+            }
+        });
+        
+        // Handle visibility change (tab hidden/shown)
+        document.addEventListener('visibilitychange', async () => {
+            if (document.hidden && this.buggyId) {
+                // Tab hidden - mark as available
+                try {
+                    await fetch(`/api/buggies/${this.buggyId}/status`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'available' })
+                    });
+                    console.log('✅ Buggy marked available (tab hidden)');
+                } catch (error) {
+                    console.error('❌ Failed to update status:', error);
+                }
+            }
+        });
+        
+        console.log('✅ Event listeners setup complete');
     },
 
     /**
