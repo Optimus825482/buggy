@@ -28,11 +28,17 @@ def add_missing_columns(engine):
     """Add missing columns to system_users table"""
     print("🔍 Checking system_users table...")
     
+    # Check if table exists first
+    inspector = inspect(engine)
+    if 'system_users' not in inspector.get_table_names():
+        print("⚠️  system_users table doesn't exist yet, skipping column check")
+        return
+    
     columns_to_add = [
-        ('must_change_password', 'BOOLEAN NOT NULL DEFAULT 0'),
+        ('must_change_password', 'TINYINT(1) NOT NULL DEFAULT 0'),
         ('push_subscription', 'TEXT'),
         ('push_subscription_date', 'DATETIME'),
-        ('notification_preferences', 'JSON')  # JSON olarak değiştirdim
+        ('notification_preferences', 'TEXT')  # TEXT olarak değiştirdim (JSON MySQL 5.7+ gerektirir)
     ]
     
     with engine.connect() as conn:
@@ -46,6 +52,7 @@ def add_missing_columns(engine):
                 except Exception as e:
                     print(f"❌ Error adding {column_name}: {e}")
                     conn.rollback()
+                    raise  # Hatayı yukarı fırlat
             else:
                 print(f"✓ Column exists: {column_name}")
 

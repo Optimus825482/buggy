@@ -50,7 +50,12 @@ else
     exit 1
 fi
 
-# 5. Start application
+# 5. Create initial data
+echo ""
+echo "⏳ Creating initial data..."
+python scripts/create_initial_data.py || echo "⚠️  Initial data creation failed, continuing..."
+
+# 6. Start application
 echo ""
 echo "============================================================"
 echo "🚀 Starting Gunicorn server..."
