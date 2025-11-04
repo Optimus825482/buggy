@@ -29,7 +29,17 @@ if [ "$RESET_DB" = "true" ]; then
     fi
 fi
 
-# 3. Migration fix
+# 3. Column fix (add missing push notification columns)
+echo ""
+echo "⏳ Fixing missing columns..."
+python railway_fix_columns.py
+if [ $? -eq 0 ]; then
+    echo "✅ Column fix completed"
+else
+    echo "⚠️  Column fix failed, continuing..."
+fi
+
+# 4. Migration fix
 echo ""
 echo "⏳ Running migration fix..."
 python fix_railway_migration.py
@@ -40,7 +50,7 @@ else
     exit 1
 fi
 
-# 4. Start application
+# 5. Start application
 echo ""
 echo "============================================================"
 echo "🚀 Starting Gunicorn server..."
