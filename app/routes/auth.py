@@ -3,7 +3,7 @@ Buggy Call - Authentication Routes
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
-from app import db, limiter, csrf
+from app import db, csrf
 from app.models.user import SystemUser
 from datetime import datetime
 
@@ -23,7 +23,8 @@ def login_page():
 
 
 @auth_bp.route('/login', methods=['POST'])
-@limiter.limit("5 per minute")  # Rate limit: 5 login attempts per minute
+# Rate limiter disabled for high-traffic hotel environments
+# @limiter.limit("5 per minute")  # Rate limit: 5 login attempts per minute
 def login():
     """Handle login"""
     from app.services import AuthService
@@ -83,7 +84,11 @@ def login():
             if user_role == 'admin':
                 return redirect(url_for('admin.dashboard'))
             else:
-                return redirect(url_for('driver.dashboard'))
+                # Check if driver needs to select location
+                if session.get('needs_location_setup'):
+                    return redirect(url_for('driver.select_location'))
+                else:
+                    return redirect(url_for('driver.dashboard'))
                 
     except BuggyCallException as e:
         return jsonify(e.to_dict()), e.status_code
@@ -100,7 +105,7 @@ def change_password():
 
 
 @auth_bp.route('/change-password', methods=['POST'])
-@limiter.limit("10 per minute")
+# Rate limiter removed for high-traffic hotel environments
 def change_password_submit():
     """Handle password change"""
     try:
@@ -164,10 +169,16 @@ def logout():
         AuthService.logout()
         
         if request.is_json or request.method == 'POST':
-            return APIResponse.success(message='Başarıyla çıkış yapıldı')
+            response = APIResponse.success(message='Başarıyla çıkış yapıldı')
+            # Clear session cookie explicitly
+            response.set_cookie('buggycall_session', '', expires=0, httponly=True, samesite='Lax')
+            return response
         else:
             flash('Başarıyla çıkış yaptınız', 'success')
-            return redirect(url_for('auth.login'))
+            response = redirect(url_for('auth.login'))
+            # Clear session cookie explicitly
+            response.set_cookie('buggycall_session', '', expires=0, httponly=True, samesite='Lax')
+            return response
     except Exception as e:
         return APIResponse.error(str(e), 500)
 

@@ -5,24 +5,44 @@
 {% block extra_css %}
 <style>
 body {
-  background: linear-gradient(180deg, #F9FAFB 0%, #FFFFFF 100%);
+  background: linear-gradient(180deg, #5BC0C3 0%, #4AAFB2 100%);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
-.header, .footer {
-  display: none;
+/* Hide all headers, footers, and navigation */
+.header, 
+.footer, 
+.navbar,
+header,
+footer,
+nav,
+.mobile-menu-toggle,
+.connection-indicator {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Main content full width */
+.main-content {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.guest-container {
+  padding: 20px;
+  max-width: 540px;
+  margin: 0 auto;
 }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="guest-container">
-    <!-- Back Button -->
-    <div style="margin-bottom: 24px;">
-        <button onclick="window.location.href='/guest/call'" class="btn btn-outline-primary btn-sm">
-            <i class="fas fa-arrow-left"></i> Geri
-        </button>
-    </div>
-
     <!-- Status Card -->
     <div class="request-status-card">
         <div class="status-icon-wrapper">
@@ -60,7 +80,7 @@ body {
 
             <div class="timeline-step" id="step-arriving">
                 <div class="timeline-dot">
-                    <i class="fas fa-golf-cart"></i>
+                    <i class="fas fa-truck-pickup"></i>
                 </div>
                 <div class="timeline-content">
                     <div class="timeline-label">Yolda</div>
@@ -176,6 +196,34 @@ let socket;
 let pollingInterval;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Force remove header and footer
+    const elementsToRemove = [
+        '.header',
+        'header',
+        '.footer', 
+        'footer',
+        '.navbar',
+        'nav',
+        '.mobile-menu-toggle',
+        '.connection-indicator'
+    ];
+    
+    elementsToRemove.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+            if (el) {
+                el.remove();
+            }
+        });
+    });
+    
+    // Remove padding from main content
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.style.padding = '0';
+        mainContent.style.margin = '0';
+    }
+    
     loadRequestStatus();
     connectWebSocket();
     startPolling();
@@ -232,7 +280,7 @@ function updateToAccepted(request) {
     }
 
     // Update icon and message
-    document.getElementById('status-icon').innerHTML = '<i class="fas fa-golf-cart"></i>';
+    document.getElementById('status-icon').innerHTML = '<i class="fas fa-truck-pickup"></i>';
     document.getElementById('status-title').textContent = 'Buggy Yolda!';
     document.getElementById('status-message').textContent = 'Sürücünüz yola çıktı. Yakında yanınızda olacak.';
 

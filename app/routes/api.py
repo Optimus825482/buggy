@@ -3,8 +3,8 @@ Buggy Call - API Routes
 Powered by Erkan ERDEM
 Updated with Service Layer & Security
 """
-from flask import Blueprint, jsonify, request, session
-from app import db, limiter, csrf
+from flask import Blueprint, jsonify, request, session, current_app
+from app import db, csrf
 from app.models.user import SystemUser, UserRole
 from app.models.location import Location
 from app.models.buggy import Buggy, BuggyStatus
@@ -98,7 +98,7 @@ def version():
 
 # ==================== Locations API ====================
 @api_bp.route('/locations', methods=['GET'])
-@limiter.limit("30 per minute")
+# Rate limiter removed
 def get_locations():
     """Get all locations (Public - no auth required for guests)"""
     try:
@@ -131,7 +131,7 @@ def get_locations():
 
 
 @api_bp.route('/locations/<int:location_id>', methods=['GET'])
-@limiter.limit("30 per minute")
+# Rate limiter removed
 def get_location(location_id):
     """Get single location (Public - no auth required for guests)"""
     try:
@@ -178,19 +178,26 @@ def create_location():
         db.session.flush()  # Get the location ID without committing
         
         # Generate QR code data as URL with location ID
-        # Priority: 1) Railway URL env var, 2) Config BASE_URL, 3) Request host
+        # Priority: 1) Railway URL env var, 2) Local IP for development, 3) Config BASE_URL, 4) Request host
         import os
         
         railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN')
         railway_static_url = os.getenv('RAILWAY_STATIC_URL')
         
         if railway_domain:
+            # Production: Railway domain
             base_url = f"https://{railway_domain}"
         elif railway_static_url:
+            # Production: Railway static URL
             base_url = railway_static_url.rstrip('/')
+        elif request.host.startswith('localhost') or request.host.startswith('127.0.0.1'):
+            # Local development: Use local IP for QR codes
+            base_url = "http://192.168.1.100:5000"
         elif current_app.config.get('BASE_URL') and current_app.config.get('BASE_URL') != 'http://localhost:5000':
+            # Custom BASE_URL
             base_url = current_app.config.get('BASE_URL')
         else:
+            # Fallback: Request host
             base_url = request.host_url.rstrip('/')
         
         qr_code_data = f"{base_url}/guest/call?location={location.id}"
@@ -263,38 +270,27 @@ def update_location(location_id):
 def delete_location(location_id):
     """Delete location"""
     try:
+        from app.utils.exceptions import ResourceNotFoundException, ValidationException
+        
         user = SystemUser.query.get(session['user_id'])
+        
+        # Verify location belongs to user's hotel
         location = Location.query.filter_by(id=location_id, hotel_id=user.hotel_id).first()
-
         if not location:
             return jsonify({'error': 'Lokasyon bulunamadı'}), 404
-
-        # Check if location has active requests
-        active_requests = BuggyRequest.query.filter_by(
-            location_id=location_id
-        ).filter(
-            BuggyRequest.status.in_([RequestStatus.PENDING, RequestStatus.ACCEPTED])
-        ).count()
         
-        if active_requests > 0:
-            return jsonify({
-                'error': f'Bu lokasyonda {active_requests} aktif talep var. Önce talepleri tamamlayın veya iptal edin.'
-            }), 400
-
-        # Check if any buggy is currently at this location
-        buggies_at_location = Buggy.query.filter_by(current_location_id=location_id).count()
-        if buggies_at_location > 0:
-            return jsonify({
-                'error': f'Bu lokasyonda {buggies_at_location} buggy bulunuyor. Önce buggy\'leri başka lokasyona taşıyın.'
-            }), 400
-
-        db.session.delete(location)
-        db.session.commit()
-
+        # Delegate to service layer for all validation and deletion logic
+        LocationService.delete_location(location_id)
+        
         return jsonify({
             'success': True,
             'message': 'Lokasyon başarıyla silindi'
         }), 200
+        
+    except ResourceNotFoundException as e:
+        return jsonify({'error': e.message}), 404
+    except ValidationException as e:
+        return jsonify({'error': e.message}), 400
     except Exception as e:
         db.session.rollback()
         import traceback
@@ -372,6 +368,7 @@ def create_buggy():
     try:
         from app.models.user import UserRole
         from app.models.buggy_driver import BuggyDriver
+        from app.utils.buggy_icons import assign_buggy_icon
         
         user = SystemUser.query.get(session['user_id'])
         data = request.get_json()
@@ -387,11 +384,15 @@ def create_buggy():
         if existing_buggy:
             return jsonify({'error': 'Bu buggy kodu zaten kullanılıyor'}), 400
         
+        # Use provided icon or assign unique icon for this buggy
+        buggy_icon = data.get('icon') or assign_buggy_icon(user.hotel_id)
+        
         # Create buggy without driver
         buggy = Buggy(
             hotel_id=user.hotel_id,
             code=buggy_code,
             license_plate=data.get('license_plate'),
+            icon=buggy_icon,  # Assign icon
             status=BuggyStatus.OFFLINE,
             driver_id=None  # Will be managed through buggy_drivers table
         )
@@ -487,6 +488,8 @@ def update_buggy(buggy_id):
         
         if 'code' in data:
             buggy.code = data['code']
+        if 'icon' in data:
+            buggy.icon = data['icon']
         if 'model' in data:
             buggy.model = data['model']
         if 'license_plate' in data:
@@ -731,6 +734,13 @@ def accept_request(request_id):
             'request_id': buggy_request.id
         }, room=f'hotel_{buggy_request.hotel_id}_drivers')
         
+        # Emit buggy status update for real-time dashboard
+        try:
+            from app.services.buggy_service import BuggyService
+            BuggyService.emit_buggy_status_update(buggy.id, buggy_request.hotel_id)
+        except:
+            pass
+        
         return jsonify({
             'success': True,
             'message': 'Talep kabul edildi',
@@ -742,7 +752,7 @@ def accept_request(request_id):
 
 
 @api_bp.route('/requests/<int:request_id>/complete', methods=['PUT', 'POST'])
-@limiter.limit("30 per minute")
+# Rate limiter removed
 @require_login
 @require_role('driver')
 def complete_request(request_id):
@@ -985,7 +995,7 @@ def get_vapid_public_key():
 
 @api_bp.route('/push/subscribe', methods=['POST'])
 @require_login
-@limiter.limit("10 per minute")
+# Rate limiter removed
 def subscribe_push():
     """Subscribe to push notifications"""
     try:
@@ -1059,9 +1069,118 @@ def unsubscribe_push():
         return jsonify({'error': str(e)}), 500
 
 
+@api_bp.route('/notification-permission', methods=['POST'])
+@require_login
+def update_notification_permission():
+    """
+    Update notification permission status in session
+    Only accessible by drivers and admins
+    """
+    try:
+        # Get current user
+        user_id = session.get('user_id')
+        if not user_id:
+            current_app.logger.warning('[NotificationPermission] Unauthorized access attempt - no user_id in session')
+            return jsonify({
+                'success': False,
+                'error': 'Oturum bulunamadı'
+            }), 401
+        
+        # Get user from database
+        user = SystemUser.query.get(user_id)
+        if not user:
+            current_app.logger.warning(f'[NotificationPermission] User not found: {user_id}')
+            return jsonify({
+                'success': False,
+                'error': 'Kullanıcı bulunamadı'
+            }), 404
+        
+        # Role validation - only driver and admin
+        user_role = session.get('role')
+        if user_role not in ['driver', 'admin']:
+            current_app.logger.warning(
+                f'[NotificationPermission] Unauthorized role access attempt - '
+                f'user_id: {user_id}, role: {user_role}'
+            )
+            return jsonify({
+                'success': False,
+                'error': 'Bu işlem için yetkiniz yok'
+            }), 403
+        
+        # Get request data
+        data = request.get_json()
+        if not data:
+            current_app.logger.warning(f'[NotificationPermission] Empty request body - user_id: {user_id}')
+            return jsonify({
+                'success': False,
+                'error': 'Geçersiz istek'
+            }), 400
+        
+        # Status validation
+        status = data.get('status')
+        valid_statuses = ['default', 'granted', 'denied']
+        
+        if not status:
+            current_app.logger.warning(f'[NotificationPermission] Missing status - user_id: {user_id}')
+            return jsonify({
+                'success': False,
+                'error': 'Bildirim izni durumu gerekli'
+            }), 400
+        
+        if status not in valid_statuses:
+            current_app.logger.warning(
+                f'[NotificationPermission] Invalid status value - '
+                f'user_id: {user_id}, status: {status}'
+            )
+            return jsonify({
+                'success': False,
+                'error': f'Geçersiz durum değeri. İzin verilen değerler: {", ".join(valid_statuses)}'
+            }), 400
+        
+        # Update session
+        try:
+            session['notification_permission_asked'] = True
+            session['notification_permission_status'] = status
+            session.modified = True  # Ensure session is saved
+            
+            current_app.logger.info(
+                f'[NotificationPermission] Permission updated - '
+                f'user_id: {user_id}, role: {user_role}, status: {status}'
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Bildirim izni durumu güncellendi',
+                'data': {
+                    'notification_permission_asked': True,
+                    'notification_permission_status': status
+                }
+            }), 200
+            
+        except Exception as session_error:
+            current_app.logger.error(
+                f'[NotificationPermission] Session update failed - '
+                f'user_id: {user_id}, error: {str(session_error)}'
+            )
+            return jsonify({
+                'success': False,
+                'error': 'Oturum güncellenirken hata oluştu'
+            }), 500
+    
+    except Exception as e:
+        current_app.logger.error(
+            f'[NotificationPermission] Unexpected error - '
+            f'user_id: {session.get("user_id")}, error: {str(e)}'
+        )
+        return jsonify({
+            'success': False,
+            'error': 'Bildirim izni güncellenirken beklenmeyen bir hata oluştu'
+        }), 500
+
+
 @api_bp.route('/push/test', methods=['POST'])
 @require_login
-@limiter.limit("5 per minute")
+# Rate limiter removed
 def test_push_notification():
     """Test push notification"""
     try:
@@ -1096,7 +1215,7 @@ def test_push_notification():
 
 # ==================== Buggy Location Tracking ====================
 @api_bp.route('/buggies/locations', methods=['GET'])
-@limiter.limit("30 per minute")
+# Rate limiter removed
 @require_login
 @require_role('admin')
 def get_buggy_locations():
@@ -1124,7 +1243,7 @@ def get_buggy_locations():
 
 
 @api_bp.route('/buggies/<int:buggy_id>/location', methods=['PUT'])
-@limiter.limit("20 per minute")
+# Rate limiter removed
 @require_login
 def update_buggy_location(buggy_id):
     """Update buggy's current location (Driver or Admin)"""
@@ -1178,7 +1297,7 @@ def update_buggy_location(buggy_id):
             'location_id': location_id,
             'location_name': location.name,
             'buggy_code': buggy.code
-        }, room=f'hotel_{buggy.hotel_id}_admins')
+        }, room=f'hotel_{buggy.hotel_id}_admin')
         
         return jsonify({
             'success': True,
@@ -1194,7 +1313,7 @@ def update_buggy_location(buggy_id):
 
 # ==================== Driver Initial Location Setup ====================
 @api_bp.route('/driver/set-initial-location', methods=['POST'])
-@limiter.limit("10 per minute")
+# Rate limiter removed
 @require_login
 def set_initial_location():
     """Set driver's initial location on first login"""
@@ -1243,6 +1362,32 @@ def set_initial_location():
             hotel_id=user.hotel_id
         )
         
+        # Emit WebSocket event to admin panel for real-time status update
+        try:
+            from app import socketio
+            socketio.emit('buggy_status_changed', {
+                'buggy_id': user.buggy.id,
+                'buggy_code': user.buggy.code,
+                'buggy_icon': user.buggy.icon,
+                'driver_id': user.id,
+                'driver_name': user.full_name if user.full_name else user.username,
+                'location_id': location_id,
+                'location_name': location.name,
+                'status': 'available',
+                'reason': 'initial_location_set'
+            }, room=f'hotel_{user.hotel_id}_admin')
+            print(f'[INITIAL_LOCATION] Emitted buggy_status_changed event to hotel_{user.hotel_id}_admin')
+        except Exception as e:
+            print(f'[INITIAL_LOCATION] Error emitting buggy_status_changed: {e}')
+        
+        # Emit buggy status update for real-time dashboard
+        try:
+            from app.services.buggy_service import BuggyService
+            BuggyService.emit_buggy_status_update(user.buggy.id, user.hotel_id)
+            print(f'[INITIAL_LOCATION] Emitted buggy status update')
+        except Exception as e:
+            print(f'[INITIAL_LOCATION] Error emitting buggy status: {e}')
+        
         return jsonify({
             'success': True,
             'message': 'Lokasyon ayarlandı, sisteme hoş geldiniz!',
@@ -1257,7 +1402,7 @@ def set_initial_location():
 
 # ==================== Admin Session Management ====================
 @api_bp.route('/admin/close-driver-session/<int:driver_id>', methods=['POST'])
-@limiter.limit("20 per minute")
+# Rate limiter removed
 @require_login
 @require_role('admin')
 def close_driver_session(driver_id):
@@ -1271,11 +1416,33 @@ def close_driver_session(driver_id):
         if driver.role != UserRole.DRIVER:
             return jsonify({'error': 'Kullanıcı sürücü değil'}), 400
         
-        # Set buggy to offline if exists
-        if driver.buggy:
-            driver.buggy.status = BuggyStatus.OFFLINE
+        # Close all active BuggyDriver associations and set buggies offline
+        from app.models.buggy_driver import BuggyDriver
+        from app.models.buggy import Buggy
         
-        # Close all active sessions for this driver
+        active_buggy_drivers = BuggyDriver.query.filter_by(
+            driver_id=driver_id,
+            is_active=True
+        ).all()
+        
+        buggy_ids = []
+        for assoc in active_buggy_drivers:
+            # Deactivate driver association
+            assoc.is_active = False
+            assoc.last_active_at = datetime.utcnow()
+            
+            # Set buggy to offline and clear location
+            buggy = Buggy.query.get(assoc.buggy_id)
+            if buggy:
+                buggy.status = BuggyStatus.OFFLINE
+                buggy.current_location_id = None  # Clear location when admin closes session
+                buggy_ids.append({
+                    'id': buggy.id,
+                    'code': buggy.code,
+                    'icon': buggy.icon
+                })
+        
+        # Close all active sessions for this driver (if any exist)
         from app.models.session import Session as SessionModel
         active_sessions = SessionModel.query.filter_by(
             user_id=driver_id,
@@ -1302,10 +1469,22 @@ def close_driver_session(driver_id):
         # Emit WebSocket event to force driver logout
         from app import socketio
         socketio.emit('force_logout', {
-            'user_id': driver_id,
-            'reason': 'Oturumunuz yönetici tarafından kapatıldı',
+            'reason': 'admin_terminated',
             'message': 'Oturumunuz yönetici tarafından kapatıldı. Lütfen tekrar giriş yapın.'
         }, room=f'user_{driver_id}')
+        
+        # Emit buggy status changed events to admin panel
+        for buggy_info in buggy_ids:
+            socketio.emit('buggy_status_changed', {
+                'buggy_id': buggy_info['id'],
+                'buggy_code': buggy_info['code'],
+                'buggy_icon': buggy_info['icon'],
+                'driver_id': None,
+                'driver_name': None,
+                'location_name': None,  # Clear location when admin closes session
+                'status': 'offline',
+                'reason': 'admin_closed_session'
+            }, room=f'hotel_{driver.hotel_id}_admin')
         
         return jsonify({
             'success': True,
@@ -1319,7 +1498,7 @@ def close_driver_session(driver_id):
 
 # ==================== Driver Location Management ====================
 @api_bp.route('/driver/set-location', methods=['POST'])
-@limiter.limit("20 per minute")
+# Rate limiter removed
 @require_login
 def set_driver_location():
     """Set or update driver's current location"""
@@ -1370,8 +1549,10 @@ def set_driver_location():
             hotel_id=user.hotel_id
         )
         
-        # Emit WebSocket event to admin
+        # Emit WebSocket events to admin
         from app.websocket import socketio
+        
+        # Emit location update event
         socketio.emit('driver_location_updated', {
             'buggy_id': user.buggy.id,
             'buggy_code': user.buggy.code,
@@ -1380,6 +1561,21 @@ def set_driver_location():
             'location_name': location.name,
             'status': user.buggy.status.value
         }, room=f'hotel_{user.hotel_id}_admin')
+        
+        # Emit buggy status changed event for full dashboard update
+        socketio.emit('buggy_status_changed', {
+            'buggy_id': user.buggy.id,
+            'buggy_code': user.buggy.code,
+            'buggy_icon': user.buggy.icon,
+            'driver_id': user.id,
+            'driver_name': user.full_name if user.full_name else user.username,
+            'location_id': location_id,
+            'location_name': location.name,
+            'status': 'available',
+            'reason': 'location_updated'
+        }, room=f'hotel_{user.hotel_id}_admin')
+        
+        print(f'[LOCATION_UPDATE] Emitted events to hotel_{user.hotel_id}_admin')
         
         return jsonify({
             'success': True,
@@ -1394,7 +1590,7 @@ def set_driver_location():
 
 # ==================== Driver Request Management ====================
 @api_bp.route('/driver/accept-request/<int:request_id>', methods=['POST'])
-@limiter.limit("30 per minute")
+# Rate limiter removed
 @require_login
 def driver_accept_request(request_id):
     """Accept a pending buggy request"""
@@ -1503,7 +1699,7 @@ def driver_accept_request(request_id):
 
 
 @api_bp.route('/driver/complete-request/<int:request_id>', methods=['POST'])
-@limiter.limit("30 per minute")
+# Rate limiter removed
 @require_login
 def driver_complete_request(request_id):
     """Mark an accepted request as completed"""
@@ -1588,7 +1784,7 @@ def driver_complete_request(request_id):
 
 # ==================== Admin Session Management ====================
 @api_bp.route('/admin/sessions', methods=['GET'])
-@limiter.limit("30 per minute")
+# Rate limiter removed
 @require_login
 def get_active_sessions():
     """Get all active sessions (admin only)"""
@@ -1616,7 +1812,7 @@ def get_active_sessions():
 
 
 @api_bp.route('/admin/sessions/<int:session_id>/terminate', methods=['POST'])
-@limiter.limit("20 per minute")
+# Rate limiter removed
 @require_login
 def terminate_session(session_id):
     """Terminate a user session (admin only)"""
@@ -1684,7 +1880,7 @@ def terminate_session(session_id):
 
 # ==================== Driver Dashboard API ====================
 @api_bp.route('/driver/pending-requests', methods=['GET'])
-@limiter.limit("30 per minute")
+# Rate limiter removed
 @require_login
 @require_role('driver')
 def get_pending_requests():
@@ -1749,7 +1945,7 @@ def get_pending_requests():
 
 
 @api_bp.route('/driver/active-request', methods=['GET'])
-@limiter.limit("30 per minute")
+# Rate limiter removed
 @require_login
 @require_role('driver')
 def get_active_request():
@@ -1832,9 +2028,38 @@ def get_active_request():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@api_bp.route('/driver/buggy-info', methods=['GET'])
+@require_login
+@require_role('driver')
+def get_driver_buggy_info():
+    """Get driver's assigned buggy information"""
+    try:
+        user = SystemUser.query.get(session['user_id'])
+        
+        if not user.buggy:
+            return jsonify({
+                'success': False,
+                'error': 'Size atanmış buggy bulunamadı'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'buggy': {
+                'id': user.buggy.id,
+                'code': user.buggy.code,
+                'model': user.buggy.model,
+                'icon': user.buggy.icon,
+                'status': user.buggy.status.value if hasattr(user.buggy.status, 'value') else str(user.buggy.status)
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ==================== Admin Driver Management ====================
 @api_bp.route('/admin/assign-driver-to-buggy', methods=['POST'])
-@limiter.limit("20 per minute")
+# Rate limiter removed
 @require_login
 @require_role('admin')
 def assign_driver_to_buggy():
@@ -1942,7 +2167,7 @@ def assign_driver_to_buggy():
 
 
 @api_bp.route('/admin/transfer-driver', methods=['POST'])
-@limiter.limit("20 per minute")
+# Rate limiter removed
 @require_login
 @require_role('admin')
 def transfer_driver():

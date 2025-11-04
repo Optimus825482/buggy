@@ -1,13 +1,14 @@
 """
 Buggy Call - Buggy Service
 """
-from app import db
+from app import db, socketio
 from app.models.buggy import Buggy, BuggyStatus
 from app.models.user import SystemUser, UserRole
 from app.models.hotel import Hotel
 from app.services.audit_service import AuditService
 from app.utils.exceptions import ResourceNotFoundException, ValidationException, BusinessLogicException
 from app.utils.helpers import Pagination
+from datetime import datetime
 
 
 class BuggyService:
@@ -411,3 +412,85 @@ class BuggyService:
                 'name': buggy.current_location.name
             } if buggy.current_location else None
         } for buggy in buggies]
+    
+    @staticmethod
+    def emit_buggy_status_update(buggy_id, hotel_id):
+        """
+        Emit buggy status update to all admin clients via WebSocket
+        
+        Args:
+            buggy_id: Buggy ID
+            hotel_id: Hotel ID for room targeting
+        
+        Returns:
+            None
+        
+        Note:
+            This function emits real-time updates to admin dashboard
+            Status determination:
+            - offline: No active session
+            - available: Active session but no active request
+            - busy: Active session with active request
+        """
+        try:
+            from app.models.buggy_driver import BuggyDriver
+            
+            # Get buggy
+            buggy = Buggy.query.get(buggy_id)
+            if not buggy:
+                # Log warning but don't raise - non-blocking
+                print(f'Warning: Buggy {buggy_id} not found for status update')
+                return
+            
+            # Get active session info
+            active_session = BuggyDriver.query.filter_by(
+                buggy_id=buggy_id,
+                is_active=True
+            ).first()
+            
+            driver_name = None
+            if active_session:
+                driver = SystemUser.query.get(active_session.driver_id)
+                driver_name = driver.full_name if driver and driver.full_name else (driver.username if driver else None)
+            
+            # Determine status
+            status = 'offline'
+            if active_session:
+                # Check if buggy has active request
+                from app.models.request import BuggyRequest, RequestStatus
+                active_request = BuggyRequest.query.filter_by(
+                    buggy_id=buggy_id,
+                    status=RequestStatus.ACCEPTED
+                ).first()
+                
+                status = 'busy' if active_request else 'available'
+            
+            # Get location name if location exists
+            location_name = None
+            if buggy.current_location_id:
+                location = Location.query.get(buggy.current_location_id)
+                location_name = location.name if location else None
+            
+            # Prepare payload
+            payload = {
+                'buggy_id': buggy.id,
+                'buggy_code': buggy.code,
+                'buggy_icon': buggy.icon,
+                'status': status,
+                'driver_name': driver_name,
+                'location_id': buggy.current_location_id,
+                'location_name': location_name,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+            # Emit to admin room
+            room = f'hotel_{hotel_id}_admin'
+            socketio.emit('buggy_status_update', payload, room=room)
+            
+            print(f'✅ Buggy status update emitted: Buggy {buggy.code} -> {status} (room: {room})')
+            
+        except Exception as e:
+            # Log error but don't raise - this should be non-blocking
+            print(f'❌ Error emitting buggy status update: {str(e)}')
+            import traceback
+            traceback.print_exc()

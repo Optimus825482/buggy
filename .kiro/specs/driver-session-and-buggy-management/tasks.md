@@ -2,7 +2,17 @@
 
 ## 1. Backend API Endpoints
 
-- [x] 1.1 Create assign driver to buggy endpoint
+- [x] 1.1 Implement WebSocket disconnect handler for automatic session termination
+  - Add `@socketio.on('disconnect')` handler in WebSocket module
+  - Detect when driver disconnects (browser/app closed)
+  - Find and terminate active driver session (set is_active=False, revoked_at=now)
+  - Set driver's buggy status to OFFLINE
+  - Add audit log entry with reason "connection_lost"
+  - Emit WebSocket event to admin panel for real-time status update
+  - _Requirements: 1.5, 5.1_
+  - **Status: COMPLETED** ✅
+
+- [x] 1.2 Create assign driver to buggy endpoint
   - Implement `POST /api/admin/assign-driver-to-buggy` endpoint in `app/routes/api.py`
   - Add validation for admin role, buggy_id, and driver_id
   - Update buggy.driver_id in database
@@ -11,7 +21,7 @@
   - _Requirements: 2.1, 2.2, 2.3, 5.4_
   - **Status: COMPLETED** ✅
 
-- [x] 1.2 Fix driver transfer endpoint to use buggy_drivers table
+- [x] 1.3 Fix driver transfer endpoint to use buggy_drivers table
   - Update `POST /api/admin/transfer-driver` endpoint in `app/routes/api.py`
   - Replace direct `buggy.driver_id` manipulation with `buggy_drivers` table operations
   - Deactivate driver association from source buggy
@@ -21,14 +31,14 @@
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 5.4_
   - **Status: COMPLETED** ✅
 
-- [x] 1.3 Add audit log types for new operations
+- [x] 1.4 Add audit log types for new operations
   - Add `driver_assigned_to_buggy` audit log type in `app/services/audit_service.py`
   - Add `driver_transferred` audit log type with source and target buggy fields
   - Ensure audit logs include admin name, driver name, and buggy codes
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
   - **Status: COMPLETED** ✅
 
-- [x] 1.4 Create initial location setup endpoint
+- [x] 1.5 Create initial location setup endpoint
   - Implement `POST /api/driver/set-initial-location` endpoint in `app/routes/api.py`
   - Add validation for driver role and location_id
   - Verify location exists and belongs to driver's hotel
@@ -40,7 +50,7 @@
   - _Requirements: 1.1, 1.2_
   - **Status: COMPLETED** ✅
 
-- [x] 1.5 Create admin close driver session endpoint
+- [x] 1.6 Create admin close driver session endpoint
   - Implement `POST /api/admin/close-driver-session/<driver_id>` endpoint in `app/routes/api.py`
   - Add validation for admin role
   - Find and terminate active driver session (set is_active=False, revoked_at=now)

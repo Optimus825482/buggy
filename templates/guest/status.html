@@ -4,6 +4,12 @@
 
 {% block extra_css %}
 <style>
+    .header {
+        display: none;
+    }
+    .footer {
+        display: none;
+    }
     .status-container {
         min-height: calc(100vh - 200px);
         display: flex;
@@ -213,7 +219,7 @@
             const buggyInfo = document.getElementById( 'buggy-info' );
             if ( buggyInfo ) {
                 buggyInfo.innerHTML = `
-                    <strong><i class="fas fa-golf-cart"></i> Buggy:</strong> ${data.buggy.code || 'N/A'}<br>
+                    <strong><i class="fas fa-truck-pickup"></i> Buggy:</strong> ${data.buggy.code || 'N/A'}<br>
                     ${data.driver ? `<strong><i class="fas fa-user"></i> Sürücü:</strong> ${data.driver.full_name || 'N/A'}` : ''}
                 `;
             }

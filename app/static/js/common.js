@@ -150,15 +150,15 @@ const Utils = {
      */
     getBadgeClass(status) {
         const statusMap = {
-            'pending': 'inline-flex items-center rounded-md bg-yellow-400/10 px-2 py-1 text-xs font-medium text-yellow-500 ring-1 ring-inset ring-yellow-400/20',
-            'accepted': 'inline-flex items-center rounded-md bg-blue-400/10 px-2 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-400/30',
-            'completed': 'inline-flex items-center rounded-md bg-green-400/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20',
-            'cancelled': 'inline-flex items-center rounded-md bg-red-400/10 px-2 py-1 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-400/20',
-            'available': 'inline-flex items-center rounded-md bg-green-400/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20',
-            'busy': 'inline-flex items-center rounded-md bg-yellow-400/10 px-2 py-1 text-xs font-medium text-yellow-500 ring-1 ring-inset ring-yellow-400/20',
-            'offline': 'inline-flex items-center rounded-md bg-gray-400/10 px-2 py-1 text-xs font-medium text-gray-400 ring-1 ring-inset ring-gray-400/20'
+            'pending': 'badge-pending',
+            'accepted': 'badge-accepted',
+            'completed': 'badge-completed',
+            'cancelled': 'badge-cancelled',
+            'available': 'badge-available',
+            'busy': 'badge-busy',
+            'offline': 'badge-offline'
         };
-        return statusMap[status] || 'inline-flex items-center rounded-md bg-gray-400/10 px-2 py-1 text-xs font-medium text-gray-400 ring-1 ring-inset ring-gray-400/20';
+        return statusMap[status] || 'badge-offline';
     },
     
     /**
@@ -507,13 +507,97 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// Service Worker Mesaj Dinleyicisi - BİLDİRİM SESİ İÇİN
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'PLAY_NOTIFICATION_SOUND') {
+            playNotificationSound(event.data.soundUrl);
+        }
+    });
+}
+
+/**
+ * Bildirim sesi çal - GELIŞTIRILMIŞ VERSIYON
+ * @param {string} soundUrl - Ses dosyası URL'i (opsiyonel)
+ */
+function playNotificationSound(soundUrl) {
+    console.log('[Audio] Playing notification sound:', soundUrl);
+    
+    // Önce ses dosyası dene
+    if (soundUrl) {
+        try {
+            const audio = new Audio(soundUrl);
+            audio.volume = 1.0;
+            
+            const playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise
+                    .then(() => {
+                        console.log('[Audio] Notification sound played successfully');
+                    })
+                    .catch((error) => {
+                        console.warn('[Audio] Could not play audio file, using generated sound:', error);
+                        // Ses dosyası çalamazsa, generated sound kullan
+                        playGeneratedSound();
+                    });
+            }
+            return;
+        } catch (error) {
+            console.error('[Audio] Error with audio file:', error);
+        }
+    }
+    
+    // Ses dosyası yoksa veya çalamazsa, generated sound kullan
+    playGeneratedSound();
+}
+
+/**
+ * Web Audio API ile ses oluştur ve çal
+ */
+function playGeneratedSound() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Çift beep sesi (dikkat çekici)
+        // İlk beep
+        const osc1 = audioContext.createOscillator();
+        const gain1 = audioContext.createGain();
+        osc1.connect(gain1);
+        gain1.connect(audioContext.destination);
+        osc1.frequency.value = 880; // A5
+        osc1.type = 'sine';
+        gain1.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+        osc1.start(audioContext.currentTime);
+        osc1.stop(audioContext.currentTime + 0.15);
+        
+        // İkinci beep
+        const osc2 = audioContext.createOscillator();
+        const gain2 = audioContext.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioContext.destination);
+        osc2.frequency.value = 1046.5; // C6
+        osc2.type = 'sine';
+        gain2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.2);
+        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+        osc2.start(audioContext.currentTime + 0.2);
+        osc2.stop(audioContext.currentTime + 0.4);
+        
+        console.log('[Audio] Generated notification sound played');
+    } catch (error) {
+        console.error('[Audio] Error generating sound:', error);
+    }
+}
+
 // Export globals
 window.BuggyCall = {
     Utils,
     API,
     Socket,
     Form,
-    CONFIG
+    CONFIG,
+    playNotificationSound // Ses çalma fonksiyonunu export et
 };
 
 console.log('Buggy Call initialized');

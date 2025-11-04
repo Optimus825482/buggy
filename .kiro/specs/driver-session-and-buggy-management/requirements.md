@@ -30,7 +30,8 @@ Bu doküman, sürücü oturum yönetimi ve buggy tanımlama sistemindeki iyileş
 2. WHEN a driver clicks the logout button, THE System SHALL terminate the driver's session and set the associated buggy status to OFFLINE
 3. WHEN a different driver logs in to the same buggy, THE System SHALL automatically terminate the previous driver's active session and set the new driver as active
 4. WHEN an admin terminates a driver session from the admin panel, THE System SHALL close the driver's session and set the associated buggy status to OFFLINE
-5. THE System SHALL NOT provide any manual offline/online toggle functionality to drivers
+5. WHEN a driver closes the browser or application, THE System SHALL detect the disconnection and automatically terminate the driver's session and set the associated buggy status to OFFLINE
+6. THE System SHALL NOT provide any manual offline/online toggle functionality to drivers
 
 ### Requirement 2: Buggy Sürücü Atama
 

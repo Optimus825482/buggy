@@ -20,7 +20,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
 socketio = SocketIO()
-limiter = Limiter(key_func=get_remote_address)
+# Rate limiter completely removed for high-traffic hotel environments
 csrf = CSRFProtect()
 cache = Cache()
 
@@ -89,8 +89,7 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     jwt.init_app(app)
     
-    # Initialize rate limiter
-    limiter.init_app(app)
+    # Rate limiter completely removed
     
     # Initialize CSRF protection
     # Note: API blueprints (api_bp, auth_bp, health_bp) are explicitly exempted
@@ -240,6 +239,7 @@ def register_blueprints(app):
     from app.routes.setup import setup_bp
     from app.routes.system_reset import system_reset_bp
     from app.routes.system_admin import system_admin_bp
+    from app.routes.test import test_bp
 
     app.register_blueprint(setup_bp)  # No prefix, setup routes at root level
     app.register_blueprint(system_reset_bp)  # No prefix, system reset at root level
@@ -259,6 +259,11 @@ def register_blueprints(app):
     app.register_blueprint(audit_bp, url_prefix='/api')
     app.register_blueprint(health_bp)  # No prefix for health endpoints
     
+    # Test routes (sadece development'ta)
+    if app.config.get('DEBUG'):
+        app.register_blueprint(test_bp)
+        csrf.exempt(test_bp)
+    
     # Register home route
     @app.route('/')
     def index():
@@ -271,6 +276,17 @@ def register_blueprints(app):
                 return redirect(url_for('driver.dashboard'))
         # Default to login page
         return redirect(url_for('auth.login'))
+    
+    # Favicon route (for browsers that request /favicon.ico)
+    @app.route('/favicon.ico')
+    def favicon():
+        from flask import send_from_directory
+        import os
+        return send_from_directory(
+            os.path.join(app.root_path, 'static'),
+            'favicon.ico',
+            mimetype='image/vnd.microsoft.icon'
+        )
     
     # Register service worker route
     @app.route('/sw.js')
@@ -350,20 +366,21 @@ def register_error_handlers(app):
     def unauthorized_error(error):
         return jsonify({'error': 'Unauthorized'}), 401
     
-    @app.errorhandler(429)
-    def ratelimit_handler(error):
-        """Handle rate limit exceeded"""
-        from flask import request
-        app.logger.warning(
-            f'Rate limit exceeded: {request.remote_addr} - '
-            f'{request.method} {request.path}'
-        )
-        
-        return jsonify({
-            'error': 'Rate limit exceeded',
-            'message': 'Too many requests. Please try again later.',
-            'retry_after': '60 seconds'
-        }), 429
+    # Rate limiter disabled - no 429 handler needed
+    # @app.errorhandler(429)
+    # def ratelimit_handler(error):
+    #     """Handle rate limit exceeded"""
+    #     from flask import request
+    #     app.logger.warning(
+    #         f'Rate limit exceeded: {request.remote_addr} - '
+    #         f'{request.method} {request.path}'
+    #     )
+    #     
+    #     return jsonify({
+    #         'error': 'Rate limit exceeded',
+    #         'message': 'Too many requests. Please try again later.',
+    #         'retry_after': '60 seconds'
+    #     }), 429
     
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):

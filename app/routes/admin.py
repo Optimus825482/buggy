@@ -38,7 +38,10 @@ def admin_required(fn):
 def dashboard():
     """Admin dashboard"""
     user = SystemUser.query.get(session['user_id'])
-    return render_template('admin/dashboard.html', user=user)
+    return render_template('admin/dashboard.html', 
+                         user=user,
+                         notification_permission_asked=session.get('notification_permission_asked', False),
+                         notification_permission_status=session.get('notification_permission_status', 'default'))
 
 
 @admin_bp.route('/locations')

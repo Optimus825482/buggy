@@ -206,14 +206,14 @@ class LocationService:
     @staticmethod
     def delete_location(location_id):
         """
-        Delete location
+        Delete location with enhanced active buggy validation
         
         Args:
             location_id: Location ID
         
         Raises:
             ResourceNotFoundException: If location not found
-            ValidationException: If location has active requests
+            ValidationException: If location has active requests or active buggies
         """
         location = Location.query.get(location_id)
         if not location:
@@ -232,9 +232,46 @@ class LocationService:
                 'Önce talepleri tamamlayın veya iptal edin.'
             )
         
+        # Check for buggies with active driver sessions
+        from app.models.buggy import Buggy
+        from app.models.buggy_driver import BuggyDriver
+        
+        # Get all buggies at this location
+        buggies_at_location = Buggy.query.filter_by(
+            current_location_id=location_id
+        ).all()
+        
+        # Categorize buggies as active or inactive
+        active_buggies = []
+        inactive_buggies = []
+        
+        for buggy in buggies_at_location:
+            # Check if buggy has an active driver session
+            has_active_session = BuggyDriver.query.filter_by(
+                buggy_id=buggy.id,
+                is_active=True
+            ).first() is not None
+            
+            if has_active_session:
+                active_buggies.append(buggy)
+            else:
+                inactive_buggies.append(buggy)
+        
+        # Block deletion if any buggy has an active driver session
+        if active_buggies:
+            raise ValidationException(
+                f'Bu lokasyonda {len(active_buggies)} aktif buggy bulunuyor. '
+                'Sürücüler oturumu kapatana veya farklı lokasyon seçene kadar bu lokasyon silinemez.'
+            )
+        
+        # Set current_location_id to NULL for all inactive buggies
+        for buggy in inactive_buggies:
+            buggy.current_location_id = None
+        
         # Store values for audit
         old_values = location.to_dict()
         hotel_id = location.hotel_id
+        affected_buggy_ids = [b.id for b in inactive_buggies]
         
         # Delete QR code file
         QRCodeService.delete_qr_code(location.id)
@@ -243,13 +280,28 @@ class LocationService:
         db.session.delete(location)
         db.session.commit()
         
-        # Log deletion
+        # Enhanced audit logging with affected buggies
+        audit_new_values = {
+            'affected_buggies_count': len(inactive_buggies),
+            'affected_buggy_ids': affected_buggy_ids
+        } if inactive_buggies else None
+        
         AuditService.log_delete(
             entity_type='location',
             entity_id=location_id,
             old_values=old_values,
             hotel_id=hotel_id
         )
+        
+        # Log additional information about affected buggies if any
+        if inactive_buggies:
+            AuditService.log_action(
+                action='location_deleted_with_buggies',
+                entity_type='location',
+                entity_id=location_id,
+                new_values=audit_new_values,
+                hotel_id=hotel_id
+            )
     
     @staticmethod
     def regenerate_qr_code(location_id):

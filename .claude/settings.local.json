@@ -13,5 +13,9 @@
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "MCP_DOCKER"
+  ],
+  "enableAllProjectMcpServers": true
 }

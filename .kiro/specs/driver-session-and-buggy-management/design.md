@@ -284,6 +284,45 @@ def close_driver_session(driver_id):
 - Already implemented
 - No changes needed
 
+**Scenario 4: Driver Closes Browser/Application**
+- Location: Frontend WebSocket connection + Backend WebSocket handler
+- Implementation approach: WebSocket disconnect event
+- When WebSocket connection is lost:
+  1. Backend detects `disconnect` event
+  2. Find active session for disconnected user
+  3. Terminate session (set `is_active = False`, `revoked_at = now()`)
+  4. Set buggy status to OFFLINE
+  5. Log action in audit trail with reason "connection_lost"
+- Technical details:
+  ```python
+  @socketio.on('disconnect')
+  def handle_disconnect():
+      user_id = session.get('user_id')
+      if user_id:
+          user = SystemUser.query.get(user_id)
+          if user and user.role == UserRole.DRIVER:
+              # Find active session
+              active_session = SessionModel.query.filter_by(
+                  user_id=user_id,
+                  is_active=True
+              ).first()
+              
+              if active_session:
+                  active_session.is_active = False
+                  active_session.revoked_at = datetime.utcnow()
+                  
+                  if user.buggy:
+                      user.buggy.status = BuggyStatus.OFFLINE
+                      db.session.commit()
+                      
+                      # Log audit trail
+                      audit_service.log_action(
+                          action_type='driver_disconnected',
+                          user_id=user_id,
+                          details={'reason': 'connection_lost'}
+                      )
+  ```
+
 ### 4. Data Models
 
 #### Buggy Model (No Changes)

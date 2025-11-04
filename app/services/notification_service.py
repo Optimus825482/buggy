@@ -19,7 +19,7 @@ class NotificationService:
     }
     
     @staticmethod
-    def send_notification(subscription_info, title, body, data=None):
+    def send_notification(subscription_info, title, body, data=None, sound=None, vibrate=None):
         """
         Send push notification
         
@@ -28,6 +28,8 @@ class NotificationService:
             title: Notification title
             body: Notification body
             data: Additional data
+            sound: Sound file path (optional)
+            vibrate: Vibration pattern (optional, e.g., [200, 100, 200])
         
         Returns:
             Boolean indicating success
@@ -44,6 +46,14 @@ class NotificationService:
                 "badge": "/static/icons/Icon-72.png",
                 "data": data or {}
             }
+            
+            # Ses ekle (varsa)
+            if sound:
+                notification_data["sound"] = sound
+            
+            # Titreşim ekle (varsa)
+            if vibrate:
+                notification_data["vibrate"] = vibrate
             
             webpush(
                 subscription_info=subscription_info,
@@ -63,7 +73,7 @@ class NotificationService:
     
     @staticmethod
     def notify_new_request(request_obj):
-        """Notify drivers about new request"""
+        """Notify drivers about new request - MİSAFİR TALEBİ (SES + TİTREŞİM)"""
         # Get available drivers in the hotel
         from app.models.buggy import Buggy
         from app.services.audit_service import AuditService
@@ -78,14 +88,22 @@ class NotificationService:
             if buggy.driver_id:
                 driver = SystemUser.query.get(buggy.driver_id)
                 if driver and hasattr(driver, 'push_subscription'):
+                    # Bildirim mesajını oluştur
+                    room_info = f"Oda {request_obj.room_number}" if request_obj.room_number else "Misafir"
+                    guest_info = f" - {request_obj.guest_name}" if request_obj.guest_name else ""
+                    
                     success = NotificationService.send_notification(
                         subscription_info=driver.push_subscription,
-                        title="Yeni Buggy Talebi",
-                        body=f"{request_obj.location.name} - Oda: {request_obj.room_number or 'Belirtilmedi'}",
+                        title="🚗 Yeni Buggy Talebi!",
+                        body=f"📍 {request_obj.location.name}\n🏨 {room_info}{guest_info}",
                         data={
                             'type': 'new_request',
-                            'request_id': request_obj.id
-                        }
+                            'request_id': request_obj.id,
+                            'priority': 'high',
+                            'url': '/driver/dashboard'
+                        },
+                        sound="/static/sounds/notification.mp3",
+                        vibrate=[200, 100, 200, 100, 200]
                     )
                     if success:
                         notification_count += 1

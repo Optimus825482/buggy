@@ -35,6 +35,7 @@ class Buggy(db.Model, BaseModel):
     code = Column(String(50), nullable=False, unique=True, index=True)
     model = Column(String(100))
     license_plate = Column(String(50))
+    icon = Column(String(10), nullable=True)  # Emoji/icon for visual identification
     status = Column(Enum(BuggyStatus), default=BuggyStatus.AVAILABLE, nullable=False, index=True)
     
     # Timestamps
@@ -62,6 +63,11 @@ class Buggy(db.Model, BaseModel):
             buggy_id=self.id,
             is_active=True
         ).first()
+        
+        # Double check: if association exists but buggy is offline, return None
+        if active_assoc and self.status == BuggyStatus.OFFLINE:
+            return None
+            
         return active_assoc.driver_id if active_assoc else None
     
     def get_active_driver_name(self):
@@ -98,6 +104,7 @@ class Buggy(db.Model, BaseModel):
             'code': self.code,
             'model': self.model,
             'license_plate': self.license_plate,
+            'icon': self.icon or '🚗',  # Buggy icon for visual identification (default: 🚗)
             'status': self.status.value if self.status else None,
             'driver_name': active_driver_name,
             'current_location': {

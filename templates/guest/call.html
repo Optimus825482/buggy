@@ -39,14 +39,25 @@
     }
 
     .call-button {
-        height: 60px;
-        font-size: var(--font-size-xl);
+        height: 70px;
+        font-size: 1.5rem;
         font-weight: var(--font-weight-bold);
         box-shadow: var(--shadow-lg);
+        transition: all 0.2s ease;
+    }
+
+    .call-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
     }
 
     .call-button:active {
         transform: scale(0.98);
+    }
+
+    .call-button i {
+        font-size: 1.75rem;
+        margin-right: 0.5rem;
     }
 </style>
 {% endblock %}
@@ -57,7 +68,7 @@
     <div id="call-view" class="call-card card">
         <div class="call-header">
             <div class="call-icon">
-                <i class="fas fa-golf-cart"></i>
+                <i class="fas fa-truck-pickup"></i>
             </div>
             <h2 style="margin: 0 0 0.5rem 0;">Buggy Call</h2>
             <p style="margin: 0; opacity: 0.9;">Your Ride, On Demand</p>

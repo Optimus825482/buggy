@@ -2,8 +2,17 @@
 Buggy Call - WebSocket Events
 """
 from flask_socketio import emit, join_room, leave_room
-from flask import request
-from app import socketio
+from flask import request, session
+from app import socketio, db
+from app.models.user import SystemUser, UserRole
+from app.models.session import Session as SessionModel
+from app.models.buggy import BuggyStatus
+from app.services.audit_service import AuditService
+from datetime import datetime
+
+# Store user_id mapping for WebSocket connections
+# Key: request.sid, Value: user_id
+ws_connections = {}
 
 
 @socketio.on('connect')
@@ -18,8 +27,112 @@ def handle_connect():
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    """Handle client disconnection"""
+    """Handle client disconnection - Auto-terminate driver sessions"""
     print(f'Client disconnected: {request.sid}')
+    
+    # Get user_id from global mapping (set in join_user)
+    user_id = ws_connections.get(request.sid)
+    
+    # Fallback to Flask session
+    if not user_id:
+        user_id = session.get('ws_user_id') or session.get('user_id')
+    
+    if not user_id:
+        print(f'No user_id found for SID: {request.sid}')
+        return
+    
+    # Clean up connection mapping
+    if request.sid in ws_connections:
+        del ws_connections[request.sid]
+        print(f'Cleaned up connection mapping for SID: {request.sid}')
+    
+    try:
+        # Get user from database
+        user = SystemUser.query.get(user_id)
+        
+        # Only process for drivers
+        if not user or user.role != UserRole.DRIVER:
+            print(f'User {user_id} is not a driver, skipping disconnect handler')
+            return
+        
+        print(f'Processing disconnect for driver: {user.username} (ID: {user_id})')
+        
+        # Note: We don't check SessionModel table because login doesn't create database sessions
+        # We only use Flask session (cookie-based), so we proceed directly to buggy cleanup
+        
+        # Find driver's active buggy using BuggyDriver table
+        from app.models.buggy_driver import BuggyDriver
+        from app.models.buggy import Buggy
+        
+        active_buggy_assoc = BuggyDriver.query.filter_by(
+            driver_id=user_id,
+            is_active=True
+        ).first()
+        
+        if active_buggy_assoc:
+            buggy = Buggy.query.get(active_buggy_assoc.buggy_id)
+            
+            if buggy:
+                # Deactivate driver association
+                active_buggy_assoc.is_active = False
+                print(f'Deactivated driver association for buggy_id={buggy.id}')
+                
+                # Set buggy to OFFLINE and clear location
+                buggy.status = BuggyStatus.OFFLINE
+                buggy.current_location_id = None  # Clear location on disconnect
+                buggy_id = buggy.id
+                buggy_code = buggy.code
+                hotel_id = buggy.hotel_id
+                
+                # Commit changes
+                db.session.commit()
+                
+                print(f'Buggy {buggy_code} set to OFFLINE')
+                
+                # Log audit trail
+                AuditService.log_action(
+                    action='driver_disconnected',
+                    entity_type='buggy',
+                    entity_id=buggy_id,
+                    user_id=user_id,
+                    hotel_id=hotel_id,
+                    new_values={
+                        'reason': 'connection_lost',
+                        'buggy_code': buggy_code,
+                        'driver_name': user.username,
+                        'status': 'offline'
+                    }
+                )
+                
+                # Emit WebSocket event to admin panel for real-time status update
+                emit('buggy_status_changed', {
+                    'buggy_id': buggy_id,
+                    'buggy_code': buggy_code,
+                    'buggy_icon': buggy.icon,
+                    'driver_id': None,  # Clear driver on disconnect
+                    'driver_name': None,  # Clear driver name on disconnect
+                    'location_name': None,  # Clear location on disconnect
+                    'status': 'offline',
+                    'reason': 'connection_lost'
+                }, room=f'hotel_{hotel_id}_admin', broadcast=True)
+                
+                print(f'[DISCONNECT] Emitted buggy_status_changed event')
+                
+                print(f'Driver {user.username} disconnected - Session terminated, Buggy {buggy_code} set to OFFLINE')
+            else:
+                # Commit session changes even if buggy not found
+                db.session.commit()
+                print(f'Buggy not found for driver {user.username}')
+        else:
+            # Commit session changes even if no buggy assigned
+            db.session.commit()
+            print(f'Driver {user.username} disconnected - Session terminated (no active buggy assignment)')
+            
+    except Exception as e:
+        print(f'Error handling disconnect for user {user_id}: {str(e)}')
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
 
 
 @socketio.on('join_hotel')
@@ -33,9 +146,13 @@ def handle_join_hotel(data):
         room = f'hotel_{hotel_id}'
         join_room(room)
         
-        # Join role-specific room
-        if role in ['driver', 'admin']:
-            role_room = f'hotel_{hotel_id}_{role}s'
+        # Join role-specific room (use singular form for consistency)
+        if role == 'admin':
+            role_room = f'hotel_{hotel_id}_admin'
+            join_room(role_room)
+            print(f'Client joined: {room} and {role_room}')
+        elif role == 'driver':
+            role_room = f'hotel_{hotel_id}_drivers'
             join_room(role_room)
             print(f'Client joined: {room} and {role_room}')
         else:
@@ -90,7 +207,7 @@ def handle_driver_location(data):
         emit('driver_location_update', {
             'buggy_id': buggy_id,
             'location_id': location_id
-        }, room=f'hotel_{hotel_id}_admins')
+        }, room=f'hotel_{hotel_id}_admin')
         
         print(f'Buggy {buggy_id} location updated to {location_id}')
 
@@ -120,9 +237,15 @@ def handle_join_user(data):
     """Join user-specific room for session management"""
     user_id = data.get('user_id')
     if user_id:
+        # Store user_id in global mapping for disconnect handler
+        ws_connections[request.sid] = user_id
+        
+        # Also store in Flask session as backup
+        session['ws_user_id'] = user_id
+        
         room = f'user_{user_id}'
         join_room(room)
-        print(f'User {user_id} joined personal room')
+        print(f'User {user_id} joined personal room (SID: {request.sid})')
         emit('joined_user_room', {'user_id': user_id})
 
 
@@ -148,7 +271,7 @@ def handle_request_accepted_event(data):
             'status': 'accepted',
             'buggy': buggy_data,
             'driver': driver_data
-        }, room=f'hotel_{hotel_id}_admins')
+        }, room=f'hotel_{hotel_id}_admin')
         
         print(f'Request {request_id} accepted by driver')
 
@@ -170,7 +293,7 @@ def handle_request_completed_event(data):
         emit('request_status_changed', {
             'request_id': request_id,
             'status': 'completed'
-        }, room=f'hotel_{hotel_id}_admins')
+        }, room=f'hotel_{hotel_id}_admin')
         
         print(f'Request {request_id} completed')
 
@@ -194,7 +317,7 @@ def handle_driver_location_updated_event(data):
             'location_id': location_id,
             'location_name': location_name,
             'status': status
-        }, room=f'hotel_{hotel_id}_admins')
+        }, room=f'hotel_{hotel_id}_admin')
         
         print(f'Driver location updated: Buggy {buggy_code} at {location_name}')
 

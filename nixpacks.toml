@@ -6,16 +6,19 @@ nixPkgs = ["python311", "python311Packages.pip", "gcc", "mysql80"]
 cmds = [
   "python -m venv /opt/venv",
   ". /opt/venv/bin/activate && pip install --upgrade pip setuptools wheel",
-  ". /opt/venv/bin/activate && pip install -r requirements.txt"
+  ". /opt/venv/bin/activate && pip install -r requirements.txt --no-cache-dir"
 ]
 
 [phases.build]
 cmds = [
+  "echo '🔍 Verifying build environment...'",
   "python --version",
   ". /opt/venv/bin/activate && pip --version",
-  ". /opt/venv/bin/activate && python -c 'import flask; import gevent; print(\"✅ Dependencies OK\")'",
+  ". /opt/venv/bin/activate && python -c 'import flask; print(\"✅ Flask:\", flask.__version__)'",
+  ". /opt/venv/bin/activate && python -c 'import gevent; print(\"✅ Gevent:\", gevent.__version__)'",
+  ". /opt/venv/bin/activate && python -c 'import pymysql; print(\"✅ PyMySQL:\", pymysql.__version__)'",
   "echo '✅ Build completed successfully'"
 ]
 
 [start]
-cmd = ". /opt/venv/bin/activate && python scripts/run_migrations.py && gunicorn --worker-class gevent -w 1 --bind 0.0.0.0:$PORT --timeout 180 --keep-alive 5 --log-level info --access-logfile - --error-logfile - wsgi:app"
+cmd = ". /opt/venv/bin/activate && python scripts/run_migrations.py && (python scripts/create_initial_data.py || echo '⚠️  Initial data creation failed, continuing...') && gunicorn --worker-class gevent -w 1 --bind 0.0.0.0:$PORT --timeout 300 --keep-alive 5 --log-level info --access-logfile - --error-logfile - wsgi:app"

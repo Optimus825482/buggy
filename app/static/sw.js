@@ -1,6 +1,6 @@
 // Service Worker for Buggy Call PWA - Enhanced Version
 // Powered by Erkan ERDEM
-const CACHE_VERSION = 'buggycall-v2.0.2';
+const CACHE_VERSION = 'buggycall-v2.0.5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -23,7 +23,9 @@ const STATIC_ASSETS = [
   '/static/icons/Icon-512.png',
   '/static/icons/apple-touch-icon.png',
   '/static/icons/favicon-32x32.png',
-  '/static/icons/favicon-16x16.png'
+  '/static/icons/favicon-16x16.png',
+  // Sounds
+  '/static/sounds/notification.mp3'
 ];
 
 // API endpoints to cache with network-first strategy
@@ -81,8 +83,10 @@ self.addEventListener('activate', (event) => {
       })
       .then(() => {
         console.log('[SW] Service Worker activated');
-        // Claim all clients immediately
-        return self.clients.claim();
+        // Claim all clients immediately (only if this is the active worker)
+        if (self.registration.active === self) {
+          return self.clients.claim();
+        }
       })
   );
 });
@@ -262,7 +266,7 @@ async function syncBuggyRequests() {
   }
 }
 
-// Push notification handler
+// Push notification handler - SES DESTEĞİ İLE
 self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
 
@@ -273,42 +277,100 @@ self.addEventListener('push', (event) => {
 
   const data = event.data.json();
   const title = data.title || 'Buggy Call';
+  
+  // Bildirim seçenekleri - TEMAYA UYGUN
   const options = {
     body: data.body || 'Yeni bir bildiriminiz var',
-    icon: '/static/icons/Icon-192.png',
-    badge: '/static/icons/Icon-96.png',
-    vibrate: [200, 100, 200],
+    icon: data.icon || '/static/icons/Icon-192.png',
+    badge: data.badge || '/static/icons/Icon-96.png',
+    vibrate: data.vibrate || [200, 100, 200, 100, 200],
     tag: data.tag || 'buggy-call-notification',
+    requireInteraction: data.data?.priority === 'high',
+    silent: false,
+    // TEMA RENKLERİ
+    backgroundColor: '#1BA5A8',
+    // Aksiyon butonları
+    actions: data.actions || [
+      {
+        action: 'view',
+        title: '👀 Görüntüle',
+        icon: '/static/icons/Icon-96.png'
+      },
+      {
+        action: 'close',
+        title: '✖️ Kapat',
+        icon: '/static/icons/Icon-72.png'
+      }
+    ],
     data: {
-      url: data.url || '/',
-      timestamp: Date.now()
+      url: data.url || '/driver/dashboard',
+      timestamp: Date.now(),
+      sound: data.sound,
+      ...data.data
     },
-    actions: data.actions || []
+    // Görsel iyileştirmeler
+    image: data.image,
+    dir: 'ltr',
+    lang: 'tr'
   };
 
   event.waitUntil(
-    self.registration.showNotification(title, options)
+    Promise.all([
+      // Bildirimi göster
+      self.registration.showNotification(title, options),
+      
+      // Ses çal (eğer belirtilmişse)
+      playNotificationSound(data.sound)
+    ])
   );
 });
 
-// Notification click handler
+// Bildirim sesi çalma fonksiyonu
+async function playNotificationSound(soundUrl) {
+  if (!soundUrl) return;
+  
+  try {
+    // Tüm açık client'lara ses çalma mesajı gönder
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    
+    for (const client of clients) {
+      client.postMessage({
+        type: 'PLAY_NOTIFICATION_SOUND',
+        soundUrl: soundUrl
+      });
+    }
+    
+    console.log('[SW] Notification sound message sent to clients');
+  } catch (error) {
+    console.error('[SW] Error playing notification sound:', error);
+  }
+}
+
+// Notification click handler - AKSİYON DESTEĞİ İLE
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked');
+  console.log('[SW] Notification clicked:', event.action);
 
   event.notification.close();
 
-  const urlToOpen = event.notification.data?.url || '/';
+  // Aksiyon kontrolü
+  if (event.action === 'close') {
+    // Sadece kapat
+    return;
+  }
+
+  // View veya bildirime tıklama
+  const urlToOpen = event.notification.data?.url || '/driver/dashboard';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Check if there's already a window open
+        // Açık pencere varsa focus et
         for (const client of clientList) {
-          if (client.url === urlToOpen && 'focus' in client) {
+          if (client.url.includes('driver') && 'focus' in client) {
             return client.focus();
           }
         }
-        // Open new window if none exists
+        // Yoksa yeni pencere aç
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
         }

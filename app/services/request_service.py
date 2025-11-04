@@ -176,7 +176,7 @@ class RequestService:
         # Notify admins
         socketio.emit('request_status_changed', {
             'request': request_obj.to_dict()
-        }, room=f'hotel_{request_obj.hotel_id}_admins')
+        }, room=f'hotel_{request_obj.hotel_id}_admin')
         
         return request_obj
     
@@ -263,7 +263,7 @@ class RequestService:
         # Notify admins
         socketio.emit('request_status_changed', {
             'request': request_obj.to_dict()
-        }, room=f'hotel_{request_obj.hotel_id}_admins')
+        }, room=f'hotel_{request_obj.hotel_id}_admin')
         
         # Emit buggy status and location change
         if request_obj.buggy:
@@ -277,6 +277,13 @@ class RequestService:
                 'status': 'available',
                 'location_name': location_name
             }, room=f'hotel_{request_obj.hotel_id}_admin')
+            
+            # Emit buggy status update for real-time dashboard
+            try:
+                from app.services.buggy_service import BuggyService
+                BuggyService.emit_buggy_status_update(request_obj.buggy.id, request_obj.hotel_id)
+            except:
+                pass
         
         return request_obj
     
@@ -342,7 +349,7 @@ class RequestService:
         
         socketio.emit('request_status_changed', {
             'request': request_obj.to_dict()
-        }, room=f'hotel_{request_obj.hotel_id}_admins')
+        }, room=f'hotel_{request_obj.hotel_id}_admin')
         
         return request_obj
     

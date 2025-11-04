@@ -65,9 +65,10 @@ const Guest = {
         // Call buggy form
         const callForm = document.getElementById('call-buggy-form');
         if (callForm) {
-            callForm.addEventListener('submit', (e) => {
+            callForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                this.submitRequest();
+                // Show confirmation modal before submitting
+                await this.showCallConfirmation();
             });
         }
         
@@ -340,6 +341,215 @@ const Guest = {
     },
 
     /**
+     * Show call confirmation modal
+     */
+    async showCallConfirmation() {
+        const formData = BuggyCall.Form.getData('call-buggy-form');
+        
+        // Validation
+        if (!this.locationId) {
+            await BuggyCall.Utils.showWarning('Lütfen bir lokasyon seçin veya QR kod okutun.');
+            return;
+        }
+        
+        // Get location name
+        const locationSelect = document.getElementById('location-select');
+        const locationName = locationSelect?.options[locationSelect.selectedIndex]?.text || 'Seçili Lokasyon';
+        
+        // Build confirmation details
+        const roomInfo = formData.room_number ? `<div class="confirm-detail"><i class="fas fa-door-open"></i> Oda: ${formData.room_number}</div>` : '';
+        const notesInfo = formData.notes ? `<div class="confirm-detail"><i class="fas fa-comment"></i> Not: ${formData.notes}</div>` : '';
+        
+        // Create custom confirmation overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'custom-confirmation-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            background: white;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        `;
+        
+        modal.innerHTML = `
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideUp {
+                    from { transform: translateY(50px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                @keyframes questionPulse {
+                    0%, 100% {
+                        transform: scale(1);
+                        box-shadow: 0 8px 16px rgba(249, 115, 22, 0.3);
+                    }
+                    50% {
+                        transform: scale(1.05);
+                        box-shadow: 0 12px 24px rgba(249, 115, 22, 0.4);
+                    }
+                }
+                .confirm-detail {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.75rem;
+                    background: #f8fafc;
+                    border-radius: 8px;
+                    font-size: 1rem;
+                    color: #334155;
+                    margin-bottom: 0.5rem;
+                }
+                .confirm-detail i {
+                    width: 24px;
+                    color: #1BA5A8;
+                    font-size: 1.1rem;
+                }
+                .confirm-btn {
+                    padding: 1rem 2rem;
+                    border: none;
+                    border-radius: 12px;
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    flex: 1;
+                }
+                .confirm-btn-yes {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: white;
+                }
+                .confirm-btn-yes:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+                }
+                .confirm-btn-no {
+                    background: #e2e8f0;
+                    color: #64748b;
+                }
+                .confirm-btn-no:hover {
+                    background: #cbd5e1;
+                }
+            </style>
+            
+            <div style="text-align: center;">
+                <div style="
+                    width: 100px;
+                    height: 100px;
+                    margin: 0 auto 1.5rem;
+                    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 8px 16px rgba(249, 115, 22, 0.3);
+                    animation: questionPulse 2s infinite;
+                ">
+                    <i class="fas fa-question" style="font-size: 3rem; color: white;"></i>
+                </div>
+                
+                <h3 style="
+                    font-size: 1.75rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin-bottom: 1rem;
+                ">
+                    Buggy Çağırmak İstiyor musunuz?
+                </h3>
+                
+                <p style="
+                    font-size: 1rem;
+                    color: #64748b;
+                    margin-bottom: 1.5rem;
+                ">
+                    Talebinizi onaylayın
+                </p>
+                
+                <div style="
+                    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+                    border-radius: 12px;
+                    padding: 1.5rem;
+                    margin-bottom: 1.5rem;
+                    border: 2px solid #1BA5A8;
+                    text-align: left;
+                ">
+                    <div class="confirm-detail">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span><strong>Lokasyon:</strong> ${locationName}</span>
+                    </div>
+                    ${roomInfo}
+                    ${notesInfo}
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button class="confirm-btn confirm-btn-no" id="cancel-btn">
+                        <i class="fas fa-times"></i> İptal
+                    </button>
+                    <button class="confirm-btn confirm-btn-yes" id="confirm-btn">
+                        <i class="fas fa-check"></i> Evet, Çağır
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        // Handle button clicks
+        return new Promise((resolve) => {
+            const confirmBtn = modal.querySelector('#confirm-btn');
+            const cancelBtn = modal.querySelector('#cancel-btn');
+            
+            const cleanup = () => {
+                overlay.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 300);
+            };
+            
+            confirmBtn.onclick = () => {
+                cleanup();
+                this.submitRequest();
+                resolve(true);
+            };
+            
+            cancelBtn.onclick = () => {
+                cleanup();
+                resolve(false);
+            };
+            
+            // Close on backdrop click
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    cleanup();
+                    resolve(false);
+                }
+            };
+        });
+    },
+
+    /**
      * Submit buggy request
      */
     async submitRequest() {
@@ -363,7 +573,9 @@ const Guest = {
             
             if (response.success) {
                 this.requestId = response.request.id;
-                await BuggyCall.Utils.showSuccess('Buggy çağrısı başarıyla gönderildi! Durumunu takip edebilirsiniz.');
+                
+                // Show themed success notification with 5 second warning
+                this.showRequestSuccessNotification();
                 
                 // Join request room for updates
                 this.socket.emit('join_request', {
@@ -383,6 +595,133 @@ const Guest = {
             await BuggyCall.Utils.showError('Buggy çağrısı gönderilemedi: ' + error.message);
             BuggyCall.Utils.hideLoading();
         }
+    },
+
+    /**
+     * Show themed request success notification
+     */
+    showRequestSuccessNotification() {
+        // Create custom notification overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'custom-notification-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            background: white;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        `;
+        
+        modal.innerHTML = `
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideUp {
+                    from { transform: translateY(50px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                @keyframes successPulse {
+                    0%, 100% {
+                        transform: scale(1);
+                        box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+                    }
+                    50% {
+                        transform: scale(1.05);
+                        box-shadow: 0 12px 24px rgba(16, 185, 129, 0.4);
+                    }
+                }
+            </style>
+            
+            <div style="text-align: center;">
+                <div style="
+                    width: 100px;
+                    height: 100px;
+                    margin: 0 auto 1.5rem;
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+                    animation: successPulse 2s infinite;
+                ">
+                    <i class="fas fa-check" style="font-size: 3.5rem; color: white;"></i>
+                </div>
+                
+                <h3 style="
+                    font-size: 1.75rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin-bottom: 1rem;
+                ">
+                    ✅ Talebiniz Alındı!
+                </h3>
+                
+                <p style="
+                    font-size: 1.1rem;
+                    color: #64748b;
+                    line-height: 1.6;
+                    margin-bottom: 1.5rem;
+                ">
+                    Buggy çağrınız başarıyla gönderildi.<br>
+                    Durumunu takip edebilirsiniz.
+                </p>
+                
+                <div style="
+                    background: #fef3c7;
+                    border-left: 4px solid #f59e0b;
+                    padding: 1rem 1.25rem;
+                    border-radius: 8px;
+                    margin-top: 1.5rem;
+                ">
+                    <p style="
+                        margin: 0;
+                        color: #92400e;
+                        font-size: 1rem;
+                        font-weight: 600;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 0.5rem;
+                    ">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Bu pencereyi 5 saniye boyunca kapatmayın!
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        // Auto-close after 5 seconds
+        setTimeout(() => {
+            overlay.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            }, 300);
+        }, 5000);
     },
 
     /**

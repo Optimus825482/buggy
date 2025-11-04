@@ -124,9 +124,9 @@ async function loadBuggiesStatus() {
             
             buggiesList.innerHTML = data.buggies.map(buggy => `
                 <tr>
-                    <td><strong>${buggy.name || buggy.plate_number}</strong><br><small>${buggy.plate_number || ''}</small></td>
+                    <td><strong>${buggy.code || buggy.license_plate}</strong><br><small>${buggy.license_plate || ''}</small></td>
                     <td>${buggy.driver_name || '<span class="badge badge-secondary">Atanmadı</span>'}</td>
-                    <td>${buggy.current_location || '<span class="badge badge-secondary">-</span>'}</td>
+                    <td>${buggy.current_location?.name || buggy.current_location_name || '<span class="badge badge-secondary">-</span>'}</td>
                     <td>${buggyStatusBadges[buggy.status] || buggy.status}</td>
                 </tr>
             `).join('');
@@ -157,8 +157,12 @@ function initWebSocket() {
         
         socket.on('connect', () => {
             console.log('WebSocket connected');
-            // Join admin room
-            socket.emit('join_room', { room: 'admin' });
+            // Join hotel admin room
+            const hotelId = document.body.dataset.hotelId || 1;
+            socket.emit('join_hotel', { 
+                hotel_id: parseInt(hotelId),
+                role: 'admin'
+            });
         });
         
         socket.on('disconnect', () => {
@@ -192,6 +196,20 @@ function initWebSocket() {
         socket.on('request_completed', (data) => {
             console.log('Request completed:', data);
             loadActiveRequests();
+        });
+        
+        // Listen for buggy status changes (CRITICAL for logout/disconnect)
+        socket.on('buggy_status_changed', (data) => {
+            console.log('Buggy status changed:', data);
+            // Reload buggies list to reflect new status
+            loadBuggiesStatus();
+        });
+        
+        // Listen for driver location updates
+        socket.on('driver_location_updated', (data) => {
+            console.log('Driver location updated:', data);
+            // Reload buggies list to reflect new location
+            loadBuggiesStatus();
         });
         
     } catch (error) {

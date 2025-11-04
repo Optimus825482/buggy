@@ -129,3 +129,21 @@ class QRCodeService:
             True if valid, False otherwise
         """
         return QRCodeService.parse_location_qr_data(qr_data) is not None
+
+    @staticmethod
+    def delete_qr_code(location_id: int) -> None:
+        """
+        Delete QR code file for a location
+        
+        Args:
+            location_id: Location ID whose QR code should be deleted
+        
+        Note:
+            This is a placeholder for QR code file deletion.
+            Currently QR codes are generated on-demand and not stored as files.
+            If file storage is implemented in the future, this method should
+            handle the actual file deletion.
+        """
+        # QR codes are currently generated on-demand and stored in database
+        # No physical file deletion needed
+        pass

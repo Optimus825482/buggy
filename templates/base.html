@@ -32,81 +32,19 @@
     <meta name="apple-mobile-web-app-title" content="Buggy Call">
 
     <!-- Icons -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icons/favicon-16x16.png') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/Icon-180.png') }}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='icons/Icon-152.png') }}">
+    <link rel="apple-touch-icon" sizes="120x120" href="{{ url_for('static', filename='icons/Icon-120.png') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
-    <!-- Google Fonts - Inter (Modern & Clean) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Local Fonts - Inter (Self-hosted for better performance) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            DEFAULT: '#1BA5A8',
-                            50: '#E6F7F8',
-                            100: '#CCEFF0',
-                            200: '#99DFE1',
-                            300: '#66CFD2',
-                            400: '#33BFC3',
-                            500: '#1BA5A8',
-                            600: '#158B8E',
-                            700: '#106F71',
-                            800: '#0C5355',
-                            900: '#083738'
-                        },
-                        accent: {
-                            DEFAULT: '#F28C38',
-                            50: '#FEF4EC',
-                            100: '#FDE9D9',
-                            200: '#FBD3B3',
-                            300: '#F9BD8D',
-                            400: '#F7A767',
-                            500: '#F28C38',
-                            600: '#D97826',
-                            700: '#B7641F',
-                            800: '#945017',
-                            900: '#723C10'
-                        },
-                        success: '#1BA5A8',
-                        danger: '#E74C3C',
-                        warning: '#F28C38',
-                        info: '#1BA5A8'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
-                        display: ['Inter', 'system-ui', 'sans-serif']
-                    },
-                    fontSize: {
-                        xs: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.02em' }],
-                        sm: ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0.01em' }],
-                        base: ['1rem', { lineHeight: '1.5rem', letterSpacing: '0' }],
-                        lg: ['1.125rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
-                        xl: ['1.25rem', { lineHeight: '1.875rem', letterSpacing: '-0.01em' }],
-                        '2xl': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.02em' }],
-                        '3xl': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em' }],
-                        '4xl': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.03em' }]
-                    },
-                    boxShadow: {
-                        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
-                        'soft-lg': '0 10px 40px -10px rgba(0, 0, 0, 0.1)'
-                    }
-                }
-            }
-        }
-    </script>
-
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-        integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Font Awesome Icons (Local) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome.min.css') }}">
 
     <!-- Custom Stylesheets -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
@@ -119,7 +57,7 @@
     <title>{% block title %}Buggy Call{% endblock %} - {{ app_name }}</title>
 </head>
 
-<body>
+<body data-hotel-id="{{ session.get('hotel_id', 1) }}">
     <!-- Header -->
     <header class="header no-print">
         <div class="container">

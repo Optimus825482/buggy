@@ -2,7 +2,7 @@
 Buggy Call - Audit Trail Routes
 """
 from flask import Blueprint, jsonify, request, session
-from app import limiter
+# from app import limiter  # Rate limiter removed
 from app.services.audit_service import AuditService
 from app.utils import APIResponse, require_login, require_role
 from app.utils.exceptions import BuggyCallException
@@ -12,7 +12,7 @@ audit_bp = Blueprint('audit', __name__)
 
 
 @audit_bp.route('/audit', methods=['GET'])
-@limiter.limit("30 per minute")
+# Rate limiter removed
 @require_login
 @require_role('admin')
 def get_audit_trail():
@@ -55,7 +55,7 @@ def get_audit_trail():
 
 
 @audit_bp.route('/audit/stats', methods=['GET'])
-@limiter.limit("30 per minute")
+# Rate limiter removed
 @require_login
 @require_role('admin')
 def get_audit_stats():
@@ -102,7 +102,7 @@ def get_audit_stats():
 
 
 @audit_bp.route('/audit/<int:audit_id>', methods=['DELETE'])
-@limiter.limit("5 per minute")
+# Rate limiter removed
 @require_login
 def delete_audit_log(audit_id):
     """
@@ -139,7 +139,7 @@ def delete_audit_log(audit_id):
 
 
 @audit_bp.route('/audit/<int:audit_id>', methods=['PUT', 'PATCH'])
-@limiter.limit("5 per minute")
+# Rate limiter removed
 @require_login
 def update_audit_log(audit_id):
     """
@@ -175,7 +175,7 @@ def update_audit_log(audit_id):
 
 
 @audit_bp.route('/audit/suspicious-activity', methods=['GET'])
-@limiter.limit("20 per minute")
+# Rate limiter removed
 @require_login
 @require_role('admin')
 def get_suspicious_activity():

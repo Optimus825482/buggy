@@ -72,10 +72,24 @@ class AuthService:
         session['role'] = user.role.value if hasattr(user.role, 'value') else str(user.role)
         session['hotel_id'] = user.hotel_id
         
-        # For drivers: Check if they need to set initial location
-        from app.models.user import UserRole
+        # Initialize notification permission tracking
+        session['notification_permission_asked'] = False
+        session['notification_permission_status'] = 'default'
+        
+        # Import models for driver-specific logic
         from app.models.buggy import Buggy, BuggyStatus
         from app.models.buggy_driver import BuggyDriver
+        
+        # For drivers: Make session expire when browser closes
+        # For admins: Keep 24-hour session (from config)
+        if user.role == UserRole.DRIVER:
+            session.permanent = False  # Session expires when browser closes
+            print(f'[LOGIN] Driver session set to non-permanent (expires on browser close)')
+        else:
+            session.permanent = True  # Use PERMANENT_SESSION_LIFETIME from config
+            print(f'[LOGIN] Admin session set to permanent (24 hours)')
+        
+        # For drivers: Check if they need to set initial location
         
         if user.role == UserRole.DRIVER:
             # Get all buggies assigned to this driver
@@ -110,13 +124,10 @@ class AuthService:
                 assoc.is_active = True
                 assoc.last_active_at = datetime.utcnow()
                 
-                # If buggy has no location, driver needs to set it
-                if not buggy.current_location_id:
-                    session['needs_location_setup'] = True
-                    # Buggy stays offline until location is set
-                else:
-                    # Buggy already has location, set to available
-                    buggy.status = BuggyStatus.AVAILABLE
+                # Driver must always select location on login
+                # (location is cleared on logout/disconnect)
+                session['needs_location_setup'] = True
+                # Buggy stays offline until location is set
                 
                 # Emit WebSocket event for driver login
                 try:
@@ -128,6 +139,13 @@ class AuthService:
                         'driver_name': user.full_name if user.full_name else user.username,
                         'status': buggy.status.value
                     }, room=f'hotel_{user.hotel_id}_admin')
+                except:
+                    pass
+                
+                # Emit buggy status update for real-time dashboard
+                try:
+                    from app.services.buggy_service import BuggyService
+                    BuggyService.emit_buggy_status_update(buggy.id, user.hotel_id)
                 except:
                     pass
         
@@ -144,10 +162,13 @@ class AuthService:
         user_id = session.get('user_id')
         hotel_id = session.get('hotel_id')
         
+        print(f'[LOGOUT] Starting logout for user_id={user_id}, hotel_id={hotel_id}')
+        
         if user_id and hotel_id:
             # If driver, deactivate and set buggy to offline
             user = SystemUser.query.get(user_id)
             if user and user.role == UserRole.DRIVER:
+                print(f'[LOGOUT] User is driver: {user.username}')
                 from app.models.buggy import Buggy, BuggyStatus
                 from app.models.buggy_driver import BuggyDriver
                 
@@ -157,28 +178,48 @@ class AuthService:
                     is_active=True
                 ).all()
                 
+                print(f'[LOGOUT] Found {len(active_associations)} active buggy associations')
+                
                 for assoc in active_associations:
                     # Deactivate driver
                     assoc.is_active = False
+                    print(f'[LOGOUT] Deactivated association for buggy_id={assoc.buggy_id}')
                     
-                    # Set buggy to offline
+                    # Set buggy to offline and clear location
                     buggy = Buggy.query.get(assoc.buggy_id)
                     if buggy:
+                        old_status = buggy.status
                         buggy.status = BuggyStatus.OFFLINE
+                        buggy.current_location_id = None  # Clear location on logout
+                        print(f'[LOGOUT] Set buggy {buggy.code} status from {old_status} to OFFLINE and cleared location')
                         
                         # Emit WebSocket event for driver logout
                         try:
                             from app import socketio
-                            socketio.emit('driver_logged_out', {
+                            socketio.emit('buggy_status_changed', {
                                 'buggy_id': buggy.id,
                                 'buggy_code': buggy.code,
-                                'driver_id': user_id,
-                                'status': 'offline'
+                                'buggy_icon': buggy.icon,
+                                'driver_id': None,  # Clear driver on logout
+                                'driver_name': None,  # Clear driver name on logout
+                                'location_name': None,  # Clear location on logout
+                                'status': 'offline',
+                                'reason': 'driver_logout'
                             }, room=f'hotel_{hotel_id}_admin')
-                        except:
-                            pass
+                            print(f'[LOGOUT] Emitted buggy_status_changed event to hotel_{hotel_id}_admin')
+                        except Exception as e:
+                            print(f'[LOGOUT] Error emitting buggy_status_changed: {e}')
+                        
+                        # Emit buggy status update for real-time dashboard
+                        try:
+                            from app.services.buggy_service import BuggyService
+                            BuggyService.emit_buggy_status_update(buggy.id, hotel_id)
+                            print(f'[LOGOUT] Emitted buggy status update')
+                        except Exception as e:
+                            print(f'[LOGOUT] Error emitting buggy status: {e}')
                 
                 db.session.commit()
+                print(f'[LOGOUT] Database changes committed')
             
             # Log logout
             AuditService.log_logout(user_id, hotel_id)

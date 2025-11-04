@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bildirim ve Ses Testi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1BA5A8 0%, #0EA5E9 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #1BA5A8;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+        }
+        
+        .test-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #1BA5A8 0%, #0EA5E9 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(27, 165, 168, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(27, 165, 168, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.secondary {
+            background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%);
+            box-shadow: 0 4px 15px rgba(107, 114, 128, 0.3);
+        }
+        
+        .info {
+            background: #E0F2FE;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #0EA5E9;
+            font-size: 14px;
+            color: #0369A1;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #D1FAE5;
+            color: #065F46;
+            border-left: 4px solid #10B981;
+            display: block;
+        }
+        
+        .status.error {
+            background: #FEE2E2;
+            color: #991B1B;
+            border-left: 4px solid #EF4444;
+            display: block;
+        }
+        
+        .emoji {
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Bildirim ve Ses Testi</h1>
+        <p class="subtitle">Buggy Call - Push Notification Test</p>
+        
+        <!-- Ses Testleri -->
+        <div class="test-section">
+            <h3><span class="emoji">🔊</span> Ses Testleri</h3>
+            <button onclick="testRealSound()">🎵 Gerçek Bildirim Sesi (MP3)</button>
+            <button onclick="testSound1()">Tek Beep Sesi (Generated)</button>
+            <button onclick="testSound2()">Çift Beep Sesi (Generated)</button>
+            <button onclick="testSound3()">Üçlü Chime Sesi (Generated)</button>
+            <div id="soundStatus" class="status"></div>
+        </div>
+        
+        <!-- Bildirim Testleri -->
+        <div class="test-section">
+            <h3><span class="emoji">📱</span> Bildirim Testleri</h3>
+            <button onclick="requestPermission()">Bildirim İzni İste</button>
+            <button onclick="testNotification()" class="secondary">Test Bildirimi Gönder</button>
+            <button onclick="testBuggyNotification()" class="secondary">Buggy Talebi Bildirimi</button>
+            <div id="notificationStatus" class="status"></div>
+        </div>
+        
+        <div class="info">
+            <strong>💡 Not:</strong> Bildirim göndermek için önce izin vermeniz gerekiyor.
+            Ses testleri için herhangi bir izin gerekmez.
+        </div>
+    </div>
+
+    <script>
+        // Gerçek Ses Dosyası Testi
+        function testRealSound() {
+            showStatus('soundStatus', '🎵 Gerçek bildirim sesi çalıyor...', 'success');
+            try {
+                const audio = new Audio('/static/sounds/notification.mp3');
+                audio.volume = 1.0;
+                audio.play()
+                    .then(() => {
+                        console.log('✅ Ses dosyası başarıyla çalındı');
+                        showStatus('soundStatus', '✅ Ses dosyası başarıyla çalındı!', 'success');
+                    })
+                    .catch((error) => {
+                        console.error('❌ Ses çalma hatası:', error);
+                        showStatus('soundStatus', '❌ Ses çalınamadı: ' + error.message, 'error');
+                    });
+            } catch (error) {
+                console.error('❌ Ses yükleme hatası:', error);
+                showStatus('soundStatus', '❌ Ses yüklenemedi: ' + error.message, 'error');
+            }
+        }
+
+        // Ses Test Fonksiyonları
+        function testSound1() {
+            showStatus('soundStatus', 'Tek beep sesi çalıyor...', 'success');
+            playBeep(800, 0.3);
+        }
+
+        function testSound2() {
+            showStatus('soundStatus', 'Çift beep sesi çalıyor...', 'success');
+            playBeep(880, 0.15);
+            setTimeout(() => playBeep(1046.5, 0.15), 200);
+        }
+
+        function testSound3() {
+            showStatus('soundStatus', 'Üçlü chime sesi çalıyor...', 'success');
+            const frequencies = [523.25, 659.25, 783.99];
+            frequencies.forEach((freq, index) => {
+                setTimeout(() => playBeep(freq, 0.5, 0.2), index * 100);
+            });
+        }
+
+        function playBeep(frequency, duration, volume = 0.3) {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+            } catch (error) {
+                console.error('Ses çalma hatası:', error);
+                showStatus('soundStatus', 'Ses çalınamadı: ' + error.message, 'error');
+            }
+        }
+
+        // Bildirim Fonksiyonları
+        async function requestPermission() {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    showStatus('notificationStatus', '✅ Bildirim izni verildi!', 'success');
+                } else {
+                    showStatus('notificationStatus', '❌ Bildirim izni reddedildi', 'error');
+                }
+            } catch (error) {
+                showStatus('notificationStatus', 'Hata: ' + error.message, 'error');
+            }
+        }
+
+        function testNotification() {
+            if (Notification.permission !== 'granted') {
+                showStatus('notificationStatus', '⚠️ Önce bildirim izni verin', 'error');
+                return;
+            }
+
+            const notification = new Notification('🔔 Test Bildirimi', {
+                body: 'Bu bir test bildirimidir',
+                icon: '/static/icons/Icon-192.png',
+                badge: '/static/icons/Icon-96.png',
+                vibrate: [200, 100, 200]
+            });
+
+            // Ses çal
+            testSound2();
+            
+            showStatus('notificationStatus', '✅ Test bildirimi gönderildi!', 'success');
+        }
+
+        function testBuggyNotification() {
+            if (Notification.permission !== 'granted') {
+                showStatus('notificationStatus', '⚠️ Önce bildirim izni verin', 'error');
+                return;
+            }
+
+            const notification = new Notification('🚗 Yeni Buggy Talebi!', {
+                body: '📍 Ana Giriş\n🏨 Oda 101 - Erkan ERDEM',
+                icon: '/static/icons/Icon-192.png',
+                badge: '/static/icons/Icon-96.png',
+                vibrate: [200, 100, 200, 100, 200],
+                tag: 'buggy-request',
+                requireInteraction: true
+            });
+
+            // Ses çal
+            testSound2();
+            
+            showStatus('notificationStatus', '✅ Buggy talebi bildirimi gönderildi!', 'success');
+            
+            notification.onclick = function() {
+                window.focus();
+                notification.close();
+            };
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = 'status ' + type;
+            
+            setTimeout(() => {
+                element.className = 'status';
+            }, 3000);
+        }
+
+        // Sayfa yüklendiğinde izin durumunu kontrol et
+        window.addEventListener('load', () => {
+            if (Notification.permission === 'granted') {
+                showStatus('notificationStatus', '✅ Bildirim izni zaten verilmiş', 'success');
+            } else if (Notification.permission === 'denied') {
+                showStatus('notificationStatus', '❌ Bildirim izni reddedilmiş', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

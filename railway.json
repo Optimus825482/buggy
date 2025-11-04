@@ -3,9 +3,9 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": ". /opt/venv/bin/activate && python scripts/run_migrations.py && gunicorn --worker-class gevent -w 1 --bind 0.0.0.0:$PORT --timeout 180 --keep-alive 5 --log-level info --access-logfile - --error-logfile - wsgi:app",
+    "startCommand": ". /opt/venv/bin/activate && python scripts/run_migrations.py && (python scripts/create_initial_data.py || echo '⚠️  Initial data creation failed, continuing...') && gunicorn --worker-class gevent -w 1 --bind 0.0.0.0:$PORT --timeout 300 --keep-alive 5 --log-level info --access-logfile - --error-logfile - wsgi:app",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 100,
+    "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }

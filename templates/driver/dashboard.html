@@ -14,6 +14,7 @@
 {% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/notification-permission.css') }}">
 <style>
     .driver-dashboard {
         background: linear-gradient(135deg, #1BA5A8 0%, #158587 100%);
@@ -270,18 +271,22 @@
                     </div>
                     <div>
                         <h2 style="margin: 0; color: #333;">{{ user.full_name or user.username }}</h2>
-                        <p style="margin: 0.25rem 0 0 0; color: #6c757d;">
-                            <i class="fas fa-golf-cart"></i> 
-                            {% if user.buggy %}Buggy: {{ user.buggy.code }}{% else %}Buggy Atanmamış{% endif %}
+                        <p style="margin: 0.25rem 0 0 0; color: #6c757d; font-size: 0.9375rem;">
+                            {% if user.buggy %}
+                                <span style="font-size: 1.5rem; margin-right: 0.5rem;">{{ user.buggy.icon|safe if user.buggy.icon else '🚗' }}</span>
+                                <span style="font-weight: 600;">{{ user.buggy.code }}</span>
+                            {% else %}
+                                <span style="color: #E67E22;">Buggy Atanmamış</span>
+                            {% endif %}
                         </p>
                         {% if user.buggy and user.buggy.current_location %}
-                        <p style="margin: 0.25rem 0 0 0; color: #1BA5A8; font-weight: 600;">
+                        <p style="margin: 0.25rem 0 0 0; color: #1BA5A8; font-weight: 600; font-size: 0.875rem;">
                             <i class="fas fa-map-marker-alt"></i> 
-                            Şu Anki Lokasyon: {{ user.buggy.current_location.name }}
+                            {{ user.buggy.current_location.name }}
                         </p>
                         {% elif user.buggy %}
-                        <p style="margin: 0.25rem 0 0 0; color: #E67E22; font-weight: 600;">
-                            <i class="fas fa-map-marker-alt"></i> 
+                        <p style="margin: 0.25rem 0 0 0; color: #E67E22; font-weight: 600; font-size: 0.875rem;">
+                            <i class="fas fa-exclamation-triangle"></i> 
                             Lokasyon Belirlenmemiş
                         </p>
                         {% endif %}
@@ -293,51 +298,7 @@
 
         {% if user.buggy %}
         <!-- Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card" style="{% if user.buggy.current_location %}background: linear-gradient(135deg, #E0F5F5 0%, #ffffff 100%); border: 2px solid #1BA5A8;{% else %}background: linear-gradient(135deg, #FEF3E2 0%, #ffffff 100%); border: 2px solid #E67E22;{% endif %}">
-                <div class="stat-icon" style="{% if user.buggy.current_location %}background: #1BA5A8; color: white;{% else %}background: #E67E22; color: white;{% endif %}">
-                    <i class="fas fa-map-marker-alt"></i>
-                </div>
-                <div class="stat-label">Şu Anki Lokasyon</div>
-                <div style="font-size: 1.25rem; font-weight: 600; margin: 0.5rem 0; color: {% if user.buggy.current_location %}#1BA5A8{% else %}#E67E22{% endif %};">
-                    {% if user.buggy.current_location %}
-                        {{ user.buggy.current_location.name }}
-                    {% else %}
-                        Belirlenmemiş
-                    {% endif %}
-                </div>
-            </div>
 
-            <div class="stat-card">
-                <div class="stat-icon warning">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="stat-label">Bekleyen Talepler</div>
-                <div class="stat-value" style="color: #E67E22;">
-                    <span id="pending-request-count">0</span>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon success">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="stat-label">Bugün Tamamlanan</div>
-                <div class="stat-value" style="color: #27AE60;">
-                    <span id="completed-today">0</span>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon info">
-                    <i class="fas fa-route"></i>
-                </div>
-                <div class="stat-label">Aktif Talep</div>
-                <div class="stat-value" style="color: #1BA5A8;">
-                    <span id="active-request-count">0</span>
-                </div>
-            </div>
-        </div>
 
         <!-- Pending Requests -->
         <div class="section-card">
@@ -386,143 +347,148 @@
     </div>
 </div>
 
-<!-- Initial Location Setup Modal -->
-<div id="locationSetupModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
-    <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
-        <div style="text-align: center; margin-bottom: 2rem;">
-            <div style="width: 80px; height: 80px; margin: 0 auto 1rem; background: linear-gradient(135deg, #1BA5A8 0%, #158587 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-map-marker-alt" style="font-size: 2rem; color: white;"></i>
-            </div>
-            <h2 style="margin: 0 0 0.5rem 0; color: #333;">Hoş Geldiniz!</h2>
-            <p style="color: #6c757d; margin: 0;">Lütfen şu anki lokasyonunuzu seçin</p>
-        </div>
-        
-        <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Lokasyon *</label>
-            <select id="initial-location" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 0.5rem; font-size: 1rem; transition: border-color 0.3s;" required>
-                <option value="">Lokasyon Seçin</option>
-            </select>
-        </div>
-        
-        <button onclick="setInitialLocation()" style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #1BA5A8 0%, #158587 100%); color: white; border: none; border-radius: 0.5rem; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
-            <i class="fas fa-check"></i> Devam Et
-        </button>
-    </div>
-</div>
+<!-- Location setup modal is now handled by driver-dashboard.js with modern card UI -->
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/notification-permission.js') }}"></script>
 <script src="{{ url_for('static', filename='js/driver-dashboard.js') }}"></script>
 <script>
-    // Set driver data from session
+    // Set driver data from session (server-side render)
     document.body.dataset.hotelId = '{{ session.get("hotel_id", 1) }}';
     document.body.dataset.userId = '{{ session.get("user_id", 0) }}';
     document.body.dataset.buggyId = '{{ user.buggy.id if user.buggy else 0 }}';
     document.body.dataset.needsLocationSetup = '{{ "true" if session.get("needs_location_setup") else "false" }}';
+    document.body.dataset.notificationPermissionAsked = '{{ notification_permission_asked|tojson|safe }}';
+    document.body.dataset.notificationPermissionStatus = '{{ notification_permission_status|safe }}';
+    
+    // Check session validity via API call (not cached)
+    async function checkSession() {
+        try {
+            const response = await fetch('/api/driver/buggy-info', {
+                method: 'GET',
+                credentials: 'include',
+                cache: 'no-cache'
+            });
+            
+            if (response.status === 401 || response.status === 403) {
+                console.log('[DRIVER_DASHBOARD] Session invalid, redirecting to login');
+                window.location.href = '/auth/login';
+                return false;
+            }
+            
+            const data = await response.json();
+            if (!data.success) {
+                console.log('[DRIVER_DASHBOARD] Session check failed, redirecting to login');
+                window.location.href = '/auth/login';
+                return false;
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('[DRIVER_DASHBOARD] Session check error:', error);
+            window.location.href = '/auth/login';
+            return false;
+        }
+    }
+    
+    // Check session immediately on page load
+    checkSession();
 
     // Logout function
-    function logout() {
-        if ( confirm( 'Çıkış yapmak istediğinize emin misiniz?' ) ) {
-            localStorage.clear();
-            window.location.href = '/auth/login';
+    async function logout() {
+        // Create custom modal content with theme styling
+        const modalContent = `
+            <div style="text-align: center; padding: 1.5rem 0;">
+                <div style="
+                    width: 80px;
+                    height: 80px;
+                    margin: 0 auto 1.5rem;
+                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);
+                ">
+                    <i class="fas fa-sign-out-alt" style="font-size: 2.5rem; color: white;"></i>
+                </div>
+                
+                <h3 style="
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin-bottom: 1rem;
+                ">
+                    Çıkış Yap
+                </h3>
+                
+                <p style="
+                    font-size: 1rem;
+                    color: #64748b;
+                    line-height: 1.6;
+                    margin-bottom: 0;
+                ">
+                    Çıkış yapmak istediğinize emin misiniz?
+                </p>
+            </div>
+        `;
+        
+        try {
+            // Show confirmation modal
+            const confirmed = await BuggyModal.custom(modalContent, {
+                title: '',
+                confirmText: 'Evet, Çıkış Yap',
+                cancelText: 'İptal',
+                size: 'small'
+            });
+            
+            if (confirmed) {
+                try {
+                    // Disconnect WebSocket first to trigger cleanup
+                    if (DriverDashboard.socket && DriverDashboard.socket.connected) {
+                        console.log('Disconnecting WebSocket before logout...');
+                        DriverDashboard.socket.disconnect();
+                    }
+                    
+                    // Wait a moment for disconnect to process
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Call logout endpoint to properly close session
+                    const response = await fetch('/auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    // Clear local storage
+                    localStorage.clear();
+                    
+                    // Redirect to login
+                    window.location.href = '/auth/login';
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    // Still redirect even if logout fails
+                    localStorage.clear();
+                    window.location.href = '/auth/login';
+                }
+            }
+        } catch (error) {
+            console.error('Modal error:', error);
         }
     }
 
-    // Initial location setup
-    document.addEventListener('DOMContentLoaded', async function() {
-        const needsLocationSetup = document.body.dataset.needsLocationSetup === 'true';
-        
-        console.log('DOMContentLoaded - needsLocationSetup:', needsLocationSetup);
-        
-        if (needsLocationSetup) {
-            console.log('Loading locations...');
-            
-            // Show modal first
-            const modal = document.getElementById('locationSetupModal');
-            modal.style.display = 'flex';
-            
-            // Load locations
-            try {
-                const response = await fetch('/api/locations');
-                console.log('API Response status:', response.status);
-                
-                const responseData = await response.json();
-                console.log('API Response full:', responseData);
-                
-                // APIResponse.success wraps data in 'data' key
-                const data = responseData.data || responseData;
-                console.log('Unwrapped data:', data);
-                
-                // Check different possible data structures
-                let locations = [];
-                if (data.items) {
-                    locations = data.items;
-                } else if (data.locations) {
-                    locations = data.locations;
-                } else if (Array.isArray(data)) {
-                    locations = data;
-                }
-                
-                console.log('Parsed locations:', locations);
-                console.log('Locations count:', locations.length);
-                
-                if (locations.length > 0) {
-                    const select = document.getElementById('initial-location');
-                    console.log('Select element:', select);
-                    
-                    locations.forEach((location, index) => {
-                        console.log(`Adding location ${index}:`, location);
-                        const option = document.createElement('option');
-                        option.value = location.id;
-                        option.textContent = location.name;
-                        select.appendChild(option);
-                    });
-                    
-                    console.log('All locations added to select');
-                } else {
-                    console.warn('No locations found in response');
-                    alert('Sistemde lokasyon bulunamadı. Lütfen yöneticinizle iletişime geçin.');
-                }
-            } catch (error) {
-                console.error('Error loading locations:', error);
-                alert('Lokasyonlar yüklenirken hata oluştu: ' + error.message);
-            }
+    // Initialize notification permission handler
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize notification permission handler for driver
+        if (typeof notificationPermissionHandler !== 'undefined') {
+            const permissionAsked = JSON.parse(document.body.dataset.notificationPermissionAsked || 'false');
+            const permissionStatus = document.body.dataset.notificationPermissionStatus || '';
+            notificationPermissionHandler.init('driver', permissionAsked, permissionStatus);
         }
     });
 
-    async function setInitialLocation() {
-        const locationId = document.getElementById('initial-location').value;
-        
-        if (!locationId) {
-            alert('Lütfen lokasyon seçin!');
-            return;
-        }
-        
-        try {
-            const response = await fetch('/api/driver/set-initial-location', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ location_id: parseInt(locationId) })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                // Hide modal
-                document.getElementById('locationSetupModal').style.display = 'none';
-                
-                // Show success message
-                alert(data.message || 'Lokasyon başarıyla ayarlandı!');
-                
-                // Reload page to refresh dashboard
-                window.location.reload();
-            } else {
-                alert(data.error || 'Lokasyon ayarlanamadı!');
-            }
-        } catch (error) {
-            console.error('Error setting initial location:', error);
-            alert('Lokasyon ayarlanırken bir hata oluştu: ' + error.message);
-        }
-    }
+    // Location setup is now handled by DriverDashboard.showLocationSetupModal() in driver-dashboard.js
 </script>
 {% endblock %}

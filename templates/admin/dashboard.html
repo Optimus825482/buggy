@@ -23,135 +23,402 @@
 {% endblock %}
 
 {% block content %}
-<div class="container" style="padding: 2rem 0;">
-    <!-- Welcome Message (5 seconds) -->
-    <div class="welcome-message" id="welcomeMessage" style="
-        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-        color: white;
-        padding: 1.5rem;
-        border-radius: var(--radius-lg);
-        margin-bottom: 2rem;
-        text-align: center;
-        box-shadow: var(--shadow-lg);
-        animation: fadeIn 0.5s ease-in;
-    ">
-        <h2 style="margin: 0; font-size: 1.5rem;">
-            <i class="fas fa-hand-sparkles"></i>
-            Hoş geldiniz, {{ user.full_name or user.username }}
-        </h2>
-    </div>
-
-    <!-- Stats Cards -->
-    <div class="grid grid-4" style="margin-bottom: 2rem; gap: 1.5rem;">
-        <div class="stat-card">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
-                <i class="fas fa-golf-cart"></i>
-            </div>
-            <div class="stat-content">
-                <h5 class="stat-label">Aktif Buggy</h5>
-                <p class="stat-value" style="color: #10b981;">
-                    <span id="active-buggies">0</span>
-                </p>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="stat-content">
-                <h5 class="stat-label">Bekleyen Talepler</h5>
-                <p class="stat-value" style="color: #f59e0b;">
-                    <span id="pending-requests">0</span>
-                </p>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2); color: white;">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <div class="stat-content">
-                <h5 class="stat-label">Bugün Tamamlanan</h5>
-                <p class="stat-value" style="color: #06b6d4;">
-                    <span id="completed-today">0</span>
-                </p>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;">
-                <i class="fas fa-map-marker-alt"></i>
-            </div>
-            <div class="stat-content">
-                <h5 class="stat-label">Toplam Lokasyon</h5>
-                <p class="stat-value" style="color: #8b5cf6;">
-                    <span id="total-locations">0</span>
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="grid grid-2" style="gap: 1.5rem;">
+<div class="container" style="padding: 2rem 0; max-width: 1400px;">
+    <!-- Main Content - Lists (Moved to top) -->
+    <div class="grid grid-2" style="gap: 1.5rem; margin-bottom: 2rem;">
         <!-- Active Requests -->
-        <div class="card" style="border: 1px solid #e5e7eb; box-shadow: var(--shadow-md);">
-            <div class="card-header"
-                style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-bottom: 2px solid #e5e7eb;">
-                <h3 class="card-title" style="color: #1e293b; font-size: 1.125rem;">
-                    <i class="fas fa-list-alt" style="color: var(--primary-color);"></i> Aktif Talepler
+        <div class="card" style="
+            border: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            overflow: hidden;
+        ">
+            <div class="card-header" style="
+                background: linear-gradient(135deg, #1BA5A8 0%, #158B8E 100%);
+                border-bottom: none;
+                padding: 0.75rem 1.25rem;
+            ">
+                <h3 class="card-title" style="
+                    color: white;
+                    font-size: 1rem;
+                    font-weight: 700;
+                    margin: 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                ">
+                    <i class="fas fa-list-alt" style="font-size: 1rem;"></i>
+                    <span>Aktif Talepler</span>
                 </h3>
             </div>
-            <div class="card-body" style="padding: 0;">
-                <div id="active-requests-list" style="max-height: 400px; overflow-y: auto;">
-                    <p class="text-center text-muted" style="padding: 2rem;">Yükleniyor...</p>
+            <div class="card-body" style="padding: 0; background: white;">
+                <div id="active-requests-list" style="max-height: 450px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #1BA5A8 #f1f5f9;">
+                    <p class="text-center text-muted" style="padding: 3rem 2rem;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #1BA5A8; margin-bottom: 1rem; display: block;"></i>
+                        Yükleniyor...
+                    </p>
                 </div>
             </div>
         </div>
 
         <!-- Buggy Status -->
-        <div class="card" style="border: 1px solid #e5e7eb; box-shadow: var(--shadow-md);">
-            <div class="card-header"
-                style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-bottom: 2px solid #e5e7eb;">
-                <h3 class="card-title" style="color: #1e293b; font-size: 1.125rem;">
-                    <i class="fas fa-car-side" style="color: var(--primary-color);"></i> Buggy Durumu
+        <div class="card" style="
+            border: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            overflow: hidden;
+        ">
+            <div class="card-header" style="
+                background: linear-gradient(135deg, #F28C38 0%, #D97826 100%);
+                border-bottom: none;
+                padding: 0.75rem 1.25rem;
+            ">
+                <h3 class="card-title" style="
+                    color: white;
+                    font-size: 1rem;
+                    font-weight: 700;
+                    margin: 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                ">
+                    <i class="fas fa-car-side" style="font-size: 1rem;"></i>
+                    <span>Buggy Durumu</span>
                 </h3>
             </div>
-            <div class="card-body" style="padding: 0;">
-                <div id="buggy-status-list" style="max-height: 400px; overflow-y: auto;">
-                    <p class="text-center text-muted" style="padding: 2rem;">Yükleniyor...</p>
+            <div class="card-body" style="padding: 0; background: white;">
+                <div id="buggy-status-list" style="max-height: 450px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #F28C38 #f1f5f9;">
+                    <p class="text-center text-muted" style="padding: 3rem 2rem;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #F28C38; margin-bottom: 1rem; display: block;"></i>
+                        Yükleniyor...
+                    </p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards (Moved to bottom) -->
+    <div class="grid grid-4" style="gap: 1.25rem;">
+        <div class="stat-card" style="
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        ">
+            <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), transparent); border-radius: 50%;"></div>
+            <div class="stat-icon" style="
+                width: 56px;
+                height: 56px;
+                background: linear-gradient(135deg, #10b981, #059669);
+                color: white;
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+                box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+                position: relative;
+                z-index: 1;
+            ">
+                <i class="fas fa-truck-pickup"></i>
+            </div>
+            <div class="stat-content" style="position: relative; z-index: 1;">
+                <h5 class="stat-label" style="font-size: 0.875rem; color: #6B7280; margin: 0 0 0.5rem 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Aktif Buggy</h5>
+                <p class="stat-value" style="color: #10b981; font-size: 2.25rem; font-weight: 800; margin: 0; line-height: 1;">
+                    <span id="active-buggies">0</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="stat-card" style="
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        ">
+            <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), transparent); border-radius: 50%;"></div>
+            <div class="stat-icon" style="
+                width: 56px;
+                height: 56px;
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+                color: white;
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+                box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+                position: relative;
+                z-index: 1;
+            ">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content" style="position: relative; z-index: 1;">
+                <h5 class="stat-label" style="font-size: 0.875rem; color: #6B7280; margin: 0 0 0.5rem 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Bekleyen Talepler</h5>
+                <p class="stat-value" style="color: #f59e0b; font-size: 2.25rem; font-weight: 800; margin: 0; line-height: 1;">
+                    <span id="pending-requests">0</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="stat-card" style="
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        ">
+            <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), transparent); border-radius: 50%;"></div>
+            <div class="stat-icon" style="
+                width: 56px;
+                height: 56px;
+                background: linear-gradient(135deg, #06b6d4, #0891b2);
+                color: white;
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+                box-shadow: 0 8px 20px rgba(6, 182, 212, 0.3);
+                position: relative;
+                z-index: 1;
+            ">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content" style="position: relative; z-index: 1;">
+                <h5 class="stat-label" style="font-size: 0.875rem; color: #6B7280; margin: 0 0 0.5rem 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Bugün Tamamlanan</h5>
+                <p class="stat-value" style="color: #06b6d4; font-size: 2.25rem; font-weight: 800; margin: 0; line-height: 1;">
+                    <span id="completed-today">0</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="stat-card" style="
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        ">
+            <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), transparent); border-radius: 50%;"></div>
+            <div class="stat-icon" style="
+                width: 56px;
+                height: 56px;
+                background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+                color: white;
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+                box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+                position: relative;
+                z-index: 1;
+            ">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <div class="stat-content" style="position: relative; z-index: 1;">
+                <h5 class="stat-label" style="font-size: 0.875rem; color: #6B7280; margin: 0 0 0.5rem 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Toplam Lokasyon</h5>
+                <p class="stat-value" style="color: #8b5cf6; font-size: 2.25rem; font-weight: 800; margin: 0; line-height: 1;">
+                    <span id="total-locations">0</span>
+                </p>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/notification-permission.css') }}">
+{% endblock %}
+
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/notification-permission.js') }}"></script>
 <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 <script>
+    // Initialize notification permission handler for admin
+    document.addEventListener('DOMContentLoaded', function() {
+        notificationPermissionHandler.init(
+            'admin',
+            {{ notification_permission_asked|tojson }},
+            '{{ notification_permission_status }}'
+        );
+    });
+
     // Set hotel ID from session data
     document.body.dataset.hotelId = '{{ session.get("hotel_id", 1) }}';
 
-    // Hide welcome message after 5 seconds
-    setTimeout( () => {
-        const welcomeMsg = document.getElementById( 'welcomeMessage' );
-        if ( welcomeMsg ) {
-            welcomeMsg.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
-            welcomeMsg.style.opacity = '0';
-            welcomeMsg.style.transform = 'translateY(-20px)';
-            setTimeout( () => {
-                welcomeMsg.style.display = 'none';
-            }, 500 );
-        }
-    }, 5000 );
-
     // Logout function
-    function logout() {
-        if ( confirm( 'Çıkış yapmak istediğinize emin misiniz?' ) ) {
-            localStorage.clear();
-            window.location.href = '/auth/login';
+    async function logout() {
+        // Create custom modal content with theme styling
+        const modalContent = `
+            <div style="text-align: center; padding: 1.5rem 0;">
+                <div style="
+                    width: 80px;
+                    height: 80px;
+                    margin: 0 auto 1.5rem;
+                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);
+                ">
+                    <i class="fas fa-sign-out-alt" style="font-size: 2.5rem; color: white;"></i>
+                </div>
+                
+                <h3 style="
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin-bottom: 1rem;
+                ">
+                    Çıkış Yap
+                </h3>
+                
+                <p style="
+                    font-size: 1rem;
+                    color: #64748b;
+                    line-height: 1.6;
+                    margin-bottom: 0;
+                ">
+                    Çıkış yapmak istediğinize emin misiniz?
+                </p>
+            </div>
+        `;
+        
+        try {
+            // Show confirmation modal
+            const confirmed = await BuggyModal.custom(modalContent, {
+                title: '',
+                confirmText: 'Evet, Çıkış Yap',
+                cancelText: 'İptal',
+                size: 'small'
+            });
+            
+            if (confirmed) {
+                localStorage.clear();
+                window.location.href = '/auth/login';
+            }
+        } catch (error) {
+            console.error('Modal error:', error);
         }
     }
 </script>
+
+<style>
+    /* Custom scrollbar for lists */
+    #active-requests-list::-webkit-scrollbar,
+    #buggy-status-list::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    #active-requests-list::-webkit-scrollbar-track,
+    #buggy-status-list::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 10px;
+    }
+
+    #active-requests-list::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #1BA5A8, #158B8E);
+        border-radius: 10px;
+    }
+
+    #buggy-status-list::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #F28C38, #D97826);
+        border-radius: 10px;
+    }
+
+    #active-requests-list::-webkit-scrollbar-thumb:hover,
+    #buggy-status-list::-webkit-scrollbar-thumb:hover {
+        opacity: 0.8;
+    }
+
+    /* Buggy icon - remove any background circle */
+    .buggy-icon,
+    #buggy-status-list .buggy-icon {
+        background: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        width: auto !important;
+        height: auto !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: inline-block !important;
+        box-shadow: none !important;
+        line-height: 1 !important;
+        vertical-align: middle !important;
+    }
+
+    /* Buggy table styles */
+    #buggy-status-list table {
+        font-size: 0.9rem;
+    }
+
+    #buggy-status-list tr:last-child {
+        border-bottom: none !important;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1024px) {
+        .grid-4 {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+        
+        #buggy-status-list table {
+            font-size: 0.85rem;
+        }
+        
+        #buggy-status-list td {
+            padding: 0.6rem 0.75rem !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .grid-2 {
+            grid-template-columns: 1fr !important;
+        }
+        .grid-4 {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+        
+        /* Stack table cells on mobile */
+        #buggy-status-list table {
+            font-size: 0.8rem;
+        }
+        
+        #buggy-status-list td:nth-child(3),
+        #buggy-status-list td:nth-child(4) {
+            display: none;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .grid-4 {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
 {% endblock %}

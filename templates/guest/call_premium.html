@@ -3,101 +3,634 @@
 {% block title %}Buggy Çağır{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/guest-premium.css') }}">
 <style>
+/* ==================== PREMIUM GUEST CALL PAGE ==================== */
+/* Optimized and Enhanced Version - Powered by Erkan ERDEM */
+
+:root {
+    --primary-gradient: linear-gradient(135deg, #1BA5A8 0%, #5BC0C3 100%);
+    --accent-gradient: linear-gradient(135deg, #F28C38 0%, #F5A864 100%);
+    --success-color: #10b981;
+    --error-color: #ef4444;
+    --warning-color: #f59e0b;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.12);
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==================== BASE LAYOUT ==================== */
 body {
-  background: linear-gradient(180deg, #F9FAFB 0%, #FFFFFF 100%);
+  background: linear-gradient(180deg, #5BC0C3 0%, #4AAFB2 100%);
+  min-height: 100vh;
 }
 
-.header {
-  display: none; /* Hide header for cleaner guest experience */
-}
-
+.header,
 .footer {
-  display: none; /* Hide footer */
+    display: none;
+}
+
+/* ==================== CONTAINER ==================== */
+.guest-call-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: clamp(16px, 4vw, 24px);
+    max-width: 540px;
+    margin: 0 auto;
+}
+
+/* ==================== LOGO SECTION ==================== */
+.logo-section {
+    text-align: center;
+    margin-bottom: 32px;
+    margin-top: 40px;
+    animation: fadeInDown 0.6s ease-out;
+}
+
+.logo-wrapper {
+ 
+    margin: 0 auto 20px;
+    background: #FFFFFF;
+    border-radius: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    animation: float 3s ease-in-out infinite;
+    position: relative;
+}
+
+.logo-wrapper::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    background: linear-gradient(135deg, rgba(27, 165, 168, 0.1), rgba(91, 192, 195, 0.1));
+    border-radius: 36px;
+    z-index: -1;
+    animation: pulse-ring 2s ease-in-out infinite;
+}
+
+.logo-wrapper img {
+    width: 60%;
+    height: auto;
+}
+
+.page-title {
+    font-size: clamp(24px, 6vw, 32px);
+    font-weight: 800;
+    color: #FFFFFF;
+    margin-bottom: 8px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.page-subtitle {
+    font-size: clamp(14px, 3.5vw, 16px);
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+/* ==================== CARDS ==================== */
+.qr-card,
+.call-form-card {
+    background: #FFFFFF;
+    border-radius: 20px;
+    padding: clamp(24px, 6vw, 40px) clamp(20px, 5vw, 32px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border: none;
+    margin-bottom: 20px;
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+    transition: all 0.3s var(--transition-smooth);
+}
+
+.call-form-card {
+    display: none;
+}
+
+/* ==================== QR SCANNER ICON ==================== */
+.qr-icon-wrapper {
+    width: clamp(80px, 20vw, 96px);
+    height: clamp(80px, 20vw, 96px);
+    margin: 0 auto 24px;
+    background: #F9FAFB;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #E5E7EB;
+    animation: scanner-pulse 2.5s ease-in-out infinite;
+}
+
+.qr-icon-wrapper i {
+    font-size: clamp(36px, 10vw, 48px);
+    background: linear-gradient(135deg, #1BA5A8, #F28C38);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.qr-card h2 {
+    font-size: clamp(18px, 4.5vw, 22px);
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.qr-card p {
+    font-size: clamp(13px, 3.2vw, 15px);
+    color: #6B7280;
+    line-height: 1.6;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+/* ==================== BUTTONS ==================== */
+.btn-primary-modern {
+    width: 100%;
+    min-height: 56px;
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-size: clamp(15px, 4vw, 17px);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(27, 165, 168, 0.2);
+    transition: all 0.3s var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+    padding: 16px 24px;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.btn-primary-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(27, 165, 168, 0.25);
+}
+
+.btn-primary-modern:active {
+    transform: translateY(-1px);
+}
+
+.btn-primary-modern:focus-visible {
+    outline: 3px solid rgba(27, 165, 168, 0.5);
+    outline-offset: 3px;
+}
+
+.btn-primary-modern::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn-primary-modern:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* ==================== INPUT SECTION ==================== */
+.input-section {
+    margin-bottom: 24px;
+}
+
+.input-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.input-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #F9FAFB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1BA5A8;
+    font-size: 20px;
+    border: 1px solid #E5E7EB;
+    flex-shrink: 0;
+}
+
+.input-label {
+    font-size: clamp(14px, 3.5vw, 15px);
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+.modern-input {
+    width: 100%;
+    min-height: 52px;
+    border: 2px solid #E5E7EB;
+    border-radius: 14px;
+    font-size: 16px;
+    padding: 14px 16px;
+    transition: all 0.3s ease;
+    background: #F9FAFB;
+}
+
+.modern-input:focus {
+    border-color: #1BA5A8;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(27, 165, 168, 0.1);
+    outline: none;
+}
+
+.modern-input::placeholder {
+    color: #9CA3AF;
+}
+
+/* ==================== LOCATION DISPLAY ==================== */
+.location-display {
+    text-align: center;
+    padding: 16px;
+    background: #F9FAFB;
+    border-radius: 12px;
+    margin-top: 16px;
+    border: 1px solid #E5E7EB;
+}
+
+.location-display-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #1BA5A8;
+    font-weight: 600;
+    font-size: clamp(13px, 3.5vw, 15px);
+}
+
+/* ==================== FOOTER SECTION ==================== */
+.footer-section {
+    text-align: center;
+    padding: 24px 0;
+    animation: fadeIn 0.6s ease-out 0.4s both;
+}
+
+.hotel-name {
+    font-size: clamp(16px, 4vw, 18px);
+    font-weight: 700;
+    color: #2C3E50;
+    margin-bottom: 16px;
+}
+
+.powered-by {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 8px;
+}
+
+.brand-name {
+    font-size: clamp(14px, 3.5vw, 15px);
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+/* ==================== MODAL STYLES ==================== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+    padding: 20px;
+}
+
+.modal-content-modern {
+    background: white;
+    border-radius: var(--radius-lg);
+    max-width: 500px;
+    width: 100%;
+    padding: 0;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    overflow: hidden;
+}
+
+.modal-header-modern {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title-modern {
+    font-size: clamp(16px, 4vw, 20px);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.modal-close-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.modal-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.modal-close-btn:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+.modal-body-modern {
+    padding: 24px;
+}
+
+/* ==================== QR READER ==================== */
+#qr-reader {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 3px solid #1BA5A8;
+}
+
+.qr-reader-hint {
+    text-align: center;
+    margin-top: 16px;
+    color: #6B7280;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+}
+
+@keyframes pulse-ring {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0;
+    }
+}
+
+@keyframes scanner-pulse {
+    0%, 100% {
+        border-color: #E5E7EB;
+        transform: scale(1);
+    }
+    50% {
+        border-color: #1BA5A8;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ==================== ACCESSIBILITY ==================== */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* ==================== PERFORMANCE OPTIMIZATIONS ==================== */
+.logo-wrapper,
+.qr-icon-wrapper,
+.btn-primary-modern {
+    will-change: transform;
+}
+
+/* ==================== REDUCED MOTION ==================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 768px) {
+    .guest-call-container {
+        padding: 16px;
+    }
+
+    .qr-card,
+    .call-form-card {
+        padding: 20px 16px;
+    }
+}
+
+/* ==================== DARK MODE SUPPORT ==================== */
+/* Dark mode disabled to match status page */
+
+/* ==================== PRINT STYLES ==================== */
+@media print {
+    .guest-call-container {
+        display: none;
+    }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="guest-container">
-    <!-- Hero Section -->
-    <div class="guest-hero">
-        <div class="guest-logo">
-            <img src="{{ url_for('static', filename='icons/Icon-192.png') }}" alt="Buggy Call">
+<div class="guest-call-container" data-location-id="{% if location_id %}{{ location_id }}{% endif %}">
+    <!-- Logo & Title Section -->
+    <div class="logo-section">
+        <div class="logo-wrapper" role="img" aria-label="Buggy Call Logo">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Buggy Call Logo">
         </div>
-        <h1 class="guest-title">Buggy Call</h1>
-        <p class="guest-subtitle">Your Ride, On Demand</p>
-    </div>
-
-    <!-- QR Scanner Card (hidden if location already provided) -->
-    <div class="qr-scanner-card" id="qr-scanner-card">
-        <div class="qr-scanner-icon">
-            <i class="fas fa-qrcode"></i>
-        </div>
-        <h2 class="qr-scanner-title">QR Kod Okutun</h2>
-        <p class="qr-scanner-description">
-            Bulunduğunuz lokasyondaki QR kodu okutarak kolayca buggy çağırabilirsiniz
-        </p>
-        <button class="btn-scan-qr ripple-effect" onclick="startQRScanner()">
-            <i class="fas fa-camera"></i>
-            QR Kod Okut
-        </button>
-    </div>
-
-    <!-- Room Number Input (Optional) -->
-    <div class="glass-card" id="room-number-card" style="padding: 24px; margin-top: 24px; display: none;">
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-            <div class="icon-primary">
-                <i class="fas fa-door-open"></i>
+        <!-- Location Info -->
+            <div class="location-display" id="location-display">
+                <div class="location-display-content">
+                    <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+                    <span id="location-name-display">Lokasyon yükleniyor...</span>
+                </div>
             </div>
-            <h3 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0;">
-                Oda Numaranız (Opsiyonel)
-            </h3>
-        </div>
-        <div class="form-group" style="margin-bottom: 16px;">
-            <input type="text"
-                   class="form-control"
-                   id="room-number"
-                   placeholder="Örn: A-101"
-                   maxlength="20">
-        </div>
-        <button class="btn-primary" onclick="submitRequest()" style="width: 100%;">
-            <i class="fas fa-paper-plane"></i>
-            Buggy Çağır
-        </button>
     </div>
 
-    <!-- Hotel Name & Powered By -->
-    <div style="text-align: center; margin-top: 40px; padding-bottom: 32px;">
-        <p id="hotel-name" style="font-size: 18px; font-weight: 600; color: #2C3E50; margin-bottom: 16px;">
-            <!-- Hotel name will be loaded here -->
-        </p>
-        <p style="font-size: 12px; color: #9CA3AF; margin-bottom: 8px;">
-            Powered by
-        </p>
-        <p style="font-size: 14px; font-weight: 700;">
-            <span style="background: linear-gradient(135deg, #1BA5A8, #F28C38); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
-                Erkan ERDEM
-            </span>
-        </p>
+    <!-- Main Content -->
+    <div class="content-section">
+        <!-- QR Scanner Card -->
+        <div class="qr-card" id="qr-scanner-card" {% if location_id %}style="display: none;"{% endif %}>
+            <div class="qr-icon-wrapper" role="img" aria-label="QR Kod İkonu">
+                <i class="fas fa-qrcode" aria-hidden="true"></i>
+            </div>
+            <h2>QR Kod Okutun</h2>
+            <p>Bulunduğunuz lokasyondaki QR kodu okutarak kolayca buggy çağırabilirsiniz</p>
+            <button
+                class="btn-primary-modern"
+                onclick="GuestCall.startQRScanner()"
+                aria-label="QR kod okuyucuyu başlat"
+                type="button">
+                <i class="fas fa-camera" aria-hidden="true"></i>
+                <span>QR Kod Okut</span>
+            </button>
+        </div>
+
+        <!-- Call Form Card (shown after QR scan) -->
+        <div class="call-form-card" id="call-form-card" role="region" aria-label="Buggy çağırma formu" {% if location_id %}style="display: block; opacity: 1; transform: translateY(0);"{% endif %}>
+            <!-- Call Button -->
+            <button
+                class="btn-primary-modern"
+                onclick="GuestCall.showConfirmationModal()"
+                aria-label="Buggy çağır"
+                style="margin-bottom: 24px;"
+                type="button">
+                <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                <span>Buggy Çağır</span>
+            </button>
+
+            <!-- Room Number Input -->
+            <div class="input-section">
+                <div class="input-header">
+                    <div class="input-icon" role="img" aria-label="Oda ikonu">
+                        <i class="fas fa-door-open" aria-hidden="true"></i>
+                    </div>
+                    <h3 class="input-label">Oda Numaranız (Opsiyonel)</h3>
+                </div>
+                <label for="room-number" class="sr-only">Oda numaranız (opsiyonel)</label>
+                <input
+                    type="text"
+                    class="modern-input"
+                    id="room-number"
+                    placeholder="Örn: A-101"
+                    maxlength="20"
+                    aria-label="Oda numaranız"
+                    aria-describedby="room-number-help"
+                    autocomplete="off">
+                <span id="room-number-help" class="sr-only">Oda numaranızı girin (opsiyonel)</span>
+            </div>
+
+            
+        </div>
     </div>
+
+    <!-- Footer Section -->
+    <footer class="footer-section">
+        <p class="hotel-name" id="hotel-name">Buggy Call System</p>
+        <p class="powered-by">Powered by</p>
+        <p class="brand-name">Erkan ERDEM</p>
+    </footer>
 </div>
 
 <!-- QR Scanner Modal -->
-<div id="qr-scanner-modal" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 500px;">
-        <div class="modal-header">
-            <h3 class="modal-title">
-                <i class="fas fa-qrcode"></i> QR Kod Okut
+<div id="qr-scanner-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+    <div class="modal-content-modern">
+        <div class="modal-header-modern">
+            <h3 class="modal-title-modern" id="qr-modal-title">
+                <i class="fas fa-qrcode" aria-hidden="true"></i>
+                <span>QR Kod Okut</span>
             </h3>
-            <button class="modal-close" onclick="closeQRScanner()">
-                <i class="fas fa-times"></i>
+            <button
+                class="modal-close-btn"
+                onclick="GuestCall.closeQRScanner()"
+                aria-label="Modalı kapat"
+                type="button">
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         </div>
-        <div class="modal-body">
-            <div id="qr-reader" style="width: 100%; border-radius: 12px; overflow: hidden;"></div>
-            <p style="text-align: center; margin-top: 16px; color: #6B7280; font-size: 14px;">
-                QR kodu kameranıza gösterin
+        <div class="modal-body-modern">
+            <div id="qr-reader" role="region" aria-label="QR kod okuyucu"></div>
+            <p class="qr-reader-hint" role="status" aria-live="polite">
+                <i class="fas fa-info-circle" aria-hidden="true"></i>
+                <span>QR kodu kameranıza gösterin</span>
             </p>
         </div>
     </div>
@@ -106,218 +639,784 @@ body {
 
 {% block extra_js %}
 <!-- HTML5 QR Code Scanner -->
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
+        crossorigin="anonymous"></script>
 
 <script>
-let html5QrCode;
-let selectedLocationId = null;
+/**
+ * Guest Call Premium - Enhanced JavaScript Module
+ * Optimized for performance, accessibility, and maintainability
+ * @author Erkan ERDEM
+ * @version 2.0.0
+ */
 
-// Check if location is already provided via URL
-document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const locationId = urlParams.get('location');
-    
-    if (locationId) {
-        // Location already provided, hide QR scanner and show room number input
-        selectedLocationId = parseInt(locationId);
-        hideQRScanner();
-        showRoomNumberInput();
-        loadLocationInfo(locationId);
-    } else {
-        // No location, load hotel name
-        loadHotelName();
-    }
-});
+const GuestCall = (() => {
+    'use strict';
 
-function hideQRScanner() {
-    const qrCard = document.getElementById('qr-scanner-card');
-    if (qrCard) {
-        qrCard.style.display = 'none';
-    }
-}
+    // ==================== CONSTANTS ====================
+    const ENDPOINTS = {
+        LOCATIONS: '/api/locations',
+        LOCATION_DETAIL: '/api/locations/{id}',
+        REQUESTS: '/api/requests'
+    };
 
-function showRoomNumberInput() {
-    const card = document.getElementById('room-number-card');
-    if (card) {
-        card.style.display = 'block';
-    }
-}
+    const SELECTORS = {
+        QR_SCANNER_CARD: 'qr-scanner-card',
+        CALL_FORM_CARD: 'call-form-card',
+        ROOM_NUMBER: 'room-number',
+        LOCATION_DISPLAY: 'location-name-display',
+        HOTEL_NAME: 'hotel-name',
+        QR_SCANNER_MODAL: 'qr-scanner-modal',
+        QR_READER: 'qr-reader'
+    };
 
-function loadLocationInfo(locationId) {
-    fetch(`/api/locations/${locationId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.location) {
-                // Show location name in subtitle
-                const subtitle = document.querySelector('.guest-subtitle');
-                if (subtitle) {
-                    subtitle.textContent = `Lokasyon: ${data.location.name}`;
+    const ANIMATION_DURATION = 400;
+    const REDIRECT_DELAY = 3000;
+
+    // ==================== STATE ====================
+    let state = {
+        html5QrCode: null,
+        selectedLocationId: null,
+        selectedLocationName: null,
+        isProcessing: false
+    };
+
+    // ==================== UTILITY FUNCTIONS ====================
+    const $ = (id) => document.getElementById(id);
+    const $$ = (selector) => document.querySelectorAll(selector);
+
+    const getCsrfToken = () => {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    };
+
+    const showElement = (element, display = 'block') => {
+        if (element) element.style.display = display;
+    };
+
+    const hideElement = (element) => {
+        if (element) element.style.display = 'none';
+    };
+
+    const fetchJSON = async (url, options = {}) => {
+        try {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                    ...options.headers
                 }
-            }
-        })
-        .catch(error => console.error('Error loading location:', error));
-}
+            });
 
-function loadHotelName() {
-    // Load hotel name from API
-    fetch('/api/locations')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.data && data.data.items && data.data.items.length > 0) {
-                // Get hotel name from first location (all locations have same hotel_id)
-                const hotelNameEl = document.getElementById('hotel-name');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Fetch error:', error);
+            throw error;
+        }
+    };
+
+    // ==================== INITIALIZATION ====================
+    const initializePage = () => {
+        // Flask template'den gelen location_id'yi öncelikli kullan
+        const container = document.querySelector('.guest-call-container');
+        const templateLocationId = container ? container.dataset.locationId : null;
+        
+        // Eğer template'den gelmemişse URL'den oku
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlLocationId = urlParams.get('location');
+        
+        // Template veya URL'den location ID al
+        const locationId = templateLocationId || urlLocationId;
+
+        console.log('🔍 DEBUG - initializePage:', {
+            templateLocationId,
+            urlLocationId,
+            finalLocationId: locationId,
+            willShowForm: !!locationId
+        });
+
+        if (locationId) {
+            console.log('✅ Location ID bulundu, form gösteriliyor:', locationId);
+            state.selectedLocationId = parseInt(locationId, 10);
+            transitionToCallForm();
+            loadLocationInfo(locationId);
+        } else {
+            console.log('❌ Location ID bulunamadı, QR scanner gösteriliyor');
+            loadHotelName();
+        }
+    };
+
+    // ==================== UI TRANSITIONS ====================
+    const transitionToCallForm = () => {
+        const qrCard = $(SELECTORS.QR_SCANNER_CARD);
+        const callCard = $(SELECTORS.CALL_FORM_CARD);
+
+        if (!qrCard || !callCard) return;
+
+        qrCard.style.transition = `all ${ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+        qrCard.style.opacity = '0';
+        qrCard.style.transform = 'translateY(-30px)';
+
+        setTimeout(() => {
+            hideElement(qrCard);
+            showElement(callCard);
+
+            requestAnimationFrame(() => {
+                callCard.style.opacity = '1';
+                callCard.style.transform = 'translateY(0)';
+            });
+        }, ANIMATION_DURATION);
+    };
+
+    // ==================== DATA LOADING ====================
+    const loadLocationInfo = async (locationId) => {
+        const displayEl = $(SELECTORS.LOCATION_DISPLAY);
+        if (!displayEl) return;
+
+        updateLocationDisplay('<i class="fas fa-spinner fa-spin"></i> Lokasyon yükleniyor...', '#6B7280');
+
+        try {
+            // Ensure locationId is integer
+            const numericLocationId = parseInt(locationId, 10);
+            const url = ENDPOINTS.LOCATION_DETAIL.replace('{id}', numericLocationId);
+            
+            console.log('🔍 DEBUG - loadLocationInfo:', {
+                originalLocationId: locationId,
+                numericLocationId,
+                url
+            });
+            
+            const data = await fetchJSON(url);
+            
+            console.log('📡 DEBUG - API Response:', data);
+
+            // API response format: {success: true, data: {location: {...}}}
+            const location = data.data?.location || data.location;
+
+            if (data.success && location) {
+                state.selectedLocationName = location.name;
+                updateLocationDisplay(`<strong>${location.name}</strong>`, '#1BA5A8');
+           
+            } else {
+                console.error('❌ Location not found in response:', data);
+                updateLocationDisplay('<i class="fas fa-exclamation-circle"></i> Lokasyon bulunamadı', '#E74C3C');
+            }
+        } catch (error) {
+            console.error('❌ Error loading location:', error);
+            updateLocationDisplay('<i class="fas fa-exclamation-circle"></i> Yükleme hatası', '#E74C3C');
+        }
+    };
+
+    const loadHotelName = async () => {
+        try {
+            const data = await fetchJSON(ENDPOINTS.LOCATIONS);
+
+            if (data.success && data.data?.items?.length > 0) {
+                const hotelNameEl = $(SELECTORS.HOTEL_NAME);
                 if (hotelNameEl) {
                     hotelNameEl.textContent = 'Buggy Call System';
                 }
             }
-        })
-        .catch(error => console.error('Error loading hotel:', error));
-}
+        } catch (error) {
+            console.error('Error loading hotel:', error);
+        }
+    };
 
-function startQRScanner() {
-    const modal = document.getElementById('qr-scanner-modal');
-    modal.style.display = 'flex';
+    // ==================== UI UPDATES ====================
+    const updateLocationDisplay = (content, color) => {
+        const display = $(SELECTORS.LOCATION_DISPLAY);
+        if (display) {
+            display.innerHTML = content;
+            display.style.color = color;
+        }
+    };
 
-    html5QrCode = new Html5Qrcode("qr-reader");
+   
+    // ==================== QR SCANNER ====================
+    const startQRScanner = async () => {
+        const modal = $(SELECTORS.QR_SCANNER_MODAL);
+        if (!modal) return;
 
-    html5QrCode.start(
-        { facingMode: "environment" },
-        {
-            fps: 10,
-            qrbox: { width: 250, height: 250 }
-        },
-        onScanSuccess,
-        onScanError
-    ).catch(err => {
-        console.error('Error starting QR scanner:', err);
-        Utils.showToast('Kamera erişimi reddedildi', 'error');
-        closeQRScanner();
-    });
-}
+        showElement(modal, 'flex');
 
-function onScanSuccess(decodedText, decodedResult) {
-    console.log(`QR Code detected: ${decodedText}`);
+        try {
+            state.html5QrCode = new Html5Qrcode(SELECTORS.QR_READER);
 
-    // Stop scanner
-    html5QrCode.stop().then(() => {
-        closeQRScanner();
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
 
-        // Process QR code data (supports both URL and LOC formats)
-        processQRCode(decodedText);
-    });
-}
+            await state.html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess,
+                onScanError
+            );
+        } catch (err) {
+            console.error('QR Scanner error:', err);
+            showToast('Kamera erişimi reddedildi. Lütfen tarayıcı ayarlarından kamera iznini kontrol edin.', 'error');
+            closeQRScanner();
+        }
+    };
 
-function onScanError(errorMessage) {
-    // Handle scan error silently
-}
+    const onScanSuccess = (decodedText) => {
+        console.log('QR Code scanned:', decodedText);
 
-function closeQRScanner() {
-    if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-            html5QrCode.clear();
-        }).catch(err => {
-            console.error('Error stopping scanner:', err);
-        });
-    }
+        if (state.html5QrCode) {
+            state.html5QrCode.stop()
+                .then(() => {
+                    closeQRScanner();
+                    processQRCode(decodedText);
+                })
+                .catch(err => {
+                    console.error('Error stopping scanner:', err);
+                    closeQRScanner();
+                    processQRCode(decodedText);
+                });
+        }
+    };
 
-    const modal = document.getElementById('qr-scanner-modal');
-    modal.style.display = 'none';
-}
+    const onScanError = (errorMessage) => {
+        // Silently handle scan errors (normal during scanning)
+    };
 
-function processQRCode(qrData) {
-    // Check if QR code contains a URL format
-    if (qrData.startsWith('http://') || qrData.startsWith('https://')) {
-        // URL format - redirect directly (will reload page with location parameter)
-        console.log('URL format detected, redirecting to:', qrData);
-        window.location.href = qrData;
-        return;
-    }
-    
-    // Check if QR code is in legacy LOC format
-    if (qrData.startsWith('LOC')) {
-        // Legacy LOC format - find location by QR code data
-        console.log('Legacy LOC format detected:', qrData);
-        Utils.showLoading('Lokasyon doğrulanıyor...');
+    const closeQRScanner = () => {
+        const modal = $(SELECTORS.QR_SCANNER_MODAL);
 
-        fetch(`/api/locations`)
-            .then(response => response.json())
-            .then(data => {
-                Utils.hideLoading();
+        if (state.html5QrCode) {
+            state.html5QrCode.stop()
+                .then(() => state.html5QrCode.clear())
+                .catch(err => console.error('Error clearing scanner:', err))
+                .finally(() => {
+                    state.html5QrCode = null;
+                });
+        }
 
-                if (data.success) {
-                    const location = data.locations.find(loc => loc.qr_code_data === qrData);
+        if (modal) {
+            modal.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => {
+                hideElement(modal);
+                modal.style.animation = '';
+            }, 300);
+        }
+    };
+
+    const processQRCode = async (qrData) => {
+        // URL format - redirect directly
+        if (qrData.startsWith('http://') || qrData.startsWith('https://')) {
+            console.log('URL format detected, redirecting...');
+            showLoadingOverlay('Yönlendiriliyor...');
+            window.location.href = qrData;
+            return;
+        }
+
+        // Legacy LOC format
+        if (qrData.startsWith('LOC')) {
+            console.log('Legacy LOC format detected');
+            showLoadingOverlay('Lokasyon doğrulanıyor...');
+
+            try {
+                const data = await fetchJSON(ENDPOINTS.LOCATIONS);
+                hideLoadingOverlay();
+
+                if (data.success && data.data?.items) {
+                    const location = data.data.items.find(loc => loc.qr_code_data === qrData);
 
                     if (location) {
-                        // Set location and show room number input
-                        selectedLocationId = location.id;
-                        Utils.showToast(`Lokasyon: ${location.name}`, 'success');
-                        showRoomNumberInput();
+                        state.selectedLocationId = location.id;
+                        state.selectedLocationName = location.name;
+                        transitionToCallForm();
+                        loadLocationInfo(location.id);
+                        showToast(`Lokasyon seçildi: ${location.name}`, 'success');
                     } else {
-                        Utils.showToast('Lokasyon bulunamadı', 'error');
+                        showToast('Lokasyon bulunamadı', 'error');
                     }
                 } else {
-                    Utils.showToast('Lokasyon yüklenemedi', 'error');
+                    showToast('Lokasyon yüklenemedi', 'error');
                 }
-            })
-            .catch(error => {
-                Utils.hideLoading();
-                Utils.showToast('Bir hata oluştu', 'error');
-                console.error('Error:', error);
-            });
-    } else {
+            } catch (error) {
+                hideLoadingOverlay();
+                console.error('Error loading locations:', error);
+                showToast('Bir hata oluştu', 'error');
+            }
+            return;
+        }
+
         // Invalid format
         console.error('Invalid QR code format:', qrData);
-        Utils.showToast('Geçersiz QR kod formatı', 'error');
-    }
-}
+        showToast('Geçersiz QR kod formatı', 'error');
+    };
 
-function submitRequest() {
-    if (!selectedLocationId) {
-        Utils.showToast('Lütfen önce QR kod okutun', 'error');
-        return;
-    }
-
-    const roomNumber = document.getElementById('room-number').value;
-
-    Utils.showLoading('Buggy çağrılıyor...');
-
-    fetch('/api/requests', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            location_id: selectedLocationId,
-            room_number: roomNumber || null
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        Utils.hideLoading();
-
-        if (data.success) {
-            // Redirect to status page
-            window.location.href = `/guest/status/${data.request.id}`;
-        } else {
-            Utils.showToast(data.error || 'Talep oluşturulamadı', 'error');
+    // ==================== REQUEST SUBMISSION ====================
+    const showConfirmationModal = () => {
+        if (!state.selectedLocationId) {
+            showToast('Lütfen önce QR kod okutun', 'error');
+            return;
         }
-    })
-    .catch(error => {
-        Utils.hideLoading();
-        Utils.showToast('Bir hata oluştu', 'error');
-        console.error('Error:', error);
-    });
-}
 
-// Smooth scroll animations
-document.querySelectorAll('.glass-card').forEach(card => {
-    card.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-4px)';
-    });
+        if (state.isProcessing) return;
 
-    card.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0)';
-    });
-});
+        const roomNumber = $(SELECTORS.ROOM_NUMBER)?.value || '';
+        const locationName = state.selectedLocationName || 'Seçili Lokasyon';
+
+        const roomInfo = roomNumber
+            ? `<div class="confirm-detail">
+                   <i class="fas fa-door-open"></i>
+                   <span><strong>Oda:</strong> ${escapeHtml(roomNumber)}</span>
+               </div>`
+            : '';
+
+        const modal = createConfirmationModal(locationName, roomInfo);
+        document.body.appendChild(modal);
+
+        setupModalHandlers(modal);
+    };
+
+    const createConfirmationModal = (locationName, roomInfo) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-labelledby', 'confirm-modal-title');
+
+        overlay.innerHTML = `
+            <div style="
+                background: white;
+                border-radius: 24px;
+                max-width: 480px;
+                width: 100%;
+                padding: 32px 24px;
+                box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+                animation: slideUp 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            ">
+                <style>
+                    .confirm-detail {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 14px 16px;
+                        background: #F9FAFB;
+                        border-radius: 12px;
+                        font-size: 15px;
+                        color: #334155;
+                        margin-bottom: 10px;
+                    }
+                    .confirm-detail i {
+                        width: 24px;
+                        color: #1BA5A8;
+                        font-size: 18px;
+                        text-align: center;
+                    }
+                    .confirm-btn {
+                        padding: 16px 24px;
+                        border: none;
+                        border-radius: 14px;
+                        font-size: 16px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        flex: 1;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                    }
+                    .confirm-btn-yes {
+                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                        color: white;
+                        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+                    }
+                    .confirm-btn-yes:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+                    }
+                    .confirm-btn-no {
+                        background: #F3F4F6;
+                        color: #6B7280;
+                    }
+                    .confirm-btn-no:hover {
+                        background: #E5E7EB;
+                    }
+                </style>
+
+                <div style="text-align: center;">
+                    <div style="
+                        width: 96px;
+                        height: 96px;
+                        margin: 0 auto 20px;
+                        background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 12px 24px rgba(249, 115, 22, 0.3);
+                    ">
+                        <i class="fas fa-question" style="font-size: 48px; color: white;"></i>
+                    </div>
+
+                    <h3 id="confirm-modal-title" style="
+                        font-size: 24px;
+                        font-weight: 700;
+                        color: #111827;
+                        margin-bottom: 12px;
+                    ">
+                        Buggy Çağırmak İstiyor musunuz?
+                    </h3>
+
+                    <p style="
+                        font-size: 15px;
+                        color: #6B7280;
+                        margin-bottom: 24px;
+                    ">
+                        Talebinizi onaylayın
+                    </p>
+
+                    <div style="
+                        background: linear-gradient(135deg, rgba(27, 165, 168, 0.08), rgba(242, 140, 56, 0.08));
+                        border-radius: 16px;
+                        padding: 20px;
+                        margin-bottom: 24px;
+                        border: 2px solid rgba(27, 165, 168, 0.2);
+                        text-align: left;
+                    ">
+                        <div class="confirm-detail">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span><strong>Lokasyon:</strong> ${escapeHtml(locationName)}</span>
+                        </div>
+                        ${roomInfo}
+                    </div>
+
+                    <div style="display: flex; gap: 12px;">
+                        <button class="confirm-btn confirm-btn-no" data-action="cancel" type="button">
+                            <i class="fas fa-times"></i>
+                            <span>İptal</span>
+                        </button>
+                        <button class="confirm-btn confirm-btn-yes" data-action="confirm" type="button">
+                            <i class="fas fa-check"></i>
+                            <span>Evet, Çağır</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        return overlay;
+    };
+
+    const setupModalHandlers = (modal) => {
+        const confirmBtn = modal.querySelector('[data-action="confirm"]');
+        const cancelBtn = modal.querySelector('[data-action="cancel"]');
+
+        const closeModal = () => {
+            modal.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => modal.remove(), 300);
+        };
+
+        confirmBtn?.addEventListener('click', () => {
+            closeModal();
+            submitRequest();
+        });
+
+        cancelBtn?.addEventListener('click', closeModal);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // Trap focus in modal
+        const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        modal.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            } else if (e.key === 'Tab') {
+                if (e.shiftKey && document.activeElement === firstElement) {
+                    e.preventDefault();
+                    lastElement.focus();
+                } else if (!e.shiftKey && document.activeElement === lastElement) {
+                    e.preventDefault();
+                    firstElement.focus();
+                }
+            }
+        });
+
+        // Focus first button
+        requestAnimationFrame(() => firstElement?.focus());
+    };
+
+    const submitRequest = async () => {
+        if (state.isProcessing) return;
+
+        const roomNumber = $(SELECTORS.ROOM_NUMBER)?.value || '';
+
+        if (!state.selectedLocationId) {
+            showToast('Lütfen önce QR kod okutun', 'error');
+            return;
+        }
+
+        state.isProcessing = true;
+        showLoadingOverlay('Buggy çağrılıyor...');
+
+        try {
+            const data = await fetchJSON(ENDPOINTS.REQUESTS, {
+                method: 'POST',
+                body: JSON.stringify({
+                    location_id: state.selectedLocationId,
+                    room_number: roomNumber || null
+                })
+            });
+
+            hideLoadingOverlay();
+
+            if (data.success && data.request) {
+                showSuccessNotification(data.request.id);
+            } else {
+                showToast(data.error || 'Talep oluşturulamadı', 'error');
+            }
+        } catch (error) {
+            hideLoadingOverlay();
+            console.error('Request submission error:', error);
+            showToast('Bir hata oluştu. Lütfen tekrar deneyin.', 'error');
+        } finally {
+            state.isProcessing = false;
+        }
+    };
+
+    const showSuccessNotification = (requestId) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.setAttribute('role', 'alert');
+        overlay.setAttribute('aria-live', 'assertive');
+
+        overlay.innerHTML = `
+            <div style="
+                background: white;
+                border-radius: 24px;
+                max-width: 480px;
+                width: 100%;
+                padding: 32px 24px;
+                box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+                animation: slideUp 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                text-align: center;
+            ">
+                <div style="
+                    width: 96px;
+                    height: 96px;
+                    margin: 0 auto 20px;
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 12px 24px rgba(16, 185, 129, 0.3);
+                ">
+                    <i class="fas fa-check" style="font-size: 48px; color: white;"></i>
+                </div>
+
+                <h3 style="
+                    font-size: 24px;
+                    font-weight: 700;
+                    color: #111827;
+                    margin-bottom: 12px;
+                ">
+                    ✅ Talebiniz Alındı!
+                </h3>
+
+                <p style="
+                    font-size: 15px;
+                    color: #6B7280;
+                    line-height: 1.6;
+                    margin-bottom: 24px;
+                ">
+                    Buggy çağrınız başarıyla gönderildi.<br>
+                    Durumunu takip edebilirsiniz.
+                </p>
+
+                <div style="
+                    background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+                    border-left: 4px solid #F59E0B;
+                    padding: 16px 20px;
+                    border-radius: 12px;
+                    margin-bottom: 20px;
+                ">
+                    <p style="
+                        margin: 0;
+                        color: #92400E;
+                        font-size: 14px;
+                        font-weight: 600;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                    ">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Yönlendiriliyorsunuz...</span>
+                    </p>
+                </div>
+
+                <div style="
+                    width: 48px;
+                    height: 48px;
+                    margin: 0 auto;
+                    border: 3px solid rgba(27, 165, 168, 0.2);
+                    border-top-color: #1BA5A8;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                "></div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        // Redirect after delay
+        setTimeout(() => {
+            window.location.href = `/guest/status/${requestId}`;
+        }, REDIRECT_DELAY);
+    };
+
+    // ==================== UTILITY MODALS ====================
+    const showLoadingOverlay = (message) => {
+        const existing = $('loading-overlay-custom');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'loading-overlay-custom';
+        overlay.className = 'modal-overlay';
+        overlay.setAttribute('role', 'alert');
+        overlay.setAttribute('aria-live', 'assertive');
+        overlay.setAttribute('aria-busy', 'true');
+
+        overlay.innerHTML = `
+            <div style="text-align: center;">
+                <div style="
+                    width: 64px;
+                    height: 64px;
+                    margin: 0 auto 20px;
+                    border: 4px solid rgba(27, 165, 168, 0.2);
+                    border-top-color: #1BA5A8;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                "></div>
+                <p style="
+                    color: white;
+                    font-size: 16px;
+                    font-weight: 600;
+                    margin: 0;
+                ">${escapeHtml(message)}</p>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+    };
+
+    const hideLoadingOverlay = () => {
+        const overlay = $('loading-overlay-custom');
+        if (overlay) {
+            overlay.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => overlay.remove(), 300);
+        }
+    };
+
+    const showToast = (message, type = 'info') => {
+        // Try to use global toast if available
+        if (typeof BuggyCall !== 'undefined' && BuggyCall.Utils?.showToast) {
+            BuggyCall.Utils.showToast(message, type);
+            return;
+        }
+
+        // Fallback to custom toast
+        const colors = {
+            success: '#10b981',
+            error: '#ef4444',
+            warning: '#f59e0b',
+            info: '#3b82f6'
+        };
+
+        const toast = document.createElement('div');
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${colors[type] || colors.info};
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            z-index: 10001;
+            font-size: 15px;
+            font-weight: 600;
+            max-width: 400px;
+            animation: slideInRight 0.3s ease;
+        `;
+
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+
+    // ==================== HELPER FUNCTIONS ====================
+    const escapeHtml = (text) => {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    };
+
+    // ==================== INITIALIZATION ====================
+    document.addEventListener('DOMContentLoaded', initializePage);
+
+    // ==================== PUBLIC API ====================
+    return {
+        startQRScanner,
+        closeQRScanner,
+        showConfirmationModal
+    };
+})();
+
+// Add keyframe animations
+const animationStyles = document.createElement('style');
+animationStyles.textContent = `
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(animationStyles);
 </script>
 {% endblock %}

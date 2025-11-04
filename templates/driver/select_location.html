@@ -1,0 +1,667 @@
+{% extends "base.html" %}
+
+{% block title %}Konum Seçin - Buggy Call{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/notification-permission.css') }}">
+<style>
+    /* PWA-First Mobile Design - Using Theme Colors */
+    :root {
+        --primary: var(--primary-turquoise, #1BA5A8);
+        --primary-dark: var(--primary-turquoise-dark, #158587);
+        --success: var(--color-success, #27AE60);
+        --danger: var(--color-danger, #E74C3C);
+        --text-primary: var(--dark-gray, #2C3E50);
+        --text-secondary: var(--text-secondary, #5A6C7D);
+        --border: var(--border-color, #DFE6E9);
+        --bg-light: var(--bg-secondary, #F8F9FA);
+    }
+    
+    body {
+        background: var(--bg-light);
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+    }
+    
+    /* Full-screen container for mobile */
+    .location-wrapper {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: var(--gradient-primary, linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%));
+    }
+    
+    /* Header with gradient - Compact */
+    .location-header {
+        padding: max(env(safe-area-inset-top), 1rem) 1.25rem 1.25rem;
+        text-align: center;
+        color: white;
+        position: relative;
+    }
+    
+    .location-icon {
+        width: 64px;
+        height: 64px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.75rem;
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+    
+    .buggy-code {
+        display: inline-block;
+        padding: 0.2rem 0.625rem;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 6px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        font-size: 0.9375rem;
+    }
+    
+    .location-header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+    }
+    
+    .location-header p {
+        font-size: 0.875rem;
+        opacity: 0.95;
+        margin: 0;
+        font-weight: 400;
+        line-height: 1.4;
+    }
+    
+    /* Content area with rounded top - Compact */
+    .location-content {
+        flex: 1;
+        background: white;
+        border-radius: 20px 20px 0 0;
+        padding: 1.25rem 1rem;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Location cards - mobile optimized & compact */
+    .location-card {
+        width: 100%;
+        padding: 0.875rem;
+        margin-bottom: 0.625rem;
+        background: white;
+        border: 2px solid var(--border);
+        border-radius: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        text-align: left;
+        position: relative;
+        overflow: hidden;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+    
+    /* Ripple effect for touch */
+    .location-card::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(14, 165, 233, 0.1);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+    
+    .location-card:active::before {
+        width: 300px;
+        height: 300px;
+    }
+    
+    .location-card:active {
+        transform: scale(0.98);
+        border-color: var(--primary);
+    }
+    
+    .location-card-icon {
+        width: 48px;
+        height: 48px;
+        background: var(--gradient-primary, linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%));
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: var(--shadow-primary, 0 4px 12px rgba(27, 165, 168, 0.25));
+    }
+    
+    .location-card-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .location-card-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 1rem;
+        margin-bottom: 0.125rem;
+        line-height: 1.3;
+    }
+    
+    .location-card-subtitle {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        line-height: 1.3;
+    }
+    
+    .location-card-arrow {
+        flex-shrink: 0;
+        color: #cbd5e1;
+        font-size: 1.25rem;
+        transition: all 0.2s ease;
+    }
+    
+    .location-card:active .location-card-arrow {
+        color: var(--primary);
+        transform: translateX(4px);
+    }
+    
+    /* Loading states - Compact */
+    .loading {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: var(--text-secondary);
+    }
+    
+    .loading i {
+        font-size: 2rem;
+        color: var(--primary);
+        animation: spin 1s linear infinite;
+    }
+    
+    .loading p {
+        margin-top: 0.75rem;
+        font-size: 0.875rem;
+        line-height: 1.4;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Custom scrollbar for desktop */
+    .location-content::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .location-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .location-content::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+    
+    .location-content::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    
+    /* Tablet & Desktop */
+    @media (min-width: 640px) {
+        .location-wrapper {
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        
+        .location-container {
+            max-width: 460px;
+            width: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+        
+        .location-header {
+            padding: 2rem 1.75rem 1.5rem;
+        }
+        
+        .location-icon {
+            width: 72px;
+            height: 72px;
+            margin-bottom: 0.875rem;
+        }
+        
+        .location-content {
+            border-radius: 0;
+            max-height: 65vh;
+            padding: 1.5rem 1.25rem;
+        }
+        
+        .location-card {
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .location-card-icon {
+            width: 52px;
+            height: 52px;
+        }
+        
+        .location-card:hover {
+            border-color: var(--primary);
+            background: #f0f9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(14, 165, 233, 0.15);
+        }
+        
+        .location-card:hover .location-card-arrow {
+            color: var(--primary);
+            transform: translateX(4px);
+        }
+    }
+    
+    /* Safe area for notched devices */
+    @supports (padding: max(0px)) {
+        .location-content {
+            padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+        }
+    }
+    
+    /* Retry button styling */
+    .retry-btn {
+        margin-top: 0.75rem;
+        padding: 0.75rem 1.5rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        -webkit-tap-highlight-color: transparent;
+        box-shadow: 0 4px 12px rgba(27, 165, 168, 0.3);
+    }
+    
+    .retry-btn:active {
+        transform: scale(0.96);
+        box-shadow: 0 2px 8px rgba(27, 165, 168, 0.3);
+    }
+    
+    @media (min-width: 640px) {
+        .retry-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="location-wrapper">
+    <div class="location-container">
+        <div class="location-header">
+            <div class="location-icon">
+                <i class="fas fa-golf-ball" style="font-size: 1.875rem; color: white;"></i>
+            </div>
+            <h1>Hoş Geldiniz!</h1>
+            <p id="buggy-info" style="opacity: 0.95; margin-top: 0.5rem; line-height: 1.4;">
+                <span id="buggy-code" class="buggy-code">...</span> aracını aktif duruma getiriyorsunuz
+            </p>
+            <p style="opacity: 0.9; font-size: 0.8125rem; margin-top: 0.5rem; line-height: 1.4; max-width: 92%; margin-left: auto; margin-right: auto;">
+                Aracın şu anda hangi konumda olduğunu seçin
+            </p>
+        </div>
+        
+        <div class="location-content" id="location-list">
+            <div class="loading">
+                <i class="fas fa-circle-notch"></i>
+                <p>Lokasyonlar yükleniyor...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/notification-permission.js') }}"></script>
+<script>
+    // Session data (from server-side render)
+    const hotelId = {{ session.get('hotel_id', 1) }};
+    const userId = {{ session.get('user_id', 0) }};
+    
+    // Check session validity via API call (not cached)
+    async function checkSession() {
+        try {
+            const response = await fetch('/api/driver/buggy-info', {
+                method: 'GET',
+                credentials: 'include',
+                cache: 'no-cache'
+            });
+            
+            if (response.status === 401 || response.status === 403) {
+                console.log('[SELECT_LOCATION] Session invalid, redirecting to login');
+                window.location.href = '/auth/login';
+                return false;
+            }
+            
+            const data = await response.json();
+            if (!data.success) {
+                console.log('[SELECT_LOCATION] Session check failed, redirecting to login');
+                window.location.href = '/auth/login';
+                return false;
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('[SELECT_LOCATION] Session check error:', error);
+            window.location.href = '/auth/login';
+            return false;
+        }
+    }
+    
+    // Check session immediately on page load
+    checkSession();
+    
+    // Prevent back navigation
+    history.pushState(null, null, location.href);
+    window.onpopstate = function() {
+        history.go(1);
+    };
+    
+    // Load locations on page load
+    document.addEventListener('DOMContentLoaded', async function() {
+        await loadBuggyInfo();
+        await loadLocations();
+    });
+    
+    async function loadBuggyInfo() {
+        try {
+            const response = await fetch('/api/driver/buggy-info');
+            const data = await response.json();
+            
+            if (data.success && data.buggy) {
+                const buggyCode = data.buggy.code || 'Buggy';
+                const buggyIcon = data.buggy.icon || '🏌️';
+                
+                // Update buggy code
+                document.getElementById('buggy-code').textContent = buggyCode;
+                
+                // Update icon if emoji
+                const iconElement = document.querySelector('.location-icon i');
+                if (buggyIcon && buggyIcon.length <= 2) {
+                    // It's an emoji
+                    iconElement.outerHTML = `<span style="font-size: 2rem;">${buggyIcon}</span>`;
+                }
+            }
+        } catch (error) {
+            console.error('[LocationSelect] Error loading buggy info:', error);
+            document.getElementById('buggy-code').textContent = 'Buggy';
+        }
+    }
+    
+    async function loadLocations() {
+        try {
+            const response = await fetch(`/api/locations?hotel_id=${hotelId}`);
+            const data = await response.json();
+            
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Lokasyonlar yüklenemedi');
+            }
+            
+            const locations = data.locations || data.data?.items || [];
+            
+            if (locations.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            renderLocationCards(locations);
+            
+        } catch (error) {
+            console.error('[LocationSelect] Error loading locations:', error);
+            showErrorState(error.message);
+        }
+    }
+    
+    function renderLocationCards(locations) {
+        const locationCards = locations.map(loc => `
+            <button class="location-card" onclick="selectLocation(${loc.id}, event)" data-location-id="${loc.id}">
+                <div class="location-card-icon">
+                    <i class="fas fa-map-marker-alt" style="color: white; font-size: 1.375rem;"></i>
+                </div>
+                <div class="location-card-content">
+                    <div class="location-card-title">${escapeHtml(loc.name)}</div>
+                    <div class="location-card-subtitle">${loc.description ? escapeHtml(loc.description) : 'Konumu seç ve devam et'}</div>
+                </div>
+                <div class="location-card-arrow">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </button>
+        `).join('');
+        
+        document.getElementById('location-list').innerHTML = locationCards;
+    }
+    
+    function showEmptyState() {
+        document.getElementById('location-list').innerHTML = `
+            <div class="loading">
+                <i class="fas fa-exclamation-circle" style="color: var(--danger);"></i>
+                <p style="color: var(--danger);">Henüz lokasyon tanımlanmamış.<br>Lütfen yöneticinizle iletişime geçin.</p>
+            </div>
+        `;
+    }
+    
+    function showErrorState(message) {
+        document.getElementById('location-list').innerHTML = `
+            <div class="loading">
+                <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                <p style="color: var(--danger);">Lokasyonlar yüklenirken hata oluştu</p>
+                <button onclick="loadLocations()" class="retry-btn">
+                    <i class="fas fa-redo"></i> Tekrar Dene
+                </button>
+            </div>
+        `;
+    }
+    
+    // Select location and redirect to dashboard
+    async function selectLocation(locationId, event) {
+        const card = event.target.closest('.location-card');
+        if (!card) return;
+        
+        // Disable all cards
+        document.querySelectorAll('.location-card').forEach(c => {
+            c.style.pointerEvents = 'none';
+            c.style.opacity = '0.5';
+        });
+        
+        // Show loading on clicked card
+        card.style.opacity = '1';
+        card.innerHTML = `
+            <div style="width: 100%; text-align: center; color: var(--primary);">
+                <i class="fas fa-circle-notch fa-spin" style="font-size: 1.5rem;"></i>
+                <p style="margin-top: 0.5rem; font-weight: 600;">Kaydediliyor...</p>
+            </div>
+        `;
+        
+        try {
+            const response = await fetch('/api/driver/set-initial-location', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ location_id: parseInt(locationId) })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Show success state
+                card.innerHTML = `
+                    <div style="width: 100%; text-align: center; color: var(--success);">
+                        <i class="fas fa-check-circle" style="font-size: 1.5rem;"></i>
+                        <p style="margin-top: 0.5rem; font-weight: 600;">Başarılı! Yönlendiriliyorsunuz...</p>
+                    </div>
+                `;
+                
+                // Check notification permission before redirecting
+                setTimeout(async () => {
+                    await checkAndRequestNotificationPermission();
+                    window.location.href = '/driver/dashboard';
+                }, 500);
+            } else {
+                throw new Error(data.error || 'Lokasyon ayarlanamadı');
+            }
+        } catch (error) {
+            console.error('[LocationSelect] Error setting location:', error);
+            
+            // Show error and reload
+            card.innerHTML = `
+                <div style="width: 100%; text-align: center; color: var(--danger);">
+                    <i class="fas fa-times-circle" style="font-size: 1.5rem;"></i>
+                    <p style="margin-top: 0.5rem; font-weight: 600;">${escapeHtml(error.message)}</p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        }
+    }
+    
+    // Utility: Escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Check and request notification permission
+    async function checkAndRequestNotificationPermission() {
+        try {
+            // Browser support check
+            if (!('Notification' in window)) {
+                console.warn('[LocationSelect] Notifications not supported');
+                return;
+            }
+            
+            // Check current permission status
+            const permission = Notification.permission;
+            console.log('[LocationSelect] Current notification permission:', permission);
+            
+            // If already granted or denied, just update session
+            if (permission !== 'default') {
+                await updateNotificationPermissionSession(permission);
+                return;
+            }
+            
+            // Show custom permission dialog
+            return new Promise((resolve) => {
+                const dialog = createNotificationDialog();
+                document.body.appendChild(dialog);
+                
+                // Animate in
+                setTimeout(() => {
+                    dialog.classList.add('show');
+                }, 100);
+                
+                // Handle allow button
+                dialog.querySelector('.btn-allow').onclick = async () => {
+                    try {
+                        const result = await Notification.requestPermission();
+                        await updateNotificationPermissionSession(result);
+                        closeDialog(dialog);
+                        resolve();
+                    } catch (error) {
+                        console.error('[LocationSelect] Error requesting permission:', error);
+                        closeDialog(dialog);
+                        resolve();
+                    }
+                };
+                
+                // Handle later button
+                dialog.querySelector('.btn-later').onclick = async () => {
+                    await updateNotificationPermissionSession('default');
+                    closeDialog(dialog);
+                    resolve();
+                };
+            });
+        } catch (error) {
+            console.error('[LocationSelect] Error in checkAndRequestNotificationPermission:', error);
+        }
+    }
+    
+    // Create notification permission dialog
+    function createNotificationDialog() {
+        const dialog = document.createElement('div');
+        dialog.className = 'notification-permission-dialog';
+        dialog.innerHTML = `
+            <div class="notification-permission-overlay"></div>
+            <div class="notification-permission-content">
+                <div class="notification-permission-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <h3>Bildirimler</h3>
+                <p>Misafirlerden gelen buggy taleplerini anında almak için bildirim izni verin.</p>
+                <div class="notification-permission-actions">
+                    <button class="btn-allow">
+                        <i class="fas fa-check"></i> İzin Ver
+                    </button>
+                    <button class="btn-later">
+                        Şimdi Değil
+                    </button>
+                </div>
+            </div>
+        `;
+        return dialog;
+    }
+    
+    // Close dialog with animation
+    function closeDialog(dialog) {
+        dialog.classList.remove('show');
+        setTimeout(() => {
+            if (dialog && dialog.parentNode) {
+                dialog.remove();
+            }
+        }, 300);
+    }
+    
+    // Update notification permission in session
+    async function updateNotificationPermissionSession(status) {
+        try {
+            const response = await fetch('/api/notification-permission', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status })
+            });
+            
+            if (response.ok) {
+                console.log('[LocationSelect] Notification permission updated:', status);
+            } else {
+                console.error('[LocationSelect] Failed to update notification permission');
+            }
+        } catch (error) {
+            console.error('[LocationSelect] Error updating notification permission:', error);
+        }
+    }
+</script>
+{% endblock %}

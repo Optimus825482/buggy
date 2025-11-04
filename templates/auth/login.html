@@ -54,7 +54,7 @@
     }
 
     .login-logo {
-        width: 280px;
+        width: 220px;
         max-width: 90%;
         height: auto;
         display: flex;
@@ -161,8 +161,7 @@
                 <div class="login-logo">
                     <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Buggy Call Logo">
                 </div>
-                <h1 class="login-title">Buggy Call</h1>
-                <p class="login-subtitle">Your Ride, On Demand</p>
+             
             </div>
 
             <form id="loginForm" method="POST">
@@ -245,11 +244,17 @@
                     window.location.href = '/';
                 }
             } else {
-                BuggyCall.Utils.showToast( data.error || data.message || 'Giriş başarısız', 'danger' );
+                await BuggyCall.Utils.showError( 
+                    data.error || data.message || 'Kullanıcı adı veya şifre hatalı', 
+                    'Giriş Başarısız' 
+                );
             }
         } catch ( error ) {
             console.error( 'Login error:', error );
-            BuggyCall.Utils.showToast( 'Bir hata oluştu', 'danger' );
+            await BuggyCall.Utils.showError( 
+                'Sunucuya bağlanılamadı. Lütfen internet bağlantınızı kontrol edin.', 
+                'Bağlantı Hatası' 
+            );
         } finally {
             BuggyCall.Utils.hideLoading();
         }

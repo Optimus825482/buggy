@@ -67,8 +67,8 @@
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
-    --spacing-lg: 1.5rem;
-    --spacing-xl: 2rem;
+    --spacing-lg: 1.3rem;
+    --spacing-xl: 1.4rem;
     --spacing-2xl: 3rem;
 
     /* Border Radius */
@@ -192,7 +192,7 @@ a {
 }
 
 a:hover {
-    color: var(--primary-dark);
+    color: var(--accent-dark);
     text-decoration: underline;
 }
 
@@ -242,7 +242,7 @@ a:hover {
 .header {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     color: var(--text-white);
-    padding: var(--spacing-lg) 0;
+    padding: var(--spacing-md) 0;
     box-shadow: var(--shadow-md);
     position: sticky;
     top: 0;
@@ -288,12 +288,12 @@ a:hover {
 }
 
 .logo-image {
-    height: 70px;
+    height: 55px;
     width: auto;
     object-fit: contain;
     border-radius: var(--radius-md);
     background: white;
-    padding: 0.5rem;
+    padding: 0.4rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
@@ -341,13 +341,13 @@ a:hover {
 }
 
 .nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.25);
     text-decoration: none;
     transform: translateY(-1px);
 }
 
 .nav-link.active {
-    background-color: rgba(255, 255, 255, 0.25);
+    background-color: rgba(255, 255, 255, 0.35);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
@@ -772,93 +772,33 @@ a:hover {
     color: var(--info-color);
 }
 
-/* ==================== Loading Spinner (Hourglass) ==================== */
+/* ==================== Loading Spinner (Buggy Image) ==================== */
 .spinner {
-    box-sizing: border-box;
     display: inline-block;
-    width: 50px;
+    width: 80px;
     height: 80px;
-    border-top: 5px solid var(--primary-color);
-    border-bottom: 5px solid var(--primary-color);
     position: relative;
-    background: linear-gradient(var(--accent-color) 30px, transparent 0) no-repeat;
-    background-size: 2px 40px;
-    background-position: 50% 0px;
-    animation: spinnerRotate 5s linear infinite;
 }
 
-.spinner:before,
-.spinner:after {
+.spinner::before {
     content: "";
-    width: 40px;
-    left: 50%;
-    height: 35px;
-    position: absolute;
-    top: 0;
-    transform: translatex(-50%);
-    background: var(--primary-light);
-    border-radius: 0 0 20px 20px;
-    background-size: 100% auto;
+    display: block;
+    width: 80px;
+    height: 80px;
+    background-image: url('/static/images/buggy.png');
+    background-size: contain;
     background-repeat: no-repeat;
-    background-position: 0 0px;
-    animation: spinnerTopSand 5s linear infinite;
+    background-position: center;
+    animation: buggyBounce 1s ease-in-out infinite;
+    filter: drop-shadow(0 4px 8px rgba(27, 165, 168, 0.3));
 }
 
-.spinner:after {
-    top: auto;
-    bottom: 0;
-    border-radius: 20px 20px 0 0;
-    animation: spinnerBottomSand 5s linear infinite;
-}
-
-@keyframes spinnerTopSand {
-
-    0%,
-    100% {
-        background-image: linear-gradient(var(--accent-color) 40px, transparent 0);
-        background-position: 0% 0px;
+@keyframes buggyBounce {
+    0%, 100% {
+        transform: translateY(0) scale(1);
     }
-
     50% {
-        background-image: linear-gradient(var(--accent-color) 40px, transparent 0);
-        background-position: 0% 40px;
-    }
-
-    50.1% {
-        background-image: linear-gradient(var(--accent-color) 40px, transparent 0);
-        background-position: 0% -40px;
-    }
-}
-
-@keyframes spinnerBottomSand {
-    0% {
-        background-image: linear-gradient(var(--accent-color) 40px, transparent 0);
-        background-position: 0 40px;
-    }
-
-    100% {
-        background-image: linear-gradient(var(--accent-color) 40px, transparent 0);
-        background-position: 0 -40px;
-    }
-}
-
-@keyframes spinnerRotate {
-
-    0%,
-    49% {
-        transform: rotate(0deg);
-        background-position: 50% 36px;
-    }
-
-    51%,
-    98% {
-        transform: rotate(180deg);
-        background-position: 50% 4px;
-    }
-
-    100% {
-        transform: rotate(360deg);
-        background-position: 50% 36px;
+        transform: translateY(-15px) scale(1.05);
     }
 }
 
@@ -1003,16 +943,16 @@ a:hover {
 /* ==================== Responsive Design ==================== */
 @media (max-width: 1024px) {
     .header {
-        padding: var(--spacing-md) 0;
+        padding: var(--spacing-sm) 0;
     }
 
     .logo-image {
-        height: 50px;
+        height: 45px;
     }
 
     .logo-icon {
-        width: 45px;
-        height: 45px;
+        width: 40px;
+        height: 40px;
     }
 }
 
@@ -1049,19 +989,26 @@ a:hover {
     .header-title {
         grid-column: 2;
         justify-self: center;
-        font-size: var(--font-size-lg);
+        font-size: var(--font-size-2xl);
         display: block;
+        text-align: center;
+        font-weight: var(--font-weight-bold);
+        width: 100%;
+        position: absolute;
+        left: 0;
+        right: 0;
+        pointer-events: none;
     }
 
     .logo-image {
-        height: 50px;
-        padding: 0.4rem;
+        height: 42px;
+        padding: 0.3rem;
     }
 
     .logo-icon {
-        width: 40px;
-        height: 40px;
-        font-size: var(--font-size-xl);
+        width: 36px;
+        height: 36px;
+        font-size: var(--font-size-lg);
     }
 
     /* Mobile Menu Toggle */
@@ -1083,9 +1030,9 @@ a:hover {
         background: var(--primary-dark);
         flex-direction: column;
         width: 100%;
-        padding: var(--spacing-md);
+        padding: var(--spacing-lg) var(--spacing-xl);
         box-shadow: var(--shadow-lg);
-        gap: var(--spacing-xs);
+        gap: var(--spacing-sm);
         z-index: var(--z-dropdown);
         animation: slideDown 0.3s ease-out;
     }
@@ -1097,14 +1044,18 @@ a:hover {
 
     .nav-link {
         width: 100%;
-        padding: var(--spacing-md);
+        padding: var(--spacing-md) var(--spacing-lg);
         text-align: left;
         border-radius: var(--radius-md);
+        font-size: var(--font-size-lg);
+        font-weight: var(--font-weight-medium);
     }
 
     .nav-link i {
-        width: 24px;
+        width: 28px;
         display: inline-block;
+        font-size: var(--font-size-lg);
+        margin-right: var(--spacing-sm);
     }
 
     .btn {
@@ -1158,10 +1109,17 @@ a:hover {
     }
 
     .header-title {
-        font-size: var(--font-size-base);
+        font-size: var(--font-size-xl);
         grid-column: 2;
         justify-self: center;
         display: block;
+        text-align: center;
+        font-weight: var(--font-weight-bold);
+        width: 100%;
+        position: absolute;
+        left: 0;
+        right: 0;
+        pointer-events: none;
     }
 
     .logo-image {
@@ -1191,85 +1149,53 @@ a:hover {
 /* ==================== Buggy Loader Animation ==================== */
 .buggy-loader {
     position: relative;
-    width: 130px;
+    width: 100px;
     height: 100px;
-    background-repeat: no-repeat;
-    /* Buggy body - primary color */
-    background-image:
-        linear-gradient(var(--primary-color), var(--primary-dark)),
-        /* Roof/canopy - lighter shade */
-        linear-gradient(var(--primary-light), var(--primary-color)),
-        /* Back section */
-        linear-gradient(var(--primary-light), var(--primary-color));
-    background-size: 80px 70px, 30px 50px, 30px 30px;
-    background-position: 0 0, 80px 20px, 100px 40px;
+    display: inline-block;
 }
 
-.buggy-loader:after {
+.buggy-loader::before {
     content: "";
     position: absolute;
-    bottom: 10px;
-    left: 12px;
-    width: 10px;
-    height: 10px;
-    background: var(--white-color);
-    border-radius: 50%;
-    box-sizing: content-box;
-    border: 10px solid var(--dark-color);
-    box-shadow: 78px 0 0 -10px var(--white-color), 78px 0 var(--dark-color);
-    animation: buggyWheelSpin 0.75s ease-in infinite alternate;
+    width: 100%;
+    height: 100%;
+    background-image: url('/static/images/buggy.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    animation: buggyMove 2s ease-in-out infinite;
+    filter: drop-shadow(0 4px 12px rgba(27, 165, 168, 0.4));
 }
 
-.buggy-loader:before {
+.buggy-loader::after {
     content: "";
     position: absolute;
-    right: 100%;
-    top: 0px;
-    height: 70px;
-    width: 70px;
-    /* Road lines - accent color */
-    background-image:
-        linear-gradient(var(--accent-color) 45px, transparent 0),
-        linear-gradient(var(--accent-color) 45px, transparent 0),
-        linear-gradient(var(--accent-color) 45px, transparent 0);
-    background-repeat: no-repeat;
-    background-size: 30px 4px;
-    background-position: 0px 11px, 8px 35px, 0px 60px;
-    animation: roadLineDropping 0.75s linear infinite;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 8px;
+    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.2) 0%, transparent 70%);
+    animation: shadowPulse 2s ease-in-out infinite;
 }
 
-@keyframes buggyWheelSpin {
-
-    0%,
-    50%,
-    100% {
-        transform: translatey(0);
+@keyframes buggyMove {
+    0%, 100% {
+        transform: translateX(-20px) translateY(0);
     }
-
-    30%,
-    90% {
-        transform: translatey(-3px);
-    }
-}
-
-@keyframes roadLineDropping {
-    0% {
-        background-position: 100px 11px, 115px 35px, 105px 60px;
-        opacity: 1;
-    }
-
     50% {
-        background-position: 0px 11px, 20px 35px, 5px 60px;
+        transform: translateX(20px) translateY(-10px);
     }
+}
 
-    60% {
-        background-position: -30px 11px, 0px 35px, -10px 60px;
+@keyframes shadowPulse {
+    0%, 100% {
+        opacity: 0.3;
+        transform: translateX(-50%) scale(0.8);
     }
-
-    75%,
-    100% {
-        background-position: -30px 11px, -30px 35px, -30px 60px;
-        opacity: 0;
+    50% {
+        opacity: 0.6;
+        transform: translateX(-50%) scale(1.2);
     }
 }
 
@@ -1322,5 +1248,141 @@ a:hover {
 @media print {
     .no-print {
         display: none !important;
+    }
+}
+/* ===
+=========================================
+   BADGE STYLES - Colorful Status Indicators
+   ============================================ */
+
+/* Base badge style */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Available / Online - Vibrant Green */
+.badge-available {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.badge-available:hover {
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Busy - Bright Orange/Amber */
+.badge-busy {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.badge-busy:hover {
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Offline - Cool Gray */
+.badge-offline {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+.badge-offline:hover {
+    box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4);
+    transform: translateY(-1px);
+}
+
+/* Pending - Yellow */
+.badge-pending {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: #78350f;
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+.badge-pending:hover {
+    box-shadow: 0 6px 16px rgba(251, 191, 36, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Accepted - Blue */
+.badge-accepted {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.badge-accepted:hover {
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Completed - Green */
+.badge-completed {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.badge-completed:hover {
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Cancelled - Red */
+.badge-cancelled {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.badge-cancelled:hover {
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Pulse animation for active statuses */
+.badge-available::before,
+.badge-busy::before {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: white;
+    left: 8px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .badge {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.6rem;
     }
 }

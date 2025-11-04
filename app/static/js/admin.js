@@ -10,6 +10,11 @@ const Admin = {
     buggies: [],
     drivers: [],
     requests: [],
+    connectionStatus: {
+        connected: false,
+        indicator: null
+    },
+    updateThrottle: new Map(),
 
     /**
      * Initialize admin panel
@@ -20,6 +25,9 @@ const Admin = {
         // Get hotel ID from session (passed from backend)
         this.hotelId = parseInt(document.body.dataset.hotelId) || 1;
         
+        // Initialize connection status indicator
+        this.initConnectionStatus();
+        
         // Initialize Socket.IO
         this.initSocket();
         
@@ -29,7 +37,57 @@ const Admin = {
         // Setup event listeners
         this.setupEventListeners();
         
+        // Setup page visibility handling
+        this.setupPageVisibility();
+        
         console.log('Admin panel initialized');
+    },
+
+    /**
+     * Initialize connection status indicator
+     */
+    initConnectionStatus() {
+        const indicator = document.createElement('div');
+        indicator.id = 'ws-status-indicator';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+            z-index: 9999;
+            transition: all 0.3s ease;
+        `;
+        indicator.title = 'WebSocket Bağlantı Durumu';
+        document.body.appendChild(indicator);
+        this.connectionStatus.indicator = indicator;
+    },
+
+    /**
+     * Update connection status
+     */
+    updateConnectionStatus(status) {
+        if (!this.connectionStatus.indicator) return;
+        
+        const colors = {
+            connected: '#10b981',
+            connecting: '#f59e0b',
+            disconnected: '#ef4444'
+        };
+        
+        const titles = {
+            connected: 'Bağlı',
+            connecting: 'Bağlanıyor...',
+            disconnected: 'Bağlantı Kopuk'
+        };
+        
+        this.connectionStatus.indicator.style.background = colors[status] || colors.disconnected;
+        this.connectionStatus.indicator.style.boxShadow = `0 0 10px ${colors[status] || colors.disconnected}80`;
+        this.connectionStatus.indicator.title = titles[status] || 'Bilinmiyor';
+        this.connectionStatus.connected = (status === 'connected');
     },
 
     /**
@@ -39,12 +97,34 @@ const Admin = {
         this.socket = BuggyCall.Socket.init();
         this.socket.connect();
         
-        // Join hotel room
+        // Connection event handlers
         this.socket.on('connect', () => {
+            console.log('✅ WebSocket connected');
+            this.updateConnectionStatus('connected');
+            BuggyCall.Utils.showToast('Bağlantı kuruldu', 'success');
+            
+            // Join hotel room
             this.socket.emit('join_hotel', {
                 hotel_id: this.hotelId,
                 role: 'admin'
             });
+        });
+        
+        this.socket.on('disconnect', () => {
+            console.log('❌ WebSocket disconnected');
+            this.updateConnectionStatus('disconnected');
+            BuggyCall.Utils.showToast('Bağlantı koptu', 'error');
+        });
+        
+        this.socket.on('reconnecting', () => {
+            console.log('🔄 WebSocket reconnecting...');
+            this.updateConnectionStatus('connecting');
+        });
+        
+        this.socket.on('reconnect', () => {
+            console.log('✅ WebSocket reconnected');
+            this.updateConnectionStatus('connected');
+            BuggyCall.Utils.showToast('Yeniden bağlandı', 'success');
         });
         
         // Listen to real-time events
@@ -83,6 +163,12 @@ const Admin = {
         this.socket.on('driver_logged_out', (data) => {
             console.log('Driver logged out:', data);
             this.refreshBuggies(); // Refresh buggy list to hide driver
+        });
+        
+        // NEW: Listen for buggy status updates (real-time dashboard)
+        this.socket.on('buggy_status_update', (data) => {
+            console.log('Buggy status update:', data);
+            this.updateBuggyStatusRow(data);
         });
     },
 
@@ -230,50 +316,45 @@ const Admin = {
             return;
         }
         
-        container.innerHTML = this.buggies.map(buggy => {
-            // Get location name if available
-            const locationName = buggy.current_location?.name || buggy.current_location_name || '-';
-            const hasLocation = locationName !== '-';
-            
-            return `
-            <div class="list-item buggy-item" data-buggy-id="${buggy.id}" style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 1rem 1.5rem;
-                border-bottom: 1px solid #f1f5f9;
-                transition: background 0.2s ease;
-            " onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
-                <div style="display: flex; align-items: center; gap: 1rem; flex: 1;">
-                    <div style="
-                        width: 40px;
-                        height: 40px;
-                        border-radius: 50%;
-                        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        color: white;
-                        font-weight: bold;
-                        font-size: 0.875rem;
-                    ">${buggy.code}</div>
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.25rem;">
-                            ${buggy.code}
-                            ${buggy.driver_name ? `<span style="color: #64748b; font-weight: 400; font-size: 0.875rem;"> • ${buggy.driver_name}</span>` : ''}
-                        </div>
-                        <div style="font-size: 0.875rem; color: #64748b;">
-                            <i class="fas fa-map-marker-alt" style="margin-right: 0.25rem; color: ${hasLocation ? '#10b981' : '#94a3b8'};"></i>
-                            <span class="buggy-location">${locationName}</span>
-                        </div>
-                    </div>
-                </div>
-                <span class="badge buggy-status ${BuggyCall.Utils.getBadgeClass(buggy.status)}" style="font-weight: 600;">
-                    ${this.getStatusText(buggy.status)}
-                </span>
-            </div>
+        // Create table structure
+        container.innerHTML = `
+            <table style="width: 100%; border-collapse: collapse;">
+                <tbody>
+                    ${this.buggies.map(buggy => {
+                        // Get location name if available
+                        const locationName = buggy.current_location?.name || buggy.current_location_name || '-';
+                        const hasLocation = locationName !== '-';
+                        // Get buggy icon (default to 🚗 if not set)
+                        const buggyIcon = buggy.icon || '🚗';
+                        // Get driver name
+                        const driverName = buggy.driver_name || '-';
+                        const hasDriver = driverName !== '-';
+                        
+                        return `
+                        <tr class="buggy-item" data-buggy-id="${buggy.id}" style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 0.75rem 1rem; width: 60px; text-align: center;">
+                                <span class="buggy-icon" style="font-size: 1.5rem;">${buggyIcon}</span>
+                            </td>
+                            <td style="padding: 0.75rem 1rem; font-weight: 600; color: #1e293b; white-space: nowrap; font-size: 1rem;">
+                                ${buggy.code}
+                            </td>
+                            <td style="padding: 0.75rem 1rem; color: ${hasDriver ? '#1e293b' : '#94a3b8'}; font-size: 0.875rem;">
+                                ${hasDriver ? `<i class="fas fa-user" style="margin-right: 0.25rem; color: #10b981;"></i>${driverName}` : '-'}
+                            </td>
+                            <td style="padding: 0.75rem 1rem; color: ${hasLocation ? '#1e293b' : '#94a3b8'}; font-size: 0.875rem;">
+                                ${hasLocation ? `<i class="fas fa-map-marker-alt" style="margin-right: 0.25rem; color: #10b981;"></i><span class="buggy-location">${locationName}</span>` : '-'}
+                            </td>
+                            <td style="padding: 0.75rem 1rem; text-align: right; white-space: nowrap;">
+                                <span class="badge buggy-status ${BuggyCall.Utils.getBadgeClass(buggy.status)}" style="font-weight: 600; font-size: 0.75rem;">
+                                    ${this.getStatusText(buggy.status)}
+                                </span>
+                            </td>
+                        </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
         `;
-        }).join('');
     },
 
     /**
@@ -769,8 +850,23 @@ const Admin = {
         const buggyIndex = this.buggies.findIndex(b => b.id === data.buggy_id);
         if (buggyIndex !== -1) {
             this.buggies[buggyIndex].status = data.status;
-            if (data.location_name) {
+            
+            // Update location (or clear if offline)
+            if (data.hasOwnProperty('location_name')) {
                 this.buggies[buggyIndex].current_location_name = data.location_name;
+            }
+            // Clear location when offline
+            if (data.status === 'offline') {
+                this.buggies[buggyIndex].current_location_name = null;
+                this.buggies[buggyIndex].current_location_id = null;
+            }
+            
+            // Update driver info (important for logout)
+            if (data.hasOwnProperty('driver_name')) {
+                this.buggies[buggyIndex].driver_name = data.driver_name;
+            }
+            if (data.hasOwnProperty('driver_id')) {
+                this.buggies[buggyIndex].driver_id = data.driver_id;
             }
         }
         
@@ -784,7 +880,7 @@ const Admin = {
             }
         }
         
-        // Update buggy item on dashboard
+        // Update buggy item on dashboard (table row)
         const buggyItem = document.querySelector(`.buggy-item[data-buggy-id="${data.buggy_id}"]`);
         if (buggyItem) {
             const statusBadge = buggyItem.querySelector('.buggy-status');
@@ -793,15 +889,29 @@ const Admin = {
                 statusBadge.textContent = this.getStatusText(data.status);
             }
             
-            // Update location if provided
-            if (data.location_name) {
-                const locationSpan = buggyItem.querySelector('.buggy-location');
-                if (locationSpan) {
-                    locationSpan.textContent = data.location_name;
-                    // Update icon color
-                    const locationIcon = buggyItem.querySelector('.fa-map-marker-alt');
-                    if (locationIcon) {
-                        locationIcon.style.color = '#10b981';
+            // Update location (or clear if offline)
+            const locationCell = buggyItem.querySelector('td:nth-child(4)');
+            if (locationCell) {
+                if (data.status === 'offline' || !data.location_name) {
+                    // Clear location when offline
+                    locationCell.textContent = '-';
+                    locationCell.style.color = '#94a3b8';
+                } else if (data.location_name) {
+                    // Show location when online
+                    locationCell.innerHTML = `<i class="fas fa-map-marker-alt" style="margin-right: 0.25rem; color: #10b981;"></i><span class="buggy-location">${data.location_name}</span>`;
+                    locationCell.style.color = '#1e293b';
+                }
+            }
+            
+            // Update driver name if provided (important for logout)
+            if (data.hasOwnProperty('driver_name')) {
+                const driverCell = buggyItem.querySelector('td:nth-child(3)'); // Driver column
+                if (driverCell) {
+                    if (data.driver_name) {
+                        driverCell.textContent = data.driver_name;
+                    } else {
+                        driverCell.textContent = '-';
+                        driverCell.style.color = '#94a3b8';
                     }
                 }
             }
@@ -809,6 +919,149 @@ const Admin = {
         
         // Update stats
         this.updateStats();
+        
+        // If on buggies management page, refresh the list
+        if (window.location.pathname.includes('/admin/buggies')) {
+            this.loadBuggies();
+        }
+    },
+
+    /**
+     * Update specific buggy row in DOM (real-time update)
+     */
+    updateBuggyStatusRow(data) {
+        // Throttle updates (max 10 per second per buggy)
+        const key = `buggy_${data.buggy_id}`;
+        const now = Date.now();
+        const lastUpdate = this.updateThrottle.get(key) || 0;
+        
+        if (now - lastUpdate < 100) { // 100ms = max 10 updates/sec
+            return;
+        }
+        
+        this.updateThrottle.set(key, now);
+        
+        // Find buggy row
+        const row = document.querySelector(`tr[data-buggy-id="${data.buggy_id}"]`);
+        if (!row) {
+            // Buggy row doesn't exist, reload list
+            console.log('Buggy row not found, reloading list');
+            this.loadBuggies();
+            return;
+        }
+        
+        // Update status badge
+        const statusBadge = row.querySelector('.buggy-status');
+        if (statusBadge) {
+            const statusConfig = {
+                'available': { text: 'Çevrimiçi', class: 'badge-success' },
+                'busy': { text: 'Meşgul', class: 'badge-warning' },
+                'offline': { text: 'Çevrimdışı', class: 'badge-secondary' }
+            };
+            
+            const config = statusConfig[data.status] || statusConfig.offline;
+            statusBadge.textContent = config.text;
+            statusBadge.className = `badge buggy-status ${config.class}`;
+            
+            // Add smooth transition
+            statusBadge.style.transition = 'all 0.3s ease';
+        }
+        
+        // Update driver name
+        const driverCell = row.querySelector('td:nth-child(3)');
+        if (driverCell) {
+            const hasDriver = data.driver_name && data.driver_name !== null;
+            driverCell.innerHTML = hasDriver 
+                ? `<i class="fas fa-user" style="margin-right: 0.25rem; color: #10b981;"></i>${data.driver_name}`
+                : '-';
+            driverCell.style.color = hasDriver ? '#1e293b' : '#94a3b8';
+        }
+        
+        // Update location (if available)
+        if (data.location_id) {
+            const locationCell = row.querySelector('td:nth-child(4)');
+            if (locationCell) {
+                // Find location name from cached locations
+                const location = this.locations.find(l => l.id === data.location_id);
+                if (location) {
+                    locationCell.innerHTML = `<i class="fas fa-map-marker-alt" style="margin-right: 0.25rem; color: #10b981;"></i><span class="buggy-location">${location.name}</span>`;
+                    locationCell.style.color = '#1e293b';
+                }
+            }
+        }
+        
+        // Update in buggies array
+        const buggyIndex = this.buggies.findIndex(b => b.id === data.buggy_id);
+        if (buggyIndex !== -1) {
+            this.buggies[buggyIndex].status = data.status;
+            this.buggies[buggyIndex].driver_name = data.driver_name;
+            if (data.location_id) {
+                this.buggies[buggyIndex].current_location_id = data.location_id;
+            }
+        }
+        
+        // Update stats
+        this.updateStats();
+    },
+
+    /**
+     * Setup page visibility handling
+     */
+    setupPageVisibility() {
+        let pendingUpdates = [];
+        
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Page went to background
+                console.log('Page hidden, deferring updates');
+            } else {
+                // Page came to foreground
+                console.log('Page visible, applying deferred updates');
+                if (pendingUpdates.length > 0) {
+                    // Apply all pending updates
+                    pendingUpdates.forEach(data => this.updateBuggyStatusRow(data));
+                    pendingUpdates = [];
+                }
+            }
+        });
+        
+        // Store pending updates when page is hidden
+        const originalUpdateFn = this.updateBuggyStatusRow.bind(this);
+        this.updateBuggyStatusRow = (data) => {
+            if (document.hidden) {
+                pendingUpdates.push(data);
+            } else {
+                originalUpdateFn(data);
+            }
+        };
+        
+        // Page unload handler
+        window.addEventListener('beforeunload', () => {
+            console.log('Page unloading, cleaning up...');
+            
+            // Close WebSocket connection
+            if (this.socket) {
+                this.socket.disconnect();
+            }
+            
+            // Clear throttle map
+            this.updateThrottle.clear();
+            
+            // Clear pending updates
+            pendingUpdates = [];
+        });
+        
+        // Pagehide handler (for mobile browsers)
+        window.addEventListener('pagehide', () => {
+            console.log('Page hiding, cleaning up...');
+            
+            if (this.socket) {
+                this.socket.disconnect();
+            }
+            
+            this.updateThrottle.clear();
+            pendingUpdates = [];
+        });
     },
 
     /**
@@ -820,7 +1073,7 @@ const Admin = {
             'accepted': 'Kabul Edildi',
             'completed': 'Tamamlandı',
             'cancelled': 'İptal Edildi',
-            'available': 'Müsait',
+            'available': 'Çevrimiçi',
             'busy': 'Meşgul',
             'offline': 'Çevrimdışı'
         };

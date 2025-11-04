@@ -90,11 +90,13 @@ class Config:
     
     # Session Configuration
     SESSION_TYPE = 'filesystem'
-    SESSION_PERMANENT = True
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
+    SESSION_PERMANENT = False  # Default: session expires on browser close
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=24)  # Only for admin sessions
     SESSION_COOKIE_SECURE = not DEBUG
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_NAME = 'buggycall_session'  # Custom cookie name
+    SESSION_REFRESH_EACH_REQUEST = True  # Refresh session on each request
     
     # Security Headers
     SECURITY_HEADERS = {
