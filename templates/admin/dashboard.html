@@ -255,23 +255,31 @@
 {% endblock %}
 
 {% block extra_js %}
+<script id="admin-config" type="application/json">
+{
+    "hotelId": {{ session.get('hotel_id', 1) }},
+    "notificationPermissionAsked": {% if notification_permission_asked %}true{% else %}false{% endif %},
+    "notificationPermissionStatus": "{% if notification_permission_status %}{{ notification_permission_status }}{% else %}default{% endif %}"
+}
+</script>
 <script src="{{ url_for('static', filename='js/notification-permission.js') }}"></script>
 <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 <script>
     // Admin sayfası olduğunu işaretle
     document.body.dataset.page = 'admin';
     
+    // Config'i oku
+    var config = JSON.parse(document.getElementById('admin-config').textContent);
+    document.body.dataset.hotelId = config.hotelId;
+    
     // Initialize notification permission handler for admin
     document.addEventListener('DOMContentLoaded', function() {
         notificationPermissionHandler.init(
             'admin',
-            {{ notification_permission_asked|tojson }},
-            '{{ notification_permission_status }}'
+            config.notificationPermissionAsked,
+            config.notificationPermissionStatus
         );
     });
-
-    // Set hotel ID from session data
-    document.body.dataset.hotelId = '{{ session.get("hotel_id", 1) }}';
 
     // Logout function
     async function logout() {
