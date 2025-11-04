@@ -157,8 +157,8 @@ class ProductionConfig(Config):
         'pool_timeout': 30
     }
     
-    # Use gevent for production WebSocket support (works with Python 3.11+)
-    SOCKETIO_ASYNC_MODE = 'gevent'
+    # Use threading for production (gevent requires additional setup)
+    SOCKETIO_ASYNC_MODE = 'threading'
     
     @classmethod
     def init_app(cls, app):
