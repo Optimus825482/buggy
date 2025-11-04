@@ -305,8 +305,8 @@ body {
 .footer-section {
     text-align: center;
     padding: 2rem 0;
-    background: var(--primary-navy);
-    border-top: 2px solid var(--royal-gold);
+    background: linear-gradient(135deg, #1BA5A8 0%, #158B8E 100%);
+    border-top: 2px solid rgba(255, 255, 255, 0.2);
     margin-top: 2rem;
     margin-left: calc(-1 * clamp(16px, 4vw, 24px));
     margin-right: calc(-1 * clamp(16px, 4vw, 24px));
@@ -317,7 +317,7 @@ body {
 .hotel-name {
     font-size: clamp(14px, 3.5vw, 16px);
     font-weight: 600;
-    color: #D8D8D8;
+    color: #FFFFFF;
     letter-spacing: 0.5px;
     margin: 0;
 }
@@ -877,10 +877,10 @@ const GuestCall = (() => {
     const updateLocationDisplay = (content, color, locationImage = null) => {
         console.log('🔧 updateLocationDisplay called with:', {content, color, locationImage: locationImage ? 'YES' : 'NO'});
         
-        const nameDisplay = $('location-name-display');
-        const mainImageContainer = $('location-main-image-container');
-        const mainImage = $('location-main-image');
-        const mainIconContainer = $('location-main-icon-container');
+        const nameDisplay = document.getElementById('location-name-display');
+        const mainImageContainer = document.getElementById('location-main-image-container');
+        const mainImage = document.getElementById('location-main-image');
+        const mainIconContainer = document.getElementById('location-main-icon-container');
         
         console.log('🔍 Elements found:', {
             nameDisplay: !!nameDisplay,
@@ -899,14 +899,22 @@ const GuestCall = (() => {
         
         // Büyük görsel varsa göster, yoksa icon göster
         if (locationImage && mainImageContainer && mainImage && mainIconContainer) {
+            console.log('🖼️ Setting image src:', locationImage);
             mainImage.src = locationImage;
-            mainImageContainer.style.display = 'block';
-            mainIconContainer.style.display = 'none';
-            console.log('✅ Image displayed');
+            mainImage.onerror = () => {
+                console.error('❌ Image failed to load:', locationImage);
+                mainImageContainer.style.display = 'none';
+                mainIconContainer.style.display = 'flex';
+            };
+            mainImage.onload = () => {
+                console.log('✅ Image loaded successfully');
+                mainImageContainer.style.display = 'block';
+                mainIconContainer.style.display = 'none';
+            };
         } else if (mainImageContainer && mainIconContainer) {
             mainImageContainer.style.display = 'none';
             mainIconContainer.style.display = 'flex';
-            console.log('✅ Icon displayed');
+            console.log('✅ Icon displayed (no image)');
         }
     };
 
