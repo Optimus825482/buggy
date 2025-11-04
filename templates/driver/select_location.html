@@ -446,9 +446,21 @@
     
     function renderLocationCards(locations) {
         const locationCards = locations.map(loc => {
+            // Resim yolunu tam URL'e çevir
+            let imageUrl = null;
+            if (loc.location_image) {
+                if (loc.location_image.startsWith('/')) {
+                    imageUrl = window.location.origin + loc.location_image;
+                } else if (loc.location_image.startsWith('http')) {
+                    imageUrl = loc.location_image;
+                } else {
+                    imageUrl = window.location.origin + '/' + loc.location_image;
+                }
+            }
+            
             // Görsel varsa göster, yoksa icon göster
-            const imageOrIcon = loc.location_image 
-                ? `<img src="${loc.location_image}" alt="${escapeHtml(loc.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 11px;">`
+            const imageOrIcon = imageUrl 
+                ? `<img src="${imageUrl}" alt="${escapeHtml(loc.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 11px;" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-map-marker-alt\\' style=\\'color: white; font-size: 1.375rem;\\'></i>';">`
                 : `<i class="fas fa-map-marker-alt" style="color: white; font-size: 1.375rem;"></i>`;
             
             return `

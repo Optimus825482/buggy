@@ -119,9 +119,18 @@
                     console.log('Creating image for:', loc.name, 'Image path:', loc.location_image);
                     const img = document.createElement('img');
                     
-                    // location_image is now a file path like /static/uploads/locations/xxx.png
-                    // NOT base64 anymore!
-                    img.src = loc.location_image;
+                    // Resim yolunu tam URL'e çevir
+                    let imageUrl = loc.location_image;
+                    if (imageUrl.startsWith('/')) {
+                        // Relative path ise tam URL yap
+                        imageUrl = window.location.origin + imageUrl;
+                    } else if (!imageUrl.startsWith('http')) {
+                        // Relative path (static/ ile başlıyor olabilir)
+                        imageUrl = window.location.origin + '/' + imageUrl;
+                    }
+                    console.log('Full image URL:', imageUrl);
+                    
+                    img.src = imageUrl;
                     img.alt = loc.name;
                     img.style.width = '60px';
                     img.style.height = '60px';
@@ -130,7 +139,7 @@
                     img.style.border = '2px solid #ddd';
                     
                     img.onerror = function() {
-                        console.error('Image load error for:', loc.name);
+                        console.error('Image load error for:', loc.name, 'URL:', imageUrl);
                         // Replace with placeholder on error
                         const placeholder = document.createElement('div');
                         placeholder.style.cssText = 'width: 60px; height: 60px; background: linear-gradient(135deg, #1BA5A8 0%, #158587 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px solid #ddd;';
