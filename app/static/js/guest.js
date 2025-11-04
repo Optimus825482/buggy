@@ -1,5 +1,5 @@
 /**
- * Buggy Call - Guest Panel JavaScript
+ * Shuttle Call - Guest Panel JavaScript
  * QR code scanning and real-time request tracking
  */
 
@@ -473,7 +473,7 @@ const Guest = {
                     color: #1e293b;
                     margin-bottom: 1rem;
                 ">
-                    Buggy Çağırmak İstiyor musunuz?
+                    Shuttle Çağırmak İstiyor musunuz?
                 </h3>
                 
                 <p style="
@@ -592,7 +592,7 @@ const Guest = {
             BuggyCall.Utils.hideLoading();
         } catch (error) {
             console.error('Request submission error:', error);
-            await BuggyCall.Utils.showError('Buggy çağrısı gönderilemedi: ' + error.message);
+            await BuggyCall.Utils.showError('Shuttle çağrısı gönderilemedi: ' + error.message);
             BuggyCall.Utils.hideLoading();
         }
     },
@@ -682,7 +682,7 @@ const Guest = {
                     line-height: 1.6;
                     margin-bottom: 1.5rem;
                 ">
-                    Buggy çağrınız başarıyla gönderildi.<br>
+                    Shuttle çağrınız başarıyla gönderildi.<br>
                     Durumunu takip edebilirsiniz.
                 </p>
                 
@@ -840,7 +840,7 @@ const Guest = {
             driverInfo.innerHTML = `
                 <div class="alert alert-info">
                     <i class="fas fa-golf-ball"></i>
-                    <strong>Buggy:</strong> ${request.buggy.code || 'N/A'}
+                    <strong>Shuttle:</strong> ${request.buggy.code || 'N/A'}
                     ${request.driver ? `<br><i class="fas fa-user"></i> <strong>Sürücü:</strong> ${request.driver.name}` : ''}
                 </div>
             `;
@@ -877,8 +877,8 @@ const Guest = {
     getStatusMessage(status) {
         const messages = {
             'pending': 'Talebiniz alındı, sürücü bekleniyor...',
-            'accepted': 'Buggy yolda! Sürücü konumunuza geliyor.',
-            'completed': 'Buggy ulaştı! İyi günler dileriz.',
+            'accepted': 'Shuttle yolda! Sürücü konumunuza geliyor.',
+            'completed': 'Shuttle ulaştı! İyi günler dileriz.',
             'cancelled': 'Talebiniz iptal edildi.'
         };
         return messages[status] || 'Durum güncelleniyor...';

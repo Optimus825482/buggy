@@ -1,6 +1,6 @@
 /**
  * Network Manager - Handle Online/Offline Status and Sync
- * Buggy Call - Progressive Web App
+ * Shuttle Call - Progressive Web App
  */
 
 class NetworkManager {

@@ -1,5 +1,5 @@
 /**
- * Buggy Call - Common JavaScript
+ * Shuttle Call - Common JavaScript
  * Shared functionality across all pages
  */
 
@@ -1133,4 +1133,4 @@ window.BuggyCall = {
     ServiceWorkerHandler // Service Worker message handler
 };
 
-console.log('Buggy Call initialized - Enhanced v3.0 with SW Navigation Handler');
+console.log('Shuttle Call initialized - Enhanced v3.0 with SW Navigation Handler');

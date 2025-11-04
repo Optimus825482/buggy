@@ -1,5 +1,5 @@
 /**
- * Buggy Call - Admin Panel JavaScript
+ * Shuttle Call - Admin Panel JavaScript
  * Powered by Erkan ERDEM
  */
 

@@ -37,10 +37,10 @@ class SystemUser(db.Model, BaseModel):
     email = Column(String(255))
     phone = Column(String(50))
     is_active = Column(Boolean, default=True, nullable=False, index=True)
-    must_change_password = Column(Boolean, default=False, nullable=False)  # Force password change on next login
-    push_subscription = Column(Text)  # JSON string for push notification subscription
-    push_subscription_date = Column(DateTime)  # When subscription was created/updated
-    notification_preferences = Column(Text)  # JSON string for notification preferences
+    must_change_password = Column(Boolean, default=False, nullable=False)
+    push_subscription = Column(Text)
+    push_subscription_date = Column(DateTime)
+    notification_preferences = Column(Text)
     
     # Timestamps
     created_at = Column(DateTime, default=get_current_timestamp, nullable=False)

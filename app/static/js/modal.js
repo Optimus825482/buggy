@@ -1,5 +1,5 @@
 /**
- * Buggy Call - Custom Modal System
+ * Shuttle Call - Custom Modal System
  * Modern, tema uyumlu alert, confirm ve modal gösterimler
  */
 

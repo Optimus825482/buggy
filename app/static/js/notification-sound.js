@@ -1,5 +1,5 @@
 /**
- * Buggy Call - Notification Sound Generator
+ * Shuttle Call - Notification Sound Generator
  * Basit bildirim sesi oluşturur (ses dosyası olmadan)
  */
 

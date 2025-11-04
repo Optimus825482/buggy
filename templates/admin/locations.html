@@ -356,7 +356,7 @@
                         </h3>
                         <div id="qr-code-canvas"></div>
                         <p style="margin: 1rem 0 0 0; font-size: 1rem; color: #666; font-weight: 600;">
-                            Buggy Call - QR Kod
+                            Shuttle Call - QR Kod
                         </p>
                     </div>
 
@@ -424,7 +424,7 @@
                         </h3>
                         <div id="qr-code-canvas"></div>
                         <p style="margin: 1rem 0 0 0; font-size: 1rem; color: #666; font-weight: 600;">
-                            Buggy Call - QR Kod
+                            Shuttle Call - QR Kod
                         </p>
                     </div>
 
@@ -527,7 +527,7 @@
                 </h3>
                 <div id="temp-qr-code-canvas"></div>
                 <p style="margin: 1rem 0 0 0; font-size: 1rem; color: #666; font-weight: 600;">
-                    Buggy Call - QR Kod
+                    Shuttle Call - QR Kod
                 </p>
             </div>
         `;
@@ -625,7 +625,7 @@
                         </head>
                         <body>
                             <div class="print-container">
-                                <div class="logo">🚗 Buggy Call</div>
+                                <div class="logo">🚗 Shuttle Call</div>
                                 ${container.outerHTML}
                                 <div class="instructions">
                                     <h4>📱 Nasıl Kullanılır?</h4>
@@ -637,7 +637,7 @@
                                     </ol>
                                 </div>
                                 <div class="footer">
-                                    <p style="margin-bottom: 0.5rem;"><strong>Buggy Call</strong> - Otel İçi Ulaşım Sistemi</p>
+                                    <p style="margin-bottom: 0.5rem;"><strong>Shuttle Call</strong> - Otel İçi Ulaşım Sistemi</p>
                                     <p style="font-size: 0.75rem;">Your Ride, On Demand</p>
                                     <p style="font-size: 0.75rem; margin-top: 1rem;">© 2025 Powered by Erkan ERDEM</p>
                                 </div>
@@ -682,7 +682,7 @@
             <html>
             <head>
                 <meta charset="UTF-8">
-                <title>QR Kod Yazdır - Buggy Call</title>
+                <title>QR Kod Yazdır - Shuttle Call</title>
                 <style>
                     * {
                         margin: 0;
@@ -778,7 +778,7 @@
             <body>
                 <div class="print-container">
                     <div class="logo">
-                        🚗 Buggy Call
+                        🚗 Shuttle Call
                     </div>
                     ${container.outerHTML}
 
@@ -793,7 +793,7 @@
                     </div>
 
                     <div class="footer">
-                        <p style="margin-bottom: 0.5rem;"><strong>Buggy Call</strong> - Otel İçi Ulaşım Sistemi</p>
+                        <p style="margin-bottom: 0.5rem;"><strong>Shuttle Call</strong> - Otel İçi Ulaşım Sistemi</p>
                         <p style="font-size: 0.75rem;">Your Ride, On Demand</p>
                         <p style="font-size: 0.75rem; margin-top: 1rem;">© 2025 Powered by Erkan ERDEM</p>
                     </div>
@@ -969,49 +969,90 @@
             return;
         }
 
-        // Create FormData
-        const formData = new FormData();
-        formData.append('name', name);
-        formData.append('description', description);
-        formData.append('display_order', displayOrder);
-        formData.append('is_active', isActive);
-
-        if ( latitude ) formData.append('latitude', parseFloat(latitude));
-        if ( longitude ) formData.append('longitude', parseFloat(longitude));
-
-        // Handle image update
+        // Check if we have a file to upload
         const imageInput = document.getElementById('edit-location-image');
-        if (window.editImageRemoved) {
-            formData.append('location_image', '');
-        } else if (imageInput && imageInput.files && imageInput.files[0]) {
-            const file = imageInput.files[0];
-            
-            // Validate file size (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                BuggyCall.Utils.showToast('Görsel boyutu 5MB\'dan küçük olmalı!', 'danger');
-                return;
+        const hasFile = imageInput && imageInput.files && imageInput.files[0];
+
+        if (hasFile || window.editImageRemoved) {
+            // Use FormData for file upload or image removal
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('description', description);
+            formData.append('display_order', displayOrder);
+            formData.append('is_active', isActive ? 'true' : 'false');
+
+            if ( latitude ) formData.append('latitude', parseFloat(latitude));
+            if ( longitude ) formData.append('longitude', parseFloat(longitude));
+
+            // Handle image update
+            if (window.editImageRemoved) {
+                formData.append('location_image', '');
+            } else if (hasFile) {
+                const file = imageInput.files[0];
+                
+                // Validate file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    BuggyCall.Utils.showToast('Görsel boyutu 5MB\'dan küçük olmalı!', 'danger');
+                    return;
+                }
+
+                formData.append('location_image', file);
             }
 
-            formData.append('location_image', file);
-        }
+            try {
+                const response = await fetch(`/api/locations/${id}`, {
+                    method: 'PUT',
+                    body: formData,
+                    credentials: 'same-origin'
+                    // Don't set Content-Type header - browser will set it automatically with boundary
+                });
 
-        try {
-            const response = await fetch(`/api/locations/${id}`, {
-                method: 'PUT',
-                body: formData,
-                credentials: 'same-origin'
-            });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Lokasyon güncellenemedi');
+                }
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Lokasyon güncellenemedi');
+                BuggyModal.closeModal(modal);
+                BuggyCall.Utils.showToast( 'Lokasyon başarıyla güncellendi!', 'success' );
+                loadLocationsPage();
+            } catch ( error ) {
+                console.error('Update error:', error);
+                BuggyCall.Utils.showToast( 'Lokasyon güncellenemedi: ' + ( error.message || 'Bilinmeyen hata' ), 'danger' );
             }
+        } else {
+            // Use JSON for simple updates without file
+            const data = {
+                name: name,
+                description: description,
+                display_order: displayOrder,
+                is_active: isActive
+            };
 
-            BuggyModal.closeModal(modal);
-            BuggyCall.Utils.showToast( 'Lokasyon başarıyla güncellendi!', 'success' );
-            loadLocationsPage();
-        } catch ( error ) {
-            BuggyCall.Utils.showToast( 'Lokasyon güncellenemedi: ' + ( error.message || 'Bilinmeyen hata' ), 'danger' );
+            if ( latitude ) data.latitude = parseFloat(latitude);
+            if ( longitude ) data.longitude = parseFloat(longitude);
+
+            try {
+                const response = await fetch(`/api/locations/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data),
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Lokasyon güncellenemedi');
+                }
+
+                BuggyModal.closeModal(modal);
+                BuggyCall.Utils.showToast( 'Lokasyon başarıyla güncellendi!', 'success' );
+                loadLocationsPage();
+            } catch ( error ) {
+                console.error('Update error:', error);
+                BuggyCall.Utils.showToast( 'Lokasyon güncellenemedi: ' + ( error.message || 'Bilinmeyen hata' ), 'danger' );
+            }
         }
     }
 

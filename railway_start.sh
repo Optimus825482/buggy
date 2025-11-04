@@ -16,7 +16,20 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 2. Migration fix
+# 2. Database reset (if RESET_DB=true)
+if [ "$RESET_DB" = "true" ]; then
+    echo ""
+    echo "🔥 RESETTING DATABASE..."
+    python reset_database.py
+    if [ $? -eq 0 ]; then
+        echo "✅ Database reset completed"
+    else
+        echo "❌ Database reset failed"
+        exit 1
+    fi
+fi
+
+# 3. Migration fix
 echo ""
 echo "⏳ Running migration fix..."
 python fix_railway_migration.py
@@ -25,16 +38,6 @@ if [ $? -eq 0 ]; then
 else
     echo "❌ Migration fix failed"
     exit 1
-fi
-
-# 3. Fix system_users columns
-echo ""
-echo "⏳ Fixing system_users columns..."
-python fix_system_users_push_columns.py
-if [ $? -eq 0 ]; then
-    echo "✅ System users columns fixed"
-else
-    echo "⚠️  System users column fix failed (continuing anyway)"
 fi
 
 # 4. Start application

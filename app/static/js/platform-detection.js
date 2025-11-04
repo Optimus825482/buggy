@@ -1,5 +1,5 @@
 /**
- * Buggy Call - Platform Detection and Optimization
+ * Shuttle Call - Platform Detection and Optimization
  * Detects device platform and applies appropriate optimizations
  */
 

@@ -9,19 +9,19 @@
 
     <!-- SEO Meta Tags -->
     <meta name="description"
-        content="{% block meta_description %}Buggy Call - Otel İçi Ulaşım Yönetim Sistemi{% endblock %}">
+        content="{% block meta_description %}Shuttle Call - Otel İçi Ulaşım Yönetim Sistemi{% endblock %}">
     <meta name="keywords" content="buggy, otel, ulaşım, qr kod, talep yönetimi">
-    <meta name="author" content="Buggy Call">
+    <meta name="author" content="Shuttle Call">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="{% block og_title %}Buggy Call{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}Shuttle Call{% endblock %}">
     <meta property="og:description" content="Your Ride, On Demand">
     <meta property="og:image" content="{{ url_for('static', filename='images/og-image.png') }}">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:title" content="{% block twitter_title %}Buggy Call{% endblock %}">
+    <meta property="twitter:title" content="{% block twitter_title %}Shuttle Call{% endblock %}">
     <meta property="twitter:description" content="Your Ride, On Demand">
 
     <!-- PWA Meta Tags -->
@@ -29,7 +29,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Buggy Call">
+    <meta name="apple-mobile-web-app-title" content="Shuttle Call">
 
     <!-- Icons -->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
@@ -54,7 +54,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
     {% block extra_css %}{% endblock %}
 
-    <title>{% block title %}Buggy Call{% endblock %} - {{ app_name }}</title>
+    <title>{% block title %}Shuttle Call{% endblock %} - {{ app_name }}</title>
 </head>
 
 <body data-hotel-id="{{ session.get('hotel_id', 1) }}">

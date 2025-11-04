@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Buggy Çağır{% endblock %}
+{% block title %}Shuttle Çağır{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/guest-premium.css') }}">
@@ -555,13 +555,13 @@ body {
     <!-- Location Image & Logo Section -->
     <div class="logo-section">
         <div class="brand-logo-section">
-       <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Buggy Call Logo" class="small-logo">
+       <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Shuttle Call Logo" class="small-logo">
         </div>
         <!-- Brand Title -->
         <div class="brand-title-section">
             <!-- Small Logo -->
         
-           <p class="brand-title-text">      Buggy Call System</p>  </div>
+           <p class="brand-title-text">      Shuttle Call System</p>  </div>
       
         
         <!-- Location Image (Large) -->
@@ -590,7 +590,7 @@ body {
                 <i class="fas fa-qrcode" aria-hidden="true"></i>
             </div>
             <h2>QR Kod Okutun</h2>
-            <p>Bulunduğunuz lokasyondaki QR kodu okutarak kolayca buggy çağırabilirsiniz</p>
+            <p>Bulunduğunuz lokasyondaki QR kodu okutarak kolayca shuttle çağırabilirsiniz</p>
             <button
                 class="btn-primary-modern"
                 onclick="GuestCall.startQRScanner()"
@@ -602,16 +602,16 @@ body {
         </div>
 
         <!-- Call Form Card (shown after QR scan) -->
-        <div class="call-form-card" id="call-form-card" role="region" aria-label="Buggy çağırma formu" {% if location_id %}style="display: block; opacity: 1; transform: translateY(0);"{% endif %}>
+        <div class="call-form-card" id="call-form-card" role="region" aria-label="Shuttle çağırma formu" {% if location_id %}style="display: block; opacity: 1; transform: translateY(0);"{% endif %}>
             <!-- Call Button -->
             <button
                 class="btn-primary-modern"
                 onclick="GuestCall.showConfirmationModal()"
-                aria-label="Buggy çağır"
+                aria-label="Shuttle çağır"
                 style="margin-bottom: 24px;"
                 type="button">
                 <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                <span>Buggy Çağır</span>
+                <span>Shuttle Çağır</span>
             </button>
 
             <!-- Room Number Input -->
@@ -865,7 +865,7 @@ const GuestCall = (() => {
             if (data.success && data.data?.items?.length > 0) {
                 const hotelNameEl = $(SELECTORS.HOTEL_NAME);
                 if (hotelNameEl) {
-                    hotelNameEl.textContent = 'Buggy Call System';
+                    hotelNameEl.textContent = 'Shuttle Call System';
                 }
             }
         } catch (error) {
@@ -1141,7 +1141,7 @@ const GuestCall = (() => {
                         color: #111827;
                         margin-bottom: 12px;
                     ">
-                        Buggy Çağırmak İstiyor musunuz?
+                        Shuttle Çağırmak İstiyor musunuz?
                     </h3>
 
                     <p style="
@@ -1238,7 +1238,7 @@ const GuestCall = (() => {
         }
 
         state.isProcessing = true;
-        showLoadingOverlay('Buggy çağrılıyor...');
+        showLoadingOverlay('Shuttle çağrılıyor...');
 
         try {
             const data = await fetchJSON(ENDPOINTS.REQUESTS, {
@@ -1311,7 +1311,7 @@ const GuestCall = (() => {
                     line-height: 1.6;
                     margin-bottom: 24px;
                 ">
-                    Buggy çağrınız başarıyla gönderildi.<br>
+                    Shuttle çağrınız başarıyla gönderildi.<br>
                     Durumunu takip edebilirsiniz.
                 </p>
 

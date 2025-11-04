@@ -1,5 +1,5 @@
 /**
- * Buggy Call - Driver Dashboard JavaScript
+ * Shuttle Call - Driver Dashboard JavaScript
  * Real-time request management for drivers
  */
 

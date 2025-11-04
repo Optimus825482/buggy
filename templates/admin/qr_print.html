@@ -160,7 +160,7 @@
 <body>
     <div class="controls no-print">
         <h1 class="logo">
-            <i class="fas fa-qrcode"></i> Buggy Call QR Kodları
+            <i class="fas fa-qrcode"></i> Shuttle Call QR Kodları
         </h1>
         <button class="btn-primary" onclick="window.print()">
             <i class="fas fa-print"></i> Yazdır
@@ -224,7 +224,7 @@
             const card = document.createElement( 'div' );
             card.className = 'qr-card';
             card.innerHTML = `
-                <div class="logo">Buggy Call</div>
+                <div class="logo">Shuttle Call</div>
                 <h3>${location.name}</h3>
                 <div class="description">${location.description || ''}</div>
                 <div class="qr-code" id="qr-${location.id}"></div>

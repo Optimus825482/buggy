@@ -7,6 +7,38 @@ import os
 import sys
 from sqlalchemy import create_engine, text, inspect
 
+def update_model_file():
+    """Uncomment the push notification columns in user.py model"""
+    try:
+        model_path = 'app/models/user.py'
+        
+        with open(model_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Uncomment the columns
+        content = content.replace(
+            '    # Push notification fields - will be added via migration\n'
+            '    # must_change_password = Column(Boolean, default=False, nullable=False)\n'
+            '    # push_subscription = Column(Text)\n'
+            '    # push_subscription_date = Column(DateTime)\n'
+            '    # notification_preferences = Column(Text)',
+            '    # Push notification fields\n'
+            '    must_change_password = Column(Boolean, default=False, nullable=False)\n'
+            '    push_subscription = Column(Text)\n'
+            '    push_subscription_date = Column(DateTime)\n'
+            '    notification_preferences = Column(Text)'
+        )
+        
+        with open(model_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        print("✅ Model file updated")
+        return True
+        
+    except Exception as e:
+        print(f"⚠️  Could not update model file: {e}")
+        return False
+
 def fix_system_users_columns():
     """Add missing columns to system_users table"""
     
@@ -46,6 +78,11 @@ def fix_system_users_columns():
                     print(f"⏭️  Column already exists: {col_name}")
         
         print("\n✅ All columns checked/added successfully!")
+        
+        # Now update the model file to uncomment the columns
+        print("\n📝 Updating model file...")
+        update_model_file()
+        
         return True
         
     except Exception as e:

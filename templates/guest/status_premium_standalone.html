@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Talep Durumu - Buggy Call</title>
+    <title>Talep Durumu - Shuttle Call</title>
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome.min.css') }}">
@@ -418,7 +418,7 @@
             }
 
             document.getElementById('status-icon').innerHTML = '<i class="fas fa-truck-pickup"></i>';
-            document.getElementById('status-title').textContent = 'Buggy Yolda!';
+            document.getElementById('status-title').textContent = 'Shuttle Yolda!';
             document.getElementById('status-message').textContent = 'Sürücünüz yola çıktı. Yakında yanınızda olacak.';
 
             if (request.buggy_code) {

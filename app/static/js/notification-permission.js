@@ -1,6 +1,6 @@
 /**
  * Notification Permission Handler
- * Buggy Call - Progressive Web App
+ * Shuttle Call - Progressive Web App
  * 
  * Handles notification permission requests for driver and admin users
  * after login to enable real-time guest request notifications.

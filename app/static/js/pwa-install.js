@@ -1,6 +1,6 @@
 /**
  * PWA Install Prompt Handler
- * Buggy Call - Progressive Web App
+ * Shuttle Call - Progressive Web App
  */
 
 class PWAInstaller {
@@ -75,10 +75,10 @@ class PWAInstaller {
         this.installBanner.innerHTML = `
             <div class="pwa-install-content">
                 <div class="pwa-install-icon">
-                    <img src="/static/icons/Icon-96.png" alt="Buggy Call">
+                    <img src="/static/icons/Icon-96.png" alt="Shuttle Call">
                 </div>
                 <div class="pwa-install-text">
-                    <h3>Buggy Call Uygulamasını Yükle</h3>
+                    <h3>Shuttle Call Uygulamasını Yükle</h3>
                     <p>Daha hızlı erişim ve offline kullanım için yükleyin</p>
                 </div>
                 <div class="pwa-install-actions">

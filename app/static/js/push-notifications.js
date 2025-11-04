@@ -1,6 +1,6 @@
 /**
  * Push Notifications Manager
- * Buggy Call - Progressive Web App
+ * Shuttle Call - Progressive Web App
  */
 
 class PushNotificationManager {
@@ -256,7 +256,7 @@ class PushNotificationManager {
      * Show notification for new buggy request
      */
     async notifyNewRequest(request) {
-        await this.showNotification('Yeni Buggy Talebi', {
+        await this.showNotification('Yeni Shuttle Talebi', {
             body: `${request.location_name} konumundan yeni bir talep var`,
             icon: '/static/icons/Icon-192.png',
             tag: `request-${request.id}`,
@@ -285,7 +285,7 @@ class PushNotificationManager {
     async notifyStatusChange(request, newStatus) {
         const statusMessages = {
             'accepted': 'Talebiniz kabul edildi',
-            'in_progress': 'Buggy yolda',
+            'in_progress': 'Shuttle yolda',
             'completed': 'Talep tamamlandı',
             'cancelled': 'Talep iptal edildi'
         };

@@ -88,7 +88,7 @@ async function showRequestDetails(requestId) {
                     <p><strong>Durum:</strong> ${statusBadges[req.status] || req.status}</p>
                     <p><strong>Talep Zamanı:</strong> ${new Date(req.requested_at).toLocaleString('tr-TR')}</p>
                     ${req.driver ? `<p><strong>Sürücü:</strong> ${req.driver.full_name}</p>` : ''}
-                    ${req.buggy ? `<p><strong>Buggy:</strong> ${req.buggy.code}</p>` : ''}
+                    ${req.buggy ? `<p><strong>Shuttle:</strong> ${req.buggy.code}</p>` : ''}
                     ${req.notes ? `<p><strong>Notlar:</strong> ${req.notes}</p>` : ''}
                 </div>
             </div>
@@ -174,7 +174,7 @@ function initWebSocket() {
             console.log('New request received:', data);
             
             // Show browser notification
-            showNotification('Yeni Buggy Talebi!', {
+            showNotification('Yeni Shuttle Talebi!', {
                 body: `${data.location?.name || 'Lokasyon'} - ${data.guest_name || 'Misafir'}`,
                 icon: '/static/images/logo.png',
                 tag: 'new-request-' + data.request_id

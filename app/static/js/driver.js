@@ -1,5 +1,5 @@
 /**
- * Buggy Call - Driver Panel JavaScript
+ * Shuttle Call - Driver Panel JavaScript
  * Real-time request management for drivers
  */
 
@@ -25,7 +25,7 @@ const Driver = {
         // Check if driver has buggy assigned
         if (!this.buggyId || this.buggyId === '0') {
             console.warn('No buggy assigned to driver');
-            await BuggyCall.Utils.showWarning('Size henüz bir buggy atanmamış. Lütfen yöneticinizle iletişime geçin.');
+            await BuggyCall.Utils.showWarning('Size henüz bir shuttle atanmamış. Lütfen yöneticinizle iletişime geçin.');
             return;
         }
         

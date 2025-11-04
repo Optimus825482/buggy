@@ -305,13 +305,21 @@ def update_location(location_id):
         if not location:
             return jsonify({'error': 'Lokasyon bulunamadı'}), 404
         
-        # Check if request has files (multipart/form-data)
-        if request.files:
+        # Check content type and parse data accordingly
+        content_type = request.content_type or ''
+        
+        if 'multipart/form-data' in content_type:
+            # FormData request
             data = request.form.to_dict()
             image_file = request.files.get('location_image')
-        else:
-            data = request.get_json()
+        elif 'application/json' in content_type:
+            # JSON request
+            data = request.get_json() or {}
             image_file = None
+        else:
+            # Try to handle both
+            data = request.form.to_dict() if request.form else (request.get_json() or {})
+            image_file = request.files.get('location_image') if request.files else None
         
         # Update fields
         if 'name' in data:
@@ -331,7 +339,7 @@ def update_location(location_id):
             except ValueError as e:
                 return jsonify({'error': str(e)}), 400
         elif 'location_image' in data:
-            if data['location_image'] is None or data['location_image'] == '':
+            if data['location_image'] is None or data['location_image'] == '' or data['location_image'] == 'null':
                 # Remove image
                 if location.location_image and location.location_image.startswith('/static/uploads/'):
                     delete_location_image(location.location_image)
@@ -345,7 +353,13 @@ def update_location(location_id):
         if 'longitude' in data:
             location.longitude = float(data['longitude']) if data['longitude'] else None
         if 'is_active' in data:
-            location.is_active = bool(data['is_active']) if isinstance(data['is_active'], bool) else data['is_active'] == 'true'
+            # Handle both boolean and string values
+            if isinstance(data['is_active'], bool):
+                location.is_active = data['is_active']
+            elif isinstance(data['is_active'], str):
+                location.is_active = data['is_active'].lower() in ('true', '1', 'yes')
+            else:
+                location.is_active = bool(data['is_active'])
         if 'display_order' in data:
             location.display_order = int(data['display_order'])
         
@@ -358,6 +372,7 @@ def update_location(location_id):
         }), 200
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f'Location update error: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
 

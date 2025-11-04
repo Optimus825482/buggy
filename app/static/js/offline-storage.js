@@ -1,6 +1,6 @@
 /**
  * Offline Storage Handler - IndexedDB for Background Sync
- * Buggy Call - Progressive Web App
+ * Shuttle Call - Progressive Web App
  */
 
 class OfflineStorage {
