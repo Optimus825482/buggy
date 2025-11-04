@@ -19,14 +19,69 @@ from app.schemas import (
     UserCreateSchema
 )
 from datetime import datetime
+from werkzeug.utils import secure_filename
 import qrcode
 import io
 import base64
+import os
+import uuid
 
 api_bp = Blueprint('api', __name__)
 
 # Exempt API endpoints from CSRF (using JWT/session instead)
 csrf.exempt(api_bp)
+
+# Upload configuration
+UPLOAD_FOLDER = 'app/static/uploads/locations'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+def allowed_file(filename):
+    """Check if file extension is allowed"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_location_image(file):
+    """Save uploaded location image and return the file path"""
+    if not file or file.filename == '':
+        return None
+    
+    if not allowed_file(file.filename):
+        raise ValueError('Geçersiz dosya formatı. Sadece PNG, JPG, JPEG, GIF, WEBP desteklenir.')
+    
+    # Check file size
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    
+    if file_size > MAX_FILE_SIZE:
+        raise ValueError('Dosya boyutu 5MB\'dan büyük olamaz.')
+    
+    # Generate unique filename
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    
+    # Ensure upload directory exists
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    
+    # Save file
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
+    
+    # Return relative path for database
+    return f"/static/uploads/locations/{filename}"
+
+def delete_location_image(image_path):
+    """Delete location image file"""
+    if not image_path or not image_path.startswith('/static/uploads/locations/'):
+        return
+    
+    try:
+        # Convert relative path to absolute
+        filepath = os.path.join('app', image_path.lstrip('/'))
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    except Exception as e:
+        print(f"Error deleting image {image_path}: {e}")
 
 
 # ==================== Health & Info ====================
@@ -151,16 +206,36 @@ def create_location():
         from app.config import Config
         
         user = SystemUser.query.get(session['user_id'])
-        data = request.get_json()
+        
+        # Check if request has files (multipart/form-data)
+        if request.files:
+            # Form data with file upload
+            data = request.form.to_dict()
+            image_file = request.files.get('location_image')
+        else:
+            # JSON data (backward compatibility)
+            data = request.get_json()
+            image_file = None
         
         # Validate required fields
         if not data.get('name'):
             return jsonify({'error': 'Lokasyon adı gerekli'}), 400
         
         # Auto-assign display_order if not provided or is 0
-        if 'display_order' not in data or data['display_order'] is None or data['display_order'] == 0:
+        if 'display_order' not in data or data['display_order'] is None or data['display_order'] == '' or int(data.get('display_order', 0)) == 0:
             max_order = db.session.query(db.func.max(Location.display_order)).filter_by(hotel_id=user.hotel_id).scalar() or 0
             data['display_order'] = max_order + 1
+        
+        # Handle image upload
+        location_image_path = None
+        if image_file:
+            try:
+                location_image_path = save_location_image(image_file)
+            except ValueError as e:
+                return jsonify({'error': str(e)}), 400
+        elif data.get('location_image'):
+            # Backward compatibility: base64 image
+            location_image_path = data.get('location_image')
         
         # Create location first to get the ID
         location = Location(
@@ -168,37 +243,29 @@ def create_location():
             name=data['name'],
             description=data.get('description', ''),
             qr_code_data='',  # Temporary, will be updated after we have the ID
-            location_image=data.get('location_image'),  # Base64 encoded image
-            latitude=data.get('latitude'),
-            longitude=data.get('longitude'),
+            location_image=location_image_path,
+            latitude=float(data['latitude']) if data.get('latitude') else None,
+            longitude=float(data['longitude']) if data.get('longitude') else None,
             is_active=True,
-            display_order=data['display_order']
+            display_order=int(data['display_order'])
         )
         
         db.session.add(location)
         db.session.flush()  # Get the location ID without committing
         
         # Generate QR code data as URL with location ID
-        # Priority: 1) Railway URL env var, 2) Local IP for development, 3) Config BASE_URL, 4) Request host
-        import os
-        
         railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN')
         railway_static_url = os.getenv('RAILWAY_STATIC_URL')
         
         if railway_domain:
-            # Production: Railway domain
             base_url = f"https://{railway_domain}"
         elif railway_static_url:
-            # Production: Railway static URL
             base_url = railway_static_url.rstrip('/')
         elif request.host.startswith('localhost') or request.host.startswith('127.0.0.1'):
-            # Local development: Use local IP for QR codes
             base_url = "http://192.168.1.100:5000"
         elif current_app.config.get('BASE_URL') and current_app.config.get('BASE_URL') != 'http://localhost:5000':
-            # Custom BASE_URL
             base_url = current_app.config.get('BASE_URL')
         else:
-            # Fallback: Request host
             base_url = request.host_url.rstrip('/')
         
         qr_code_data = f"{base_url}/guest/call?location={location.id}"
@@ -238,23 +305,49 @@ def update_location(location_id):
         if not location:
             return jsonify({'error': 'Lokasyon bulunamadı'}), 404
         
-        data = request.get_json()
+        # Check if request has files (multipart/form-data)
+        if request.files:
+            data = request.form.to_dict()
+            image_file = request.files.get('location_image')
+        else:
+            data = request.get_json()
+            image_file = None
         
         # Update fields
         if 'name' in data:
             location.name = data['name']
         if 'description' in data:
             location.description = data['description']
-        if 'location_image' in data:
-            location.location_image = data['location_image']  # Base64 encoded image or None to remove
+        
+        # Handle image update
+        if image_file:
+            # Delete old image if exists and is a file path
+            if location.location_image and location.location_image.startswith('/static/uploads/'):
+                delete_location_image(location.location_image)
+            
+            # Save new image
+            try:
+                location.location_image = save_location_image(image_file)
+            except ValueError as e:
+                return jsonify({'error': str(e)}), 400
+        elif 'location_image' in data:
+            if data['location_image'] is None or data['location_image'] == '':
+                # Remove image
+                if location.location_image and location.location_image.startswith('/static/uploads/'):
+                    delete_location_image(location.location_image)
+                location.location_image = None
+            else:
+                # Backward compatibility: base64 image
+                location.location_image = data['location_image']
+        
         if 'latitude' in data:
-            location.latitude = data['latitude']
+            location.latitude = float(data['latitude']) if data['latitude'] else None
         if 'longitude' in data:
-            location.longitude = data['longitude']
+            location.longitude = float(data['longitude']) if data['longitude'] else None
         if 'is_active' in data:
-            location.is_active = data['is_active']
+            location.is_active = bool(data['is_active']) if isinstance(data['is_active'], bool) else data['is_active'] == 'true'
         if 'display_order' in data:
-            location.display_order = data['display_order']
+            location.display_order = int(data['display_order'])
         
         db.session.commit()
         
@@ -281,6 +374,10 @@ def delete_location(location_id):
         location = Location.query.filter_by(id=location_id, hotel_id=user.hotel_id).first()
         if not location:
             return jsonify({'error': 'Lokasyon bulunamadı'}), 404
+        
+        # Delete location image if exists
+        if location.location_image and location.location_image.startswith('/static/uploads/'):
+            delete_location_image(location.location_image)
         
         # Delegate to service layer for all validation and deletion logic
         LocationService.delete_location(location_id)

@@ -871,6 +871,22 @@ async function storeBadgeCount(count) {
   }
 }
 
+/**
+ * Store badge count to IndexedDB for persistence
+ * @param {number} count - Badge count to store
+ */
+async function storeBadgeCount(count) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction([STORE_BADGE_COUNT], 'readwrite');
+    const store = tx.objectStore(STORE_BADGE_COUNT);
+    await promisifyRequest(store.put({ id: 'count', value: count, updatedAt: Date.now() }));
+    console.log(`[SW] Badge count stored: ${count}`);
+  } catch (error) {
+    console.error('[SW] Error storing badge count:', error);
+  }
+}
+
 // ============================================================================
 // OFFLINE QUEUE MANAGER
 // ============================================================================

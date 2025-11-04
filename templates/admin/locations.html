@@ -285,9 +285,9 @@
     async function saveLocation( modal ) {
         const form = document.getElementById( 'location-form' );
         const formData = new FormData( form );
-        const data = Object.fromEntries( formData );
 
-        if ( !data.name || data.name.trim() === '' ) {
+        const name = formData.get('name');
+        if ( !name || name.trim() === '' ) {
             BuggyCall.Utils.showToast( 'Lokasyon adı gerekli!', 'danger' );
             return;
         }
@@ -303,21 +303,28 @@
                 return;
             }
 
-            // Convert to base64
-            try {
-                const base64 = await fileToBase64(file);
-                data.location_image = base64;
-            } catch (error) {
-                console.error('Image conversion error:', error);
-                BuggyCall.Utils.showToast('Görsel yüklenemedi!', 'danger');
-                return;
-            }
+            // Add file to FormData
+            formData.append('location_image', file);
         }
 
         try {
-            console.log( 'Sending location data:', data );
-            const response = await BuggyCall.API.post( '/locations', data );
-            console.log( 'Location created:', response );
+            console.log( 'Sending location data with FormData' );
+            
+            // Send FormData directly (multipart/form-data)
+            const response = await fetch('/api/locations', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Lokasyon eklenemedi');
+            }
+
+            const result = await response.json();
+            console.log( 'Location created:', result );
+            
             BuggyModal.closeModal( modal );
             BuggyCall.Utils.showToast( 'Lokasyon başarıyla eklendi!', 'success' );
 
@@ -325,7 +332,7 @@
             await loadLocationsPage();
 
             // Show QR code modal immediately after creation
-            const location = response.location || response.data;
+            const location = result.location || result.data;
             if (location && location.id) {
                 setTimeout(() => {
                     showQRCodeAfterCreation(location);
@@ -337,14 +344,7 @@
         }
     }
 
-    function fileToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    }
+
 
     function showQRCodeAfterCreation(location) {
         const guestUrl = location.qr_code_data || `${window.location.origin}/guest/call?location=${location.id}`;
@@ -979,20 +979,20 @@
             return;
         }
 
-        const updateData = {
-            name,
-            description,
-            display_order: displayOrder,
-            is_active: isActive
-        };
+        // Create FormData
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('description', description);
+        formData.append('display_order', displayOrder);
+        formData.append('is_active', isActive);
 
-        if ( latitude ) updateData.latitude = parseFloat( latitude );
-        if ( longitude ) updateData.longitude = parseFloat( longitude );
+        if ( latitude ) formData.append('latitude', parseFloat(latitude));
+        if ( longitude ) formData.append('longitude', parseFloat(longitude));
 
         // Handle image update
         const imageInput = document.getElementById('edit-location-image');
         if (window.editImageRemoved) {
-            updateData.location_image = null;
+            formData.append('location_image', '');
         } else if (imageInput && imageInput.files && imageInput.files[0]) {
             const file = imageInput.files[0];
             
@@ -1002,18 +1002,21 @@
                 return;
             }
 
-            try {
-                const base64 = await fileToBase64(file);
-                updateData.location_image = base64;
-            } catch (error) {
-                console.error('Image conversion error:', error);
-                BuggyCall.Utils.showToast('Görsel yüklenemedi!', 'danger');
-                return;
-            }
+            formData.append('location_image', file);
         }
 
         try {
-            await BuggyCall.API.put( `/locations/${id}`, updateData );
+            const response = await fetch(`/api/locations/${id}`, {
+                method: 'PUT',
+                body: formData,
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Lokasyon güncellenemedi');
+            }
+
             BuggyModal.closeModal(modal);
             BuggyCall.Utils.showToast( 'Lokasyon başarıyla güncellendi!', 'success' );
             loadLocationsPage();
