@@ -71,56 +71,100 @@ const DriverDashboard = {
                 return;
             }
             
-            // Create location cards (mobile-friendly, better UX)
-            // Click on card directly saves location
-            const locationCards = locations.map(loc => `
-                <button 
-                    type="button"
-                    class="location-card" 
-                    data-location-id="${loc.id}"
-                    style="
-                        width: 100%;
-                        padding: 1rem;
-                        margin-bottom: 0.75rem;
-                        background: white;
-                        border: 2px solid #e2e8f0;
-                        border-radius: 12px;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                        text-align: left;
-                        display: flex;
-                        align-items: center;
-                        gap: 1rem;
-                    "
-                    onmouseover="this.style.borderColor='#0ea5e9'; this.style.backgroundColor='#f0f9ff'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(14, 165, 233, 0.15)';"
-                    onmouseout="this.style.borderColor='#e2e8f0'; this.style.backgroundColor='white'; this.style.transform='translateY(0)'; this.style.boxShadow='none';"
-                    onclick="DriverDashboard.selectAndSaveLocation(${loc.id});"
-                >
-                    <div style="
-                        width: 48px;
-                        height: 48px;
-                        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-                        border-radius: 12px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-shrink: 0;
-                    ">
-                        <i class="fas fa-map-marker-alt" style="color: white; font-size: 1.25rem;"></i>
-                    </div>
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; color: #1e293b; font-size: 1rem; margin-bottom: 0.25rem;">
-                            ${loc.name}
+            // Create location cards with images
+            const locationCards = locations.map(loc => {
+                // Prepare image URL
+                let imageHtml = '';
+                if (loc.location_image) {
+                    let imageUrl = loc.location_image;
+                    // Convert to full URL if needed
+                    if (imageUrl.startsWith('/')) {
+                        imageUrl = window.location.origin + imageUrl;
+                    } else if (!imageUrl.startsWith('http')) {
+                        imageUrl = window.location.origin + '/' + imageUrl;
+                    }
+                    
+                    imageHtml = `
+                        <img 
+                            src="${imageUrl}" 
+                            alt="${loc.name}"
+                            style="
+                                width: 48px;
+                                height: 48px;
+                                border-radius: 12px;
+                                object-fit: cover;
+                                flex-shrink: 0;
+                            "
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        />
+                        <div style="
+                            width: 48px;
+                            height: 48px;
+                            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+                            border-radius: 12px;
+                            display: none;
+                            align-items: center;
+                            justify-content: center;
+                            flex-shrink: 0;
+                        ">
+                            <i class="fas fa-map-marker-alt" style="color: white; font-size: 1.25rem;"></i>
                         </div>
-                        <div style="font-size: 0.875rem; color: #64748b;">
-                            Konumu seç
+                    `;
+                } else {
+                    imageHtml = `
+                        <div style="
+                            width: 48px;
+                            height: 48px;
+                            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+                            border-radius: 12px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-shrink: 0;
+                        ">
+                            <i class="fas fa-map-marker-alt" style="color: white; font-size: 1.25rem;"></i>
                         </div>
-                    </div>
-                    <div style="flex-shrink: 0;">
-                        <i class="fas fa-chevron-right" style="color: #cbd5e1; font-size: 1.25rem;"></i>
-                    </div>
-                </button>
-            `).join('');
+                    `;
+                }
+                
+                return `
+                    <button 
+                        type="button"
+                        class="location-card" 
+                        data-location-id="${loc.id}"
+                        style="
+                            width: 100%;
+                            padding: 1rem;
+                            margin-bottom: 0.75rem;
+                            background: white;
+                            border: 2px solid #e2e8f0;
+                            border-radius: 12px;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                            text-align: left;
+                            display: flex;
+                            align-items: center;
+                            gap: 1rem;
+                        "
+                        onmouseover="this.style.borderColor='#0ea5e9'; this.style.backgroundColor='#f0f9ff'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(14, 165, 233, 0.15)';"
+                        onmouseout="this.style.borderColor='#e2e8f0'; this.style.backgroundColor='white'; this.style.transform='translateY(0)'; this.style.boxShadow='none';"
+                        onclick="DriverDashboard.selectAndSaveLocation(${loc.id});"
+                    >
+                        ${imageHtml}
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #1e293b; font-size: 1rem; margin-bottom: 0.25rem;">
+                                ${loc.name}
+                            </div>
+                            <div style="font-size: 0.875rem; color: #64748b;">
+                                Konumu seç
+                            </div>
+                        </div>
+                        <div style="flex-shrink: 0;">
+                            <i class="fas fa-chevron-right" style="color: #cbd5e1; font-size: 1.25rem;"></i>
+                        </div>
+                    </button>
+                `;
+            }).join('');
             
             const modalContent = `
                 <div style="padding: 0;">
@@ -400,26 +444,9 @@ const DriverDashboard = {
             window.location.href = '/auth/logout';
         });
         
-        this.socket.on('disconnect', async () => {
-            console.log('🔌 Socket disconnected - updating buggy status to available');
-            
-            // Update buggy status to available when disconnecting
-            if (this.buggyId) {
-                try {
-                    await fetch(`/api/buggies/${this.buggyId}/status`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            status: 'available'
-                        })
-                    });
-                    console.log('✅ Buggy status updated to available on disconnect');
-                } catch (error) {
-                    console.error('❌ Failed to update buggy status on disconnect:', error);
-                }
-            }
+        this.socket.on('disconnect', () => {
+            console.log('🔌 Socket disconnected');
+            // Backend will handle setting buggy to offline
         });
     },
 
@@ -723,55 +750,100 @@ const DriverDashboard = {
             // Store requestId for later use
             this.tempRequestId = requestId;
             
-            // Create location cards (same style as initial setup)
-            const locationCards = locations.map(loc => `
-                <button 
-                    type="button"
-                    class="completion-location-card" 
-                    data-location-id="${loc.id}"
-                    style="
-                        width: 100%;
-                        padding: 1rem;
-                        margin-bottom: 0.75rem;
-                        background: white;
-                        border: 2px solid #e2e8f0;
-                        border-radius: 12px;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                        text-align: left;
-                        display: flex;
-                        align-items: center;
-                        gap: 1rem;
-                    "
-                    onmouseover="this.style.borderColor='#10b981'; this.style.backgroundColor='#f0fdf4'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.15)';"
-                    onmouseout="this.style.borderColor='#e2e8f0'; this.style.backgroundColor='white'; this.style.transform='translateY(0)'; this.style.boxShadow='none';"
-                    onclick="DriverDashboard.selectCompletionLocation(${loc.id});"
-                >
-                    <div style="
-                        width: 48px;
-                        height: 48px;
-                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                        border-radius: 12px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-shrink: 0;
-                    ">
-                        <i class="fas fa-map-marker-alt" style="color: white; font-size: 1.25rem;"></i>
-                    </div>
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; color: #1e293b; font-size: 1rem; margin-bottom: 0.25rem;">
-                            ${loc.name}
+            // Create location cards with images
+            const locationCards = locations.map(loc => {
+                // Prepare image URL
+                let imageHtml = '';
+                if (loc.location_image) {
+                    let imageUrl = loc.location_image;
+                    // Convert to full URL if needed
+                    if (imageUrl.startsWith('/')) {
+                        imageUrl = window.location.origin + imageUrl;
+                    } else if (!imageUrl.startsWith('http')) {
+                        imageUrl = window.location.origin + '/' + imageUrl;
+                    }
+                    
+                    imageHtml = `
+                        <img 
+                            src="${imageUrl}" 
+                            alt="${loc.name}"
+                            style="
+                                width: 48px;
+                                height: 48px;
+                                border-radius: 12px;
+                                object-fit: cover;
+                                flex-shrink: 0;
+                            "
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        />
+                        <div style="
+                            width: 48px;
+                            height: 48px;
+                            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                            border-radius: 12px;
+                            display: none;
+                            align-items: center;
+                            justify-content: center;
+                            flex-shrink: 0;
+                        ">
+                            <i class="fas fa-map-marker-alt" style="color: white; font-size: 1.25rem;"></i>
                         </div>
-                        <div style="font-size: 0.875rem; color: #64748b;">
-                            Şu anki konumunuz
+                    `;
+                } else {
+                    imageHtml = `
+                        <div style="
+                            width: 48px;
+                            height: 48px;
+                            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                            border-radius: 12px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-shrink: 0;
+                        ">
+                            <i class="fas fa-map-marker-alt" style="color: white; font-size: 1.25rem;"></i>
                         </div>
-                    </div>
-                    <div style="flex-shrink: 0;">
-                        <i class="fas fa-check-circle" style="color: #cbd5e1; font-size: 1.25rem;"></i>
-                    </div>
-                </button>
-            `).join('');
+                    `;
+                }
+                
+                return `
+                    <button 
+                        type="button"
+                        class="completion-location-card" 
+                        data-location-id="${loc.id}"
+                        style="
+                            width: 100%;
+                            padding: 1rem;
+                            margin-bottom: 0.75rem;
+                            background: white;
+                            border: 2px solid #e2e8f0;
+                            border-radius: 12px;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                            text-align: left;
+                            display: flex;
+                            align-items: center;
+                            gap: 1rem;
+                        "
+                        onmouseover="this.style.borderColor='#10b981'; this.style.backgroundColor='#f0fdf4'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.15)';"
+                        onmouseout="this.style.borderColor='#e2e8f0'; this.style.backgroundColor='white'; this.style.transform='translateY(0)'; this.style.boxShadow='none';"
+                        onclick="DriverDashboard.selectCompletionLocation(${loc.id});"
+                    >
+                        ${imageHtml}
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #1e293b; font-size: 1rem; margin-bottom: 0.25rem;">
+                                ${loc.name}
+                            </div>
+                            <div style="font-size: 0.875rem; color: #64748b;">
+                                Şu anki konumunuz
+                            </div>
+                        </div>
+                        <div style="flex-shrink: 0;">
+                            <i class="fas fa-check-circle" style="color: #cbd5e1; font-size: 1.25rem;"></i>
+                        </div>
+                    </button>
+                `;
+            }).join('');
             
             const modalContent = `
                 <div style="padding: 0;">
@@ -1187,34 +1259,8 @@ const DriverDashboard = {
      * Setup event listeners
      */
     setupEventListeners() {
-        // Handle page unload - update buggy status
-        window.addEventListener('beforeunload', () => {
-            if (this.buggyId) {
-                // Use sendBeacon for reliable delivery even when page is closing
-                const data = JSON.stringify({ status: 'available' });
-                const blob = new Blob([data], { type: 'application/json' });
-                navigator.sendBeacon(`/api/buggies/${this.buggyId}/status`, blob);
-                console.log('📤 Buggy status update sent via beacon');
-            }
-        });
-        
-        // Handle visibility change (tab hidden/shown)
-        document.addEventListener('visibilitychange', async () => {
-            if (document.hidden && this.buggyId) {
-                // Tab hidden - mark as available
-                try {
-                    await fetch(`/api/buggies/${this.buggyId}/status`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: 'available' })
-                    });
-                    console.log('✅ Buggy marked available (tab hidden)');
-                } catch (error) {
-                    console.error('❌ Failed to update status:', error);
-                }
-            }
-        });
-        
+        // WebSocket disconnect handler will automatically cleanup
+        // No need for beforeunload - backend handles it via WebSocket disconnect
         console.log('✅ Event listeners setup complete');
     },
 

@@ -445,16 +445,16 @@
             
             if (confirmed) {
                 try {
-                    // Disconnect WebSocket first to trigger cleanup
+                    // 1. Disconnect WebSocket first (will trigger offline status)
                     if (DriverDashboard.socket && DriverDashboard.socket.connected) {
-                        console.log('Disconnecting WebSocket before logout...');
+                        console.log('🔌 Disconnecting WebSocket...');
                         DriverDashboard.socket.disconnect();
                     }
                     
-                    // Wait a moment for disconnect to process
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // 2. Wait a moment for disconnect to process
+                    await new Promise(resolve => setTimeout(resolve, 300));
                     
-                    // Call logout endpoint to properly close session
+                    // 3. Call logout endpoint to properly close session
                     const response = await fetch('/auth/logout', {
                         method: 'POST',
                         headers: {
@@ -462,13 +462,14 @@
                         }
                     });
                     
-                    // Clear local storage
+                    // 4. Clear local storage
                     localStorage.clear();
                     
-                    // Redirect to login
+                    // 5. Redirect to login
+                    console.log('✅ Logout complete, redirecting...');
                     window.location.href = '/auth/login';
                 } catch (error) {
-                    console.error('Logout error:', error);
+                    console.error('❌ Logout error:', error);
                     // Still redirect even if logout fails
                     localStorage.clear();
                     window.location.href = '/auth/login';
