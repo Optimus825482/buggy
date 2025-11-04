@@ -7,6 +7,7 @@ class NetworkManager {
     constructor() {
         this.isOnline = navigator.onLine;
         this.syncInProgress = false;
+        this.serviceWorker = null;
         this.listeners = {
             online: [],
             offline: [],
@@ -26,7 +27,156 @@ class NetworkManager {
         // Periodic connection check
         setInterval(() => this.checkConnection(), 30000); // Every 30 seconds
 
+        // Initialize Service Worker communication
+        this.initServiceWorker();
+
         console.log('[Network] Network manager initialized');
+    }
+
+    /**
+     * Initialize Service Worker communication
+     */
+    async initServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                this.serviceWorker = registration.active;
+
+                // Listen for messages from Service Worker
+                navigator.serviceWorker.addEventListener('message', (event) => {
+                    this.handleServiceWorkerMessage(event.data);
+                });
+
+                console.log('[Network] Service Worker communication initialized');
+
+                // Get initial network status from SW
+                const status = await this.getServiceWorkerNetworkStatus();
+                console.log('[Network] SW network status:', status);
+            } catch (error) {
+                console.error('[Network] Service Worker initialization error:', error);
+            }
+        }
+    }
+
+    /**
+     * Handle messages from Service Worker
+     */
+    handleServiceWorkerMessage(message) {
+        const { type, data } = message;
+
+        switch (type) {
+            case 'NETWORK_STATUS':
+                console.log('[Network] SW network status update:', data.online);
+                if (data.online !== this.isOnline) {
+                    this.isOnline = data.online;
+                    this.updateConnectionUI(data.online);
+                }
+                break;
+
+            case 'SYNC_COMPLETE':
+                console.log('[Network] SW sync complete:', data.results);
+                this.listeners.syncComplete.forEach(callback => callback(data.results));
+                
+                if (data.results.delivered > 0) {
+                    this.showNotification(
+                        'Bildirimler Senkronize Edildi',
+                        `${data.results.delivered} bildirim başarıyla senkronize edildi.`,
+                        'success'
+                    );
+                }
+                break;
+
+            default:
+                console.log('[Network] Unknown SW message:', type);
+        }
+    }
+
+    /**
+     * Get network status from Service Worker
+     */
+    async getServiceWorkerNetworkStatus() {
+        if (!this.serviceWorker) return null;
+
+        return new Promise((resolve) => {
+            const messageChannel = new MessageChannel();
+            
+            messageChannel.port1.onmessage = (event) => {
+                resolve(event.data);
+            };
+
+            this.serviceWorker.postMessage(
+                { action: 'getNetworkStatus' },
+                [messageChannel.port2]
+            );
+
+            // Timeout after 5 seconds
+            setTimeout(() => resolve(null), 5000);
+        });
+    }
+
+    /**
+     * Get queued notifications from Service Worker
+     */
+    async getQueuedNotifications() {
+        if (!this.serviceWorker) return [];
+
+        return new Promise((resolve) => {
+            const messageChannel = new MessageChannel();
+            
+            messageChannel.port1.onmessage = (event) => {
+                resolve(event.data || []);
+            };
+
+            this.serviceWorker.postMessage(
+                { action: 'getQueuedNotifications' },
+                [messageChannel.port2]
+            );
+
+            // Timeout after 5 seconds
+            setTimeout(() => resolve([]), 5000);
+        });
+    }
+
+    /**
+     * Trigger manual sync via Service Worker
+     */
+    async triggerSync() {
+        if (!this.serviceWorker) {
+            console.warn('[Network] Service Worker not available');
+            return;
+        }
+
+        try {
+            this.serviceWorker.postMessage({ action: 'syncNow' });
+            console.log('[Network] Manual sync triggered');
+        } catch (error) {
+            console.error('[Network] Error triggering sync:', error);
+        }
+    }
+
+    /**
+     * Queue action in Service Worker
+     */
+    async queueAction(actionType, actionData) {
+        if (!this.serviceWorker) {
+            console.warn('[Network] Service Worker not available');
+            return false;
+        }
+
+        try {
+            this.serviceWorker.postMessage({
+                action: 'queueAction',
+                data: {
+                    type: actionType,
+                    data: actionData
+                }
+            });
+            console.log('[Network] Action queued:', actionType);
+            return true;
+        } catch (error) {
+            console.error('[Network] Error queueing action:', error);
+            return false;
+        }
     }
 
     /**
@@ -72,7 +222,10 @@ class NetworkManager {
         // Trigger registered listeners
         this.listeners.online.forEach(callback => callback());
 
-        // Sync pending requests
+        // Trigger Service Worker sync
+        await this.triggerSync();
+
+        // Sync pending requests (legacy support)
         await this.syncPendingRequests();
 
         // Show notification

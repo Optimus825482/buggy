@@ -507,17 +507,134 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Service Worker Mesaj Dinleyicisi - BİLDİRİM SESİ İÇİN
+// Service Worker Mesaj Dinleyicisi - GELIŞTIRILMIŞ VERSIYON v3
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'PLAY_NOTIFICATION_SOUND') {
-            playNotificationSound(event.data.soundUrl);
+        const data = event.data;
+        
+        if (!data || !data.type) {
+            return;
+        }
+        
+        switch (data.type) {
+            case 'PLAY_NOTIFICATION_SOUND':
+                // Play notification sound
+                if (data.soundUrl) {
+                    playNotificationSound(data.soundUrl);
+                }
+                break;
+                
+            case 'NAVIGATE':
+                // Handle deep linking navigation from notification click
+                handleDeepLinkNavigation(data.url);
+                break;
+                
+            case 'BADGE_UPDATE':
+                // Badge update handled by BadgeManager
+                break;
+                
+            case 'SYNC_COMPLETE':
+                // Offline sync completed
+                console.log('[SW] Sync complete:', data.results);
+                if (data.results && data.results.delivered > 0) {
+                    showToast(`${data.results.delivered} bildirim senkronize edildi`, 'success');
+                }
+                break;
+                
+            case 'NETWORK_STATUS':
+                // Network status change
+                handleNetworkStatusChange(data.online);
+                break;
+                
+            default:
+                console.log('[SW] Unknown message type:', data.type);
         }
     });
 }
 
 /**
- * Bildirim sesi çal - GELIŞTIRILMIŞ VERSIYON
+ * Handle deep link navigation from Service Worker
+ * @param {string} url - URL to navigate to
+ */
+function handleDeepLinkNavigation(url) {
+    if (!url) {
+        console.warn('[Navigation] No URL provided');
+        return;
+    }
+    
+    console.log('[Navigation] Deep linking to:', url);
+    
+    // Check if we're already on the target page
+    const currentPath = window.location.pathname + window.location.search;
+    if (currentPath === url) {
+        console.log('[Navigation] Already on target page');
+        // Reload to ensure fresh data
+        window.location.reload();
+        return;
+    }
+    
+    // Navigate to URL
+    window.location.href = url;
+}
+
+/**
+ * Handle network status change
+ * @param {boolean} online - Network online status
+ */
+function handleNetworkStatusChange(online) {
+    console.log('[Network] Status changed:', online ? 'online' : 'offline');
+    
+    if (online) {
+        showToast('İnternet bağlantısı geri geldi', 'success');
+        
+        // Trigger any pending syncs
+        if (window.NetworkManager) {
+            window.NetworkManager.handleOnline();
+        }
+    } else {
+        showToast('İnternet bağlantısı kesildi', 'warning');
+        
+        if (window.NetworkManager) {
+            window.NetworkManager.handleOffline();
+        }
+    }
+}
+
+/**
+ * Show toast notification
+ * @param {string} message - Message to display
+ * @param {string} type - Toast type (success, error, warning, info)
+ */
+function showToast(message, type = 'info') {
+    // Check if toast container exists
+    let container = document.querySelector('.toast-container');
+    
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    
+    container.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+/**
+ * Bildirim sesi çal - GELIŞTIRILMIŞ VERSIYON v2
+ * Priority-based sound selection
  * @param {string} soundUrl - Ses dosyası URL'i (opsiyonel)
  */
 function playNotificationSound(soundUrl) {
@@ -590,6 +707,419 @@ function playGeneratedSound() {
     }
 }
 
+/**
+ * Priority-based sound selection helper
+ * @param {string} priority - Priority level (high, normal, low)
+ * @returns {string} Sound URL
+ */
+function getPrioritySoundUrl(priority) {
+    const sounds = {
+        'high': '/static/sounds/urgent.mp3',
+        'normal': '/static/sounds/notification.mp3',
+        'low': '/static/sounds/subtle.mp3'
+    };
+    return sounds[priority] || sounds.normal;
+}
+
+// ============================================================================
+// BADGE MANAGER (CLIENT-SIDE)
+// ============================================================================
+
+/**
+ * Badge Manager - Client-side helper for badge operations
+ */
+const BadgeManager = {
+    /**
+     * Get current badge count from Service Worker
+     * @returns {Promise<number>} Current badge count
+     */
+    async getBadgeCount() {
+        try {
+            if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+                console.warn('[Badge] Service Worker not available');
+                return 0;
+            }
+
+            return new Promise((resolve, reject) => {
+                const messageChannel = new MessageChannel();
+                
+                messageChannel.port1.onmessage = (event) => {
+                    resolve(event.data.count || 0);
+                };
+
+                navigator.serviceWorker.controller.postMessage(
+                    { action: 'getBadgeCount' },
+                    [messageChannel.port2]
+                );
+
+                // Timeout after 5 seconds
+                setTimeout(() => reject(new Error('Timeout')), 5000);
+            });
+        } catch (error) {
+            console.error('[Badge] Error getting badge count:', error);
+            return 0;
+        }
+    },
+
+    /**
+     * Set badge count to specific value
+     * @param {number} count - Badge count to set
+     * @returns {Promise<number>} Updated badge count
+     */
+    async setBadgeCount(count) {
+        try {
+            if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+                console.warn('[Badge] Service Worker not available');
+                return 0;
+            }
+
+            return new Promise((resolve, reject) => {
+                const messageChannel = new MessageChannel();
+                
+                messageChannel.port1.onmessage = (event) => {
+                    resolve(event.data.count || 0);
+                };
+
+                navigator.serviceWorker.controller.postMessage(
+                    { action: 'setBadgeCount', data: { count } },
+                    [messageChannel.port2]
+                );
+
+                setTimeout(() => reject(new Error('Timeout')), 5000);
+            });
+        } catch (error) {
+            console.error('[Badge] Error setting badge count:', error);
+            return 0;
+        }
+    },
+
+    /**
+     * Reset badge count to zero
+     * @returns {Promise<number>} Updated badge count (0)
+     */
+    async resetBadgeCount() {
+        try {
+            if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+                console.warn('[Badge] Service Worker not available');
+                return 0;
+            }
+
+            return new Promise((resolve, reject) => {
+                const messageChannel = new MessageChannel();
+                
+                messageChannel.port1.onmessage = (event) => {
+                    resolve(event.data.count || 0);
+                };
+
+                navigator.serviceWorker.controller.postMessage(
+                    { action: 'resetBadgeCount' },
+                    [messageChannel.port2]
+                );
+
+                setTimeout(() => reject(new Error('Timeout')), 5000);
+            });
+        } catch (error) {
+            console.error('[Badge] Error resetting badge count:', error);
+            return 0;
+        }
+    },
+
+    /**
+     * Update badge count with delta (increment/decrement)
+     * @param {number} delta - Amount to change (positive or negative)
+     * @returns {Promise<number>} Updated badge count
+     */
+    async updateBadgeCount(delta) {
+        try {
+            if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+                console.warn('[Badge] Service Worker not available');
+                return 0;
+            }
+
+            return new Promise((resolve, reject) => {
+                const messageChannel = new MessageChannel();
+                
+                messageChannel.port1.onmessage = (event) => {
+                    resolve(event.data.count || 0);
+                };
+
+                navigator.serviceWorker.controller.postMessage(
+                    { action: 'updateBadgeCount', data: { delta } },
+                    [messageChannel.port2]
+                );
+
+                setTimeout(() => reject(new Error('Timeout')), 5000);
+            });
+        } catch (error) {
+            console.error('[Badge] Error updating badge count:', error);
+            return 0;
+        }
+    },
+
+    /**
+     * Increment badge count by 1
+     * @returns {Promise<number>} Updated badge count
+     */
+    async increment() {
+        return await this.updateBadgeCount(1);
+    },
+
+    /**
+     * Decrement badge count by 1
+     * @returns {Promise<number>} Updated badge count
+     */
+    async decrement() {
+        return await this.updateBadgeCount(-1);
+    },
+
+    /**
+     * Display badge count in page title (fallback for unsupported browsers)
+     * @param {number} count - Badge count to display
+     */
+    updateTitleBadge(count) {
+        const originalTitle = document.title.replace(/^\(\d+\)\s*/, '');
+        
+        if (count > 0) {
+            document.title = `(${count}) ${originalTitle}`;
+        } else {
+            document.title = originalTitle;
+        }
+    },
+
+    /**
+     * Initialize badge manager and listen for updates
+     */
+    init() {
+        console.log('[Badge] Initializing Badge Manager');
+
+        // Listen for badge updates from Service Worker
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data.type === 'BADGE_UPDATE') {
+                    console.log('[Badge] Badge updated:', event.data.count);
+                    
+                    // Update title badge as fallback
+                    this.updateTitleBadge(event.data.count);
+                    
+                    // Dispatch custom event for app to listen
+                    window.dispatchEvent(new CustomEvent('badgeupdate', {
+                        detail: { count: event.data.count }
+                    }));
+                } else if (event.data.type === 'BADGE_FALLBACK') {
+                    // Fallback for browsers without Badge API
+                    console.log('[Badge] Using title badge fallback');
+                    this.updateTitleBadge(event.data.count);
+                }
+            });
+        }
+
+        // Reset badge when page becomes visible
+        document.addEventListener('visibilitychange', async () => {
+            if (!document.hidden) {
+                console.log('[Badge] Page visible, resetting badge');
+                await this.resetBadgeCount();
+            }
+        });
+
+        console.log('[Badge] Badge Manager initialized');
+    }
+};
+
+// ============================================================================
+// SERVICE WORKER MESSAGE HANDLER
+// ============================================================================
+
+/**
+ * Service Worker Navigation Handler
+ * Handles navigation messages from Service Worker (notification clicks)
+ */
+const ServiceWorkerHandler = {
+    /**
+     * Initialize Service Worker message listener
+     */
+    init() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                this.handleMessage(event.data);
+            });
+            
+            console.log('[SW Handler] Service Worker message listener initialized');
+        } else {
+            console.warn('[SW Handler] Service Worker not supported');
+        }
+    },
+    
+    /**
+     * Handle incoming messages from Service Worker
+     * @param {Object} data - Message data
+     */
+    handleMessage(data) {
+        const { type } = data;
+        
+        console.log('[SW Handler] Received message:', type, data);
+        
+        switch (type) {
+            case 'NAVIGATE':
+                this.handleNavigation(data);
+                break;
+                
+            case 'PLAY_NOTIFICATION_SOUND':
+                this.handlePlaySound(data);
+                break;
+                
+            case 'BADGE_UPDATE':
+                this.handleBadgeUpdate(data);
+                break;
+                
+            case 'NETWORK_STATUS':
+                this.handleNetworkStatus(data);
+                break;
+                
+            case 'SYNC_COMPLETE':
+                this.handleSyncComplete(data);
+                break;
+                
+            case 'BADGE_FALLBACK':
+                this.handleBadgeFallback(data);
+                break;
+                
+            default:
+                console.warn('[SW Handler] Unknown message type:', type);
+        }
+    },
+    
+    /**
+     * Handle navigation request from notification click
+     * @param {Object} data - Navigation data
+     */
+    handleNavigation(data) {
+        const { url, pathname, search, hash } = data;
+        
+        console.log('[SW Handler] Navigating to:', url);
+        
+        try {
+            // Check if we're already on the target page
+            const currentPath = window.location.pathname;
+            const targetPath = pathname || new URL(url, window.location.origin).pathname;
+            
+            if (currentPath === targetPath && !search && !hash) {
+                console.log('[SW Handler] Already on target page, refreshing...');
+                window.location.reload();
+                return;
+            }
+            
+            // Navigate to the URL
+            window.location.href = url;
+            
+        } catch (error) {
+            console.error('[SW Handler] Navigation error:', error);
+            
+            // Fallback: try simple navigation
+            try {
+                window.location.href = url;
+            } catch (fallbackError) {
+                console.error('[SW Handler] Fallback navigation also failed:', fallbackError);
+                Utils.showToast('Sayfa yüklenirken hata oluştu', 'danger');
+            }
+        }
+    },
+    
+    /**
+     * Handle play sound request
+     * @param {Object} data - Sound data
+     */
+    handlePlaySound(data) {
+        const { soundUrl } = data;
+        
+        console.log('[SW Handler] Playing sound:', soundUrl);
+        
+        try {
+            if (typeof playNotificationSound === 'function') {
+                playNotificationSound(soundUrl);
+            } else {
+                console.warn('[SW Handler] playNotificationSound function not available');
+            }
+        } catch (error) {
+            console.error('[SW Handler] Error playing sound:', error);
+        }
+    },
+    
+    /**
+     * Handle badge update notification
+     * @param {Object} data - Badge data
+     */
+    handleBadgeUpdate(data) {
+        const { count } = data;
+        
+        console.log('[SW Handler] Badge updated:', count);
+        
+        // Update UI if needed
+        if (typeof BadgeManager !== 'undefined' && BadgeManager.updateUI) {
+            BadgeManager.updateUI(count);
+        }
+    },
+    
+    /**
+     * Handle network status change
+     * @param {Object} data - Network status data
+     */
+    handleNetworkStatus(data) {
+        const { online } = data;
+        
+        console.log('[SW Handler] Network status changed:', online ? 'online' : 'offline');
+        
+        if (online) {
+            Utils.showToast('İnternet bağlantısı geri geldi', 'success');
+        } else {
+            Utils.showToast('İnternet bağlantısı kesildi. Bildirimler senkronize edilecek.', 'warning');
+        }
+    },
+    
+    /**
+     * Handle sync completion notification
+     * @param {Object} data - Sync results
+     */
+    handleSyncComplete(data) {
+        const { results } = data;
+        
+        console.log('[SW Handler] Sync complete:', results);
+        
+        if (results && results.delivered > 0) {
+            Utils.showToast(`${results.delivered} bildirim senkronize edildi`, 'success');
+        }
+    },
+    
+    /**
+     * Handle badge fallback (for browsers without Badge API)
+     * @param {Object} data - Badge data
+     */
+    handleBadgeFallback(data) {
+        const { count } = data;
+        
+        console.log('[SW Handler] Badge fallback:', count);
+        
+        // Update page title with badge count
+        const baseTitle = document.title.replace(/^\(\d+\)\s*/, '');
+        
+        if (count > 0) {
+            document.title = `(${count}) ${baseTitle}`;
+        } else {
+            document.title = baseTitle;
+        }
+    }
+};
+
+// Initialize Badge Manager on load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        BadgeManager.init();
+        ServiceWorkerHandler.init();
+    });
+} else {
+    BadgeManager.init();
+    ServiceWorkerHandler.init();
+}
+
 // Export globals
 window.BuggyCall = {
     Utils,
@@ -597,7 +1127,10 @@ window.BuggyCall = {
     Socket,
     Form,
     CONFIG,
-    playNotificationSound // Ses çalma fonksiyonunu export et
+    playNotificationSound, // Ses çalma fonksiyonunu export et
+    getPrioritySoundUrl, // Priority-based sound selection
+    BadgeManager, // Badge yönetimi
+    ServiceWorkerHandler // Service Worker message handler
 };
 
-console.log('Buggy Call initialized');
+console.log('Buggy Call initialized - Enhanced v3.0 with SW Navigation Handler');

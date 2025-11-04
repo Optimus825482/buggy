@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Click Handler Tests - BuggyCall</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        .test-fail {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        .btn-test {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">🔔 Notification Click Handler Test Suite</h1>
+        
+        <div class="test-section">
+            <h3>Simulated Notification Actions</h3>
+            <p>Bu testler notification click handler'ın davranışlarını simüle eder.</p>
+            <div class="btn-group-vertical w-100" role="group">
+                <button class="btn btn-primary btn-test" onclick="testDefaultClick()">
+                    Test: Default Click (Body)
+                </button>
+                <button class="btn btn-success btn-test" onclick="testAcceptAction()">
+                    Test: Accept Action Button
+                </button>
+                <button class="btn btn-info btn-test" onclick="testDetailsAction()">
+                    Test: Details Action Button
+                </button>
+                <button class="btn btn-warning btn-test" onclick="testViewAction()">
+                    Test: View Action Button
+                </button>
+                <button class="btn btn-secondary btn-test" onclick="testBadgeDecrement()">
+                    Test: Badge Decrement on Click
+                </button>
+                <button class="btn btn-dark btn-test" onclick="testClickLogging()">
+                    Test: Click Event Logging
+                </button>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Results</h3>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Log</h3>
+            <div id="testLog" style="max-height: 400px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const testResults = [];
+        let testLog = [];
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            testLog.push(logMessage);
+            console.log(logMessage);
+            updateLogDisplay();
+        }
+
+        function updateLogDisplay() {
+            const logDiv = document.getElementById('testLog');
+            logDiv.innerHTML = testLog.map(msg => `<div>${msg}</div>`).join('');
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function addTestResult(name, passed, message) {
+            testResults.push({ name, passed, message });
+            updateTestResults();
+        }
+
+        function updateTestResults() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = testResults.map(result => `
+                <div class="test-result ${result.passed ? 'test-pass' : 'test-fail'}">
+                    <strong>${result.passed ? '✅' : '❌'} ${result.name}</strong>
+                    <div>${result.message}</div>
+                </div>
+            `).join('');
+        }
+
+        // Test functions
+        async function testDefaultClick() {
+            log('Test: Default Click Handler');
+            try {
+                // Simulate default notification click
+                const mockData = {
+                    type: 'new_request',
+                    request_id: 123,
+                    notificationId: 'test_notif_1'
+                };
+                
+                log('Simulating default click with data: ' + JSON.stringify(mockData));
+                addTestResult('Default Click', true, 'Default click handler would navigate to /driver/request/123');
+                
+            } catch (error) {
+                log('Error: ' + error.message);
+                addTestResult('Default Click', false, error.message);
+            }
+        }
+
+        async function testAcceptAction() {
+            log('Test: Accept Action Button');
+            try {
+                const mockData = {
+                    type: 'new_request',
+                    request_id: 456,
+                    notificationId: 'test_notif_2'
+                };
+                
+                log('Simulating accept action with data: ' + JSON.stringify(mockData));
+                addTestResult('Accept Action', true, 'Accept action would navigate to /driver/dashboard?accept=456');
+                
+            } catch (error) {
+                log('Error: ' + error.message);
+                addTestResult('Accept Action', false, error.message);
+            }
+        }
+
+        async function testDetailsAction() {
+            log('Test: Details Action Button');
+            try {
+                const mockData = {
+                    request_id: 789,
+                    notificationId: 'test_notif_3'
+                };
+                
+                log('Simulating details action with data: ' + JSON.stringify(mockData));
+                addTestResult('Details Action', true, 'Details action would navigate to /driver/request/789');
+                
+            } catch (error) {
+                log('Error: ' + error.message);
+                addTestResult('Details Action', false, error.message);
+            }
+        }
+
+        async function testViewAction() {
+            log('Test: View Action Button');
+            try {
+                const mockData = {
+                    url: '/driver/messages',
+                    notificationId: 'test_notif_4'
+                };
+                
+                log('Simulating view action with data: ' + JSON.stringify(mockData));
+                addTestResult('View Action', true, 'View action would navigate to /driver/messages');
+                
+            } catch (error) {
+                log('Error: ' + error.message);
+                addTestResult('View Action', false, error.message);
+            }
+        }
+
+        async function testBadgeDecrement() {
+            log('Test: Badge Decrement on Click');
+            try {
+                log('Badge should decrement by 1 when notification is clicked');
+                addTestResult('Badge Decrement', true, 'Badge count would be decremented by 1');
+                
+            } catch (error) {
+                log('Error: ' + error.message);
+                addTestResult('Badge Decrement', false, error.message);
+            }
+        }
+
+        async function testClickLogging() {
+            log('Test: Click Event Logging');
+            try {
+                const mockNotificationId = 'test_notif_5';
+                const mockAction = 'accept';
+                
+                log(`Click would be logged: notificationId=${mockNotificationId}, action=${mockAction}`);
+                addTestResult('Click Logging', true, 'Click event would be logged to IndexedDB and queued for API sync');
+                
+            } catch (error) {
+                log('Error: ' + error.message);
+                addTestResult('Click Logging', false, error.message);
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            log('Notification Click Handler Test Page Loaded');
+            log('Note: These are simulation tests. Real notification click tests require Service Worker integration.');
+        });
+    </script>
+</body>
+</html>

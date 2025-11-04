@@ -261,11 +261,15 @@ function playNotificationSound() {
     }
 }
 
-// Request notification permission on page load
+// Request notification permission (must be called from user gesture)
 function requestNotificationPermission() {
     if ('Notification' in window && Notification.permission === 'default') {
+        // Note: This must be called from a user gesture (click, touch, etc.)
+        // Edge/Chrome will block if called without user interaction
         Notification.requestPermission().then(permission => {
-            console.log('Notification permission:', permission);
+            console.log('[Dashboard] Notification permission:', permission);
+        }).catch(error => {
+            console.error('[Dashboard] Permission request failed:', error);
         });
     }
 }

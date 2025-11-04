@@ -6,7 +6,7 @@
 class OfflineStorage {
     constructor() {
         this.dbName = 'BuggyCallDB';
-        this.dbVersion = 1;
+        this.dbVersion = 2;
         this.db = null;
         this.init();
     }
@@ -16,49 +16,84 @@ class OfflineStorage {
             this.db = await this.openDatabase();
             console.log('[Storage] IndexedDB initialized successfully');
         } catch (error) {
-            console.error('[Storage] Failed to initialize IndexedDB:', error);
+            console.error('[Storage] Failed to initialize IndexedDB:', error.message || error);
+            // Fallback: Uygulama çalışmaya devam edebilir, sadece offline özellikler devre dışı kalır
+            this.db = null;
         }
     }
 
     openDatabase() {
         return new Promise((resolve, reject) => {
             if (!window.indexedDB) {
+                console.warn('[Storage] IndexedDB not supported in this browser');
                 reject(new Error('IndexedDB not supported'));
                 return;
             }
 
-            const request = indexedDB.open(this.dbName, this.dbVersion);
+            try {
+                const request = indexedDB.open(this.dbName, this.dbVersion);
 
-            request.onerror = () => {
-                reject(new Error('Failed to open database'));
-            };
+                request.onerror = (event) => {
+                    const error = event.target.error;
+                    console.error('[Storage] Database error:', error?.message || 'Unknown error');
+                    
+                    // Daha detaylı hata mesajı
+                    if (error?.name === 'VersionError') {
+                        console.error('[Storage] Database version conflict detected');
+                    } else if (error?.name === 'QuotaExceededError') {
+                        console.error('[Storage] Storage quota exceeded');
+                    }
+                    
+                    reject(error || new Error('Failed to open database'));
+                };
 
-            request.onsuccess = (event) => {
-                resolve(event.target.result);
-            };
+                request.onsuccess = (event) => {
+                    const db = event.target.result;
+                    
+                    // Database error handler
+                    db.onerror = (event) => {
+                        console.error('[Storage] Database error:', event.target.error);
+                    };
+                    
+                    resolve(db);
+                };
 
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
+                request.onupgradeneeded = (event) => {
+                    try {
+                        const db = event.target.result;
 
-                // Create object stores if they don't exist
-                if (!db.objectStoreNames.contains('pendingRequests')) {
-                    const requestStore = db.createObjectStore('pendingRequests', {
-                        keyPath: 'id',
-                        autoIncrement: true
-                    });
-                    requestStore.createIndex('timestamp', 'timestamp', { unique: false });
-                    requestStore.createIndex('type', 'type', { unique: false });
-                }
+                        // Create object stores if they don't exist
+                        if (!db.objectStoreNames.contains('pendingRequests')) {
+                            const requestStore = db.createObjectStore('pendingRequests', {
+                                keyPath: 'id',
+                                autoIncrement: true
+                            });
+                            requestStore.createIndex('timestamp', 'timestamp', { unique: false });
+                            requestStore.createIndex('type', 'type', { unique: false });
+                        }
 
-                if (!db.objectStoreNames.contains('cachedData')) {
-                    const dataStore = db.createObjectStore('cachedData', {
-                        keyPath: 'key'
-                    });
-                    dataStore.createIndex('timestamp', 'timestamp', { unique: false });
-                }
+                        if (!db.objectStoreNames.contains('cachedData')) {
+                            const dataStore = db.createObjectStore('cachedData', {
+                                keyPath: 'key'
+                            });
+                            dataStore.createIndex('timestamp', 'timestamp', { unique: false });
+                        }
 
-                console.log('[Storage] Database schema created');
-            };
+                        console.log('[Storage] Database schema created successfully');
+                    } catch (error) {
+                        console.error('[Storage] Error creating database schema:', error);
+                        reject(error);
+                    }
+                };
+
+                request.onblocked = () => {
+                    console.warn('[Storage] Database upgrade blocked - close other tabs');
+                };
+                
+            } catch (error) {
+                console.error('[Storage] Exception opening database:', error);
+                reject(error);
+            }
         });
     }
 

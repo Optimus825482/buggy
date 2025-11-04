@@ -60,6 +60,9 @@
 
 {% block extra_js %}
 <script>
+    // Admin sayfası olduğunu işaretle
+    document.body.dataset.page = 'admin';
+    
     let buggies = [];
     let drivers = [];
 

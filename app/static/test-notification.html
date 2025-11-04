@@ -217,17 +217,19 @@
         }
 
         // Bildirim Fonksiyonları
-        async function requestPermission() {
-            try {
-                const permission = await Notification.requestPermission();
+        function requestPermission() {
+            // Edge/Chrome requires synchronous call in user gesture
+            Notification.requestPermission().then((permission) => {
                 if (permission === 'granted') {
                     showStatus('notificationStatus', '✅ Bildirim izni verildi!', 'success');
-                } else {
+                } else if (permission === 'denied') {
                     showStatus('notificationStatus', '❌ Bildirim izni reddedildi', 'error');
+                } else {
+                    showStatus('notificationStatus', '⏸️ Bildirim izni beklemede', 'warning');
                 }
-            } catch (error) {
+            }).catch((error) => {
                 showStatus('notificationStatus', 'Hata: ' + error.message, 'error');
-            }
+            });
         }
 
         function testNotification() {

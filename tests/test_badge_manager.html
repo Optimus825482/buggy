@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Badge Manager Tests - BuggyCall</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        .test-fail {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        .test-pending {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .badge-display {
+            font-size: 48px;
+            text-align: center;
+            padding: 20px;
+            background: #e9ecef;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">🔔 Badge Manager Test Suite</h1>
+        
+        <div class="test-section">
+            <h3>Badge Display</h3>
+            <div class="badge-display">
+                Current Badge Count: <span id="badgeCount">-</span>
+            </div>
+            <div class="btn-group" role="group">
+                <button class="btn btn-primary" onclick="incrementBadge()">➕ Increment</button>
+                <button class="btn btn-warning" onclick="decrementBadge()">➖ Decrement</button>
+                <button class="btn btn-info" onclick="setBadge()">🔢 Set to 5</button>
+                <button class="btn btn-danger" onclick="resetBadge()">🔄 Reset</button>
+                <button class="btn btn-secondary" onclick="refreshBadge()">🔍 Refresh</button>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Results</h3>
+            <button class="btn btn-success mb-3" onclick="runAllTests()">▶️ Run All Tests</button>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Log</h3>
+            <div id="testLog" style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Test utilities
+        const testResults = [];
+        let testLog = [];
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            testLog.push(logMessage);
+            console.log(logMessage);
+            updateLogDisplay();
+        }
+
+        function updateLogDisplay() {
+            const logDiv = document.getElementById('testLog');
+            logDiv.innerHTML = testLog.map(msg => `<div>${msg}</div>`).join('');
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function addTestResult(name, passed, message) {
+            testResults.push({ name, passed, message });
+            updateTestResults();
+        }
+
+        function updateTestResults() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = testResults.map(result => `
+                <div class="test-result ${result.passed ? 'test-pass' : 'test-fail'}">
+                    <strong>${result.passed ? '✅' : '❌'} ${result.name}</strong>
+                    <div>${result.message}</div>
+                </div>
+            `).join('');
+        }
+
+        // Badge Manager wrapper
+        const BadgeManager = {
+            async getBadgeCount() {
+                if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+                    throw new Error('Service Worker not available');
+                }
+
+                return new Promise((resolve, reject) => {
+                    const messageChannel = new MessageChannel();
+                    
+                    messageChannel.port1.onmessage = (event) => {
+                        resolve(event.data.count || 0);
+                    };
+
+                    navigator.serviceWorker.controller.postMessage(
+                        { action: 'getBadgeCount' },
+                        [messageChannel.port2]
+                    );
+
+                    setTimeout(() => reject(new Error('Timeout')), 5000);
+                });
+            },
+
+            async setBadgeCount(count) {
+                if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+                    throw new Error('Service Worker not available');
+                }
+
+                return new Promise((resolve, reject) => {
+                    const messageChannel = new MessageChannel();
+                    
+                    messageChannel.port1.onmessage = (event) => {
+                        resolve(event.data.count || 0);
+                    };
+
+                    navigator.serviceWorker.controller.postMessage(
+                        { action: 'setBadgeCount', data: { count } },
+                        [messageChannel.port2]
+                    );
+
+                    setTimeout(() => reject(new Error('Timeout')), 5000);
+                });
+            },
+
+            async resetBadgeCount() {
+                if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+                    throw new Error('Service Worker not available');
+                }
+
+                return new Promise((resolve, reject) => {
+                    const messageChannel = new MessageChannel();
+                    
+                    messageChannel.port1.onmessage = (event) => {
+                        resolve(event.data.count || 0);
+                    };
+
+                    navigator.serviceWorker.controller.postMessage(
+                        { action: 'resetBadgeCount' },
+                        [messageChannel.port2]
+                    );
+
+                    setTimeout(() => reject(new Error('Timeout')), 5000);
+                });
+            },
+
+            async updateBadgeCount(delta) {
+                if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+                    throw new Error('Service Worker not available');
+                }
+
+                return new Promise((resolve, reject) => {
+                    const messageChannel = new MessageChannel();
+                    
+                    messageChannel.port1.onmessage = (event) => {
+                        resolve(event.data.count || 0);
+                    };
+
+                    navigator.serviceWorker.controller.postMessage(
+                        { action: 'updateBadgeCount', data: { delta } },
+                        [messageChannel.port2]
+                    );
+
+                    setTimeout(() => reject(new Error('Timeout')), 5000);
+                });
+            }
+        };
+
+        // UI Controls
+        async function refreshBadge() {
+            try {
+                log('Refreshing badge count...');
+                const count = await BadgeManager.getBadgeCount();
+                document.getElementById('badgeCount').textContent = count;
+                log(`Badge count: ${count}`);
+            } catch (error) {
+                log(`Error: ${error.message}`);
+                document.getElementById('badgeCount').textContent = 'Error';
+            }
+        }
+
+        async function incrementBadge() {
+            try {
+                log('Incrementing badge...');
+                const count = await BadgeManager.updateBadgeCount(1);
+                document.getElementById('badgeCount').textContent = count;
+                log(`Badge incremented to: ${count}`);
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            }
+        }
+
+        async function decrementBadge() {
+            try {
+                log('Decrementing badge...');
+                const count = await BadgeManager.updateBadgeCount(-1);
+                document.getElementById('badgeCount').textContent = count;
+                log(`Badge decremented to: ${count}`);
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            }
+        }
+
+        async function setBadge() {
+            try {
+                log('Setting badge to 5...');
+                const count = await BadgeManager.setBadgeCount(5);
+                document.getElementById('badgeCount').textContent = count;
+                log(`Badge set to: ${count}`);
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            }
+        }
+
+        async function resetBadge() {
+            try {
+                log('Resetting badge...');
+                const count = await BadgeManager.resetBadgeCount();
+                document.getElementById('badgeCount').textContent = count;
+                log(`Badge reset to: ${count}`);
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            }
+        }
+
+        // Test Suite
+        async function runAllTests() {
+            testResults.length = 0;
+            testLog.length = 0;
+            log('Starting Badge Manager Test Suite...');
+
+            try {
+                await testServiceWorkerAvailable();
+                await testBadgeInitialization();
+                await testBadgeIncrement();
+                await testBadgeDecrement();
+                await testBadgeSet();
+                await testBadgeReset();
+                await testBadgeNegativeProtection();
+                await testBadgeMaxCap();
+                
+                log('All tests completed!');
+                const passed = testResults.filter(r => r.passed).length;
+                const total = testResults.length;
+                log(`Results: ${passed}/${total} tests passed`);
+            } catch (error) {
+                log(`Test suite error: ${error.message}`);
+            }
+        }
+
+        async function testServiceWorkerAvailable() {
+            log('Test: Service Worker Available');
+            try {
+                if (!navigator.serviceWorker) {
+                    throw new Error('Service Worker API not available');
+                }
+                
+                const registration = await navigator.serviceWorker.ready;
+                if (!registration) {
+                    throw new Error('Service Worker not registered');
+                }
+                
+                if (!navigator.serviceWorker.controller) {
+                    throw new Error('Service Worker not controlling page');
+                }
+                
+                addTestResult('Service Worker Available', true, 'Service Worker is active and controlling page');
+                log('✅ Service Worker is available');
+            } catch (error) {
+                addTestResult('Service Worker Available', false, error.message);
+                log(`❌ ${error.message}`);
+                throw error;
+            }
+        }
+
+        async function testBadgeInitialization() {
+            log('Test: Badge Initialization');
+            try {
+                const count = await BadgeManager.getBadgeCount();
+                const passed = typeof count === 'number' && count >= 0;
+                
+                addTestResult('Badge Initialization', passed, `Initial badge count: ${count}`);
+                log(passed ? `✅ Badge initialized to ${count}` : '❌ Badge initialization failed');
+            } catch (error) {
+                addTestResult('Badge Initialization', false, error.message);
+                log(`❌ ${error.message}`);
+            }
+        }
+
+        async function testBadgeIncrement() {
+            log('Test: Badge Increment');
+            try {
+                await BadgeManager.resetBadgeCount();
+                const before = await BadgeManager.getBadgeCount();
+                await BadgeManager.updateBadgeCount(1);
+                const after = await BadgeManager.getBadgeCount();
+                
+                const passed = after === before + 1;
+                addTestResult('Badge Increment', passed, `Before: ${before}, After: ${after}`);
+                log(passed ? `✅ Badge incremented correctly` : '❌ Badge increment failed');
+            } catch (error) {
+                addTestResult('Badge Increment', false, error.message);
+                log(`❌ ${error.message}`);
+            }
+        }
+
+        async function testBadgeDecrement() {
+            log('Test: Badge Decrement');
+            try {
+                await BadgeManager.setBadgeCount(5);
+                const before = await BadgeManager.getBadgeCount();
+                await BadgeManager.updateBadgeCount(-1);
+                const after = await BadgeManager.getBadgeCount();
+                
+                const passed = after === before - 1;
+                addTestResult('Badge Decrement', passed, `Before: ${before}, After: ${after}`);
+                log(passed ? `✅ Badge decremented correctly` : '❌ Badge decrement failed');
+            } catch (error) {
+                addTestResult('Badge Decrement', false, error.message);
+                log(`❌ ${error.message}`);
+            }
+        }
+
+        async function testBadgeSet() {
+            log('Test: Badge Set');
+            try {
+                const targetCount = 7;
+                await BadgeManager.setBadgeCount(targetCount);
+                const count = await BadgeManager.getBadgeCount();
+                
+                const passed = count === targetCount;
+                addTestResult('Badge Set', passed, `Set to ${targetCount}, got ${count}`);
+                log(passed ? `✅ Badge set correctly` : '❌ Badge set failed');
+            } catch (error) {
+                addTestResult('Badge Set', false, error.message);
+                log(`❌ ${error.message}`);
+            }
+        }
+
+        async function testBadgeReset() {
+            log('Test: Badge Reset');
+            try {
+                await BadgeManager.setBadgeCount(10);
+                await BadgeManager.resetBadgeCount();
+                const count = await BadgeManager.getBadgeCount();
+                
+                const passed = count === 0;
+                addTestResult('Badge Reset', passed, `Reset to ${count}`);
+                log(passed ? `✅ Badge reset correctly` : '❌ Badge reset failed');
+            } catch (error) {
+                addTestResult('Badge Reset', false, error.message);
+                log(`❌ ${error.message}`);
+            }
+        }
+
+        async function testBadgeNegativeProtection() {
+            log('Test: Badge Negative Protection');
+            try {
+                await BadgeManager.resetBadgeCount();
+                await BadgeManager.updateBadgeCount(-5);
+                const count = await BadgeManager.getBadgeCount();
+                
+                const passed = count === 0;
+                addTestResult('Badge Negative Protection', passed, `Count after -5: ${count}`);
+                log(passed ? `✅ Badge protected from negative values` : '❌ Badge negative protection failed');
+            } catch (error) {
+                addTestResult('Badge Negative Protection', false, error.message);
+                log(`❌ ${error.message}`);
+            }
+        }
+
+        async function testBadgeMaxCap() {
+            log('Test: Badge Max Cap');
+            try {
+                await BadgeManager.setBadgeCount(150);
+                const count = await BadgeManager.getBadgeCount();
+                
+                const passed = count === 99;
+                addTestResult('Badge Max Cap', passed, `Set to 150, capped at ${count}`);
+                log(passed ? `✅ Badge capped at maximum` : '❌ Badge max cap failed');
+            } catch (error) {
+                addTestResult('Badge Max Cap', false, error.message);
+                log(`❌ ${error.message}`);
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', async () => {
+            log('Badge Manager Test Page Loaded');
+            
+            // Check Service Worker
+            if ('serviceWorker' in navigator) {
+                try {
+                    await navigator.serviceWorker.ready;
+                    log('Service Worker is ready');
+                    await refreshBadge();
+                } catch (error) {
+                    log(`Service Worker error: ${error.message}`);
+                }
+            } else {
+                log('Service Worker not supported in this browser');
+            }
+        });
+    </script>
+</body>
+</html>

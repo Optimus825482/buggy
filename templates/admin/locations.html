@@ -42,6 +42,7 @@
                 <table class="table">
                     <thead>
                         <tr>
+                            <th style="width: 80px;">Görsel</th>
                             <th>Lokasyon Adı</th>
                             <th>Açıklama</th>
                             <th>QR Kod</th>
@@ -51,7 +52,7 @@
                     </thead>
                     <tbody id="locations-table">
                         <tr>
-                            <td colspan="5" class="text-center">Yükleniyor...</td>
+                            <td colspan="6" class="text-center">Yükleniyor...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -64,6 +65,9 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 <script>
+    // Admin sayfası olduğunu işaretle
+    document.body.dataset.page = 'admin';
+    
     console.log('Locations page script loaded');
     
     // Set hotel ID
@@ -92,37 +96,122 @@
             if ( !tbody ) return;
 
             if ( locations.length === 0 ) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Henüz lokasyon eklenmemiş</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Henüz lokasyon eklenmemiş</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = locations.map( loc => `
-                <tr>
-                    <td><strong>${loc.name}</strong></td>
-                    <td>${loc.description || '-'}</td>
-                    <td>
-                        <button class="btn btn-sm btn-info" onclick="showQRCode('${loc.id}', '${loc.name}', '${loc.qr_code_data}')" title="QR Kodu Göster">
-                            <i class="fas fa-qrcode"></i> QR
-                        </button>
-                        <button class="btn btn-sm btn-primary" onclick="quickPrintQR('${loc.id}', '${loc.name}', '${loc.qr_code_data}')" title="Hemen Yazdır" style="margin-left: 0.25rem;">
-                            <i class="fas fa-print"></i>
-                        </button>
-                    </td>
-                    <td>
-                        <span class="badge ${loc.is_active ? 'badge-success' : 'badge-secondary'}">
-                            ${loc.is_active ? 'Aktif' : 'Pasif'}
-                        </span>
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-warning" onclick="editLocation('${loc.id}')" title="Düzenle">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteLocation('${loc.id}', '${loc.name}')" title="Sil">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join( '' );
+            // Build table rows
+            const rows = locations.map( loc => {
+                console.log('Building row for location:', loc.name, 'Has image:', !!loc.location_image);
+                
+                // Ensure we have a valid ID
+                const locationId = loc.id || loc.location_id;
+                if (!locationId) {
+                    console.error('Location missing ID:', loc);
+                }
+                
+                // Create table row element
+                const tr = document.createElement('tr');
+                
+                // Image cell
+                const tdImage = document.createElement('td');
+                if (loc.location_image && loc.location_image.length > 0) {
+                    console.log('Creating image for:', loc.name, 'Image length:', loc.location_image.length);
+                    const img = document.createElement('img');
+                    
+                    // Set src directly as property (not attribute) to handle long base64
+                    try {
+                        // Check if already has data URL prefix
+                        if (loc.location_image.startsWith('data:image')) {
+                            img.src = loc.location_image;
+                        } else {
+                            // Add data URL prefix for base64 string
+                            img.src = 'data:image/png;base64,' + loc.location_image;
+                        }
+                    } catch(e) {
+                        console.error('Error setting image src for:', loc.name, e);
+                    }
+                    
+                    img.alt = loc.name;
+                    img.style.width = '60px';
+                    img.style.height = '60px';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '8px';
+                    img.style.border = '2px solid #ddd';
+                    
+                    img.onerror = function() {
+                        console.error('Image load error for:', loc.name);
+                        // Replace with placeholder on error
+                        const placeholder = document.createElement('div');
+                        placeholder.style.cssText = 'width: 60px; height: 60px; background: linear-gradient(135deg, #1BA5A8 0%, #158587 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px solid #ddd;';
+                        placeholder.innerHTML = '<i class="fas fa-map-marker-alt" style="color: white; font-size: 1.5rem;"></i>';
+                        tdImage.innerHTML = '';
+                        tdImage.appendChild(placeholder);
+                    };
+                    
+                    img.onload = function() {
+                        console.log('Image loaded successfully for:', loc.name);
+                    };
+                    
+                    tdImage.appendChild(img);
+                } else {
+                    console.log('No image for:', loc.name, '- showing placeholder');
+                    const placeholder = document.createElement('div');
+                    placeholder.style.cssText = 'width: 60px; height: 60px; background: linear-gradient(135deg, #1BA5A8 0%, #158587 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px solid #ddd;';
+                    placeholder.innerHTML = '<i class="fas fa-map-marker-alt" style="color: white; font-size: 1.5rem;"></i>';
+                    tdImage.appendChild(placeholder);
+                }
+                tr.appendChild(tdImage);
+                
+                // Name cell
+                const tdName = document.createElement('td');
+                tdName.innerHTML = `<strong>${escapeHtml(loc.name)}</strong>`;
+                tr.appendChild(tdName);
+                
+                // Description cell
+                const tdDesc = document.createElement('td');
+                tdDesc.textContent = loc.description || '-';
+                tr.appendChild(tdDesc);
+                
+                // QR Code cell
+                const tdQR = document.createElement('td');
+                tdQR.innerHTML = `
+                    <button class="btn btn-sm btn-info" onclick="showQRCode(${locationId}, '${escapeHtml(loc.name)}', '${loc.qr_code_data || ''}')" title="QR Kodu Göster">
+                        <i class="fas fa-qrcode"></i> QR
+                    </button>
+                    <button class="btn btn-sm btn-primary" onclick="quickPrintQR(${locationId}, '${escapeHtml(loc.name)}', '${loc.qr_code_data || ''}')" title="Hemen Yazdır" style="margin-left: 0.25rem;">
+                        <i class="fas fa-print"></i>
+                    </button>
+                `;
+                tr.appendChild(tdQR);
+                
+                // Status cell
+                const tdStatus = document.createElement('td');
+                tdStatus.innerHTML = `
+                    <span class="badge ${loc.is_active ? 'badge-success' : 'badge-secondary'}">
+                        ${loc.is_active ? 'Aktif' : 'Pasif'}
+                    </span>
+                `;
+                tr.appendChild(tdStatus);
+                
+                // Actions cell
+                const tdActions = document.createElement('td');
+                tdActions.innerHTML = `
+                    <button class="btn btn-sm btn-warning" onclick="editLocation(${locationId})" title="Düzenle">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteLocation(${locationId}, '${escapeHtml(loc.name)}')" title="Sil">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                tr.appendChild(tdActions);
+                
+                return tr;
+            });
+            
+            // Clear and append rows
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
         } catch ( error ) {
             console.error( 'Error loading locations:', error );
             const tbody = document.getElementById( 'locations-table' );
@@ -153,6 +242,14 @@
                         <label>Açıklama</label>
                         <textarea name="description" class="form-control" rows="3" placeholder="Lokasyon hakkında kısa açıklama..."></textarea>
                     </div>
+                    <div class="form-group">
+                        <label>Lokasyon Görseli</label>
+                        <input type="file" id="location-image-input" class="form-control" accept="image/*" onchange="previewLocationImage(event)">
+                        <small class="text-muted">Misafirlerin lokasyonu tanıması için görsel ekleyebilirsiniz (opsiyonel)</small>
+                        <div id="image-preview" style="margin-top: 1rem; display: none;">
+                            <img id="preview-img" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 2px solid #ddd;">
+                        </div>
+                    </div>
                 </form>
             `,
             buttons: [
@@ -171,6 +268,20 @@
         } );
     }
 
+    function previewLocationImage(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('image-preview');
+                const img = document.getElementById('preview-img');
+                img.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
     async function saveLocation( modal ) {
         const form = document.getElementById( 'location-form' );
         const formData = new FormData( form );
@@ -179,6 +290,28 @@
         if ( !data.name || data.name.trim() === '' ) {
             BuggyCall.Utils.showToast( 'Lokasyon adı gerekli!', 'danger' );
             return;
+        }
+
+        // Handle image upload
+        const imageInput = document.getElementById('location-image-input');
+        if (imageInput && imageInput.files && imageInput.files[0]) {
+            const file = imageInput.files[0];
+            
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                BuggyCall.Utils.showToast('Görsel boyutu 5MB\'dan küçük olmalı!', 'danger');
+                return;
+            }
+
+            // Convert to base64
+            try {
+                const base64 = await fileToBase64(file);
+                data.location_image = base64;
+            } catch (error) {
+                console.error('Image conversion error:', error);
+                BuggyCall.Utils.showToast('Görsel yüklenemedi!', 'danger');
+                return;
+            }
         }
 
         try {
@@ -202,6 +335,15 @@
             console.error( 'Location creation error:', error );
             BuggyCall.Utils.showToast( 'Lokasyon eklenemedi: ' + ( error.message || 'Bilinmeyen hata' ), 'danger' );
         }
+    }
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
     }
 
     function showQRCodeAfterCreation(location) {
@@ -684,97 +826,199 @@
 
     async function editLocation( id ) {
         try {
+            console.log('editLocation called with ID:', id, 'Type:', typeof id);
+            
+            // Validate ID
+            if (!id || id === 'undefined' || id === 'null') {
+                console.error('Invalid location ID:', id);
+                BuggyCall.Utils.showToast('Geçersiz lokasyon ID!', 'danger');
+                return;
+            }
+            
             // Fetch location data
             const response = await BuggyCall.API.get( `/locations/${id}` );
-            const location = response.location;
+            console.log('Location response:', response);
+            
+            // Handle different response formats
+            let location = null;
+            if (response.location) {
+                location = response.location;
+            } else if (response.data && response.data.location) {
+                location = response.data.location;
+            } else if (response.data) {
+                location = response.data;
+            } else {
+                location = response;
+            }
 
-            if ( !location ) {
-                await showError( 'Lokasyon bulunamadı!' );
+            console.log('Parsed location:', location);
+
+            if ( !location || !location.name ) {
+                BuggyCall.Utils.showToast('Lokasyon bulunamadı!', 'danger');
                 return;
             }
 
+            // Escape HTML to prevent XSS
+            const safeName = escapeHtml(location.name || '');
+            const safeDescription = escapeHtml(location.description || '');
+            
             const modalContent = `
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Lokasyon Adı *</label>
-                        <input type="text" id="edit-name" value="${location.name}" 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" 
-                               required>
+                <form id="edit-location-form">
+                    <div class="form-group">
+                        <label>Lokasyon Adı *</label>
+                        <input type="text" id="edit-name" value="${safeName}" class="form-control" required>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Açıklama</label>
-                        <textarea id="edit-description" rows="3" 
-                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">${location.description || ''}</textarea>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <textarea id="edit-description" rows="3" class="form-control">${safeDescription}</textarea>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Enlem (Latitude)</label>
-                            <input type="number" id="edit-latitude" value="${location.latitude !== null && location.latitude !== undefined ? location.latitude : ''}" 
-                                   step="0.000001" 
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <div class="form-group">
+                        <label>Lokasyon Görseli</label>
+                        ${location.location_image ? `
+                            <div id="current-image-container" style="margin-bottom: 1rem;">
+                                <img src="${location.location_image}" style="max-width: 100%; max-height: 150px; border-radius: 8px; border: 2px solid #ddd;">
+                                <button type="button" onclick="removeEditImage()" class="btn btn-sm btn-danger" style="margin-top: 0.5rem;">
+                                    <i class="fas fa-trash"></i> Görseli Kaldır
+                                </button>
+                            </div>
+                        ` : ''}
+                        <input type="file" id="edit-location-image" class="form-control" accept="image/*" onchange="previewEditImage(event)">
+                        <small class="text-muted">Yeni görsel yüklemek için seçin (opsiyonel)</small>
+                        <div id="edit-image-preview" style="margin-top: 1rem; display: none;">
+                            <img id="edit-preview-img" style="max-width: 100%; max-height: 150px; border-radius: 8px; border: 2px solid #ddd;">
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Boylam (Longitude)</label>
-                            <input type="number" id="edit-longitude" value="${location.longitude !== null && location.longitude !== undefined ? location.longitude : ''}" 
-                                   step="0.000001" 
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label>Enlem (Latitude)</label>
+                                <input type="number" id="edit-latitude" value="${location.latitude !== null && location.latitude !== undefined ? location.latitude : ''}" 
+                                       step="0.000001" class="form-control" placeholder="Örn: 36.8969">
+                            </div>
+                            <div class="col-md-6">
+                                <label>Boylam (Longitude)</label>
+                                <input type="number" id="edit-longitude" value="${location.longitude !== null && location.longitude !== undefined ? location.longitude : ''}" 
+                                       step="0.000001" class="form-control" placeholder="Örn: 30.7133">
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Görüntülenme Sırası</label>
+                    <div class="form-group">
+                        <label>Görüntülenme Sırası</label>
                         <input type="number" id="edit-display-order" value="${location.display_order !== null && location.display_order !== undefined ? location.display_order : 0}" 
-                               min="0" 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                               min="0" class="form-control">
                     </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="edit-is-active" ${location.is_active ? 'checked' : ''} 
-                               class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
-                        <label for="edit-is-active" class="ml-2 text-sm font-medium text-gray-700">Aktif</label>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="edit-is-active" ${location.is_active ? 'checked' : ''}>
+                            <span>Aktif</span>
+                        </label>
                     </div>
-                </div>
+                </form>
             `;
 
-            const result = await BuggyModal.custom( modalContent, {
+            window.editImageRemoved = false;
+            window.removeEditImage = function() {
+                window.editImageRemoved = true;
+                const container = document.getElementById('current-image-container');
+                if (container) {
+                    container.style.display = 'none';
+                }
+                BuggyCall.Utils.showToast('Görsel kaldırılacak', 'info');
+            };
+
+            window.previewEditImage = function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const preview = document.getElementById('edit-image-preview');
+                        const img = document.getElementById('edit-preview-img');
+                        img.src = e.target.result;
+                        preview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const modal = BuggyModal.showCustomModal({
                 title: 'Lokasyon Düzenle',
-                confirmText: 'Güncelle',
-                cancelText: 'İptal',
-                size: 'medium'
-            } );
+                type: 'info',
+                size: 'medium',
+                customContent: modalContent,
+                buttons: [
+                    {
+                        text: 'İptal',
+                        class: 'btn-secondary',
+                        onClick: () => BuggyModal.closeModal(modal)
+                    },
+                    {
+                        text: 'Güncelle',
+                        class: 'btn-primary',
+                        icon: 'fas fa-save',
+                        onClick: () => saveLocationEdit(modal, id)
+                    }
+                ]
+            });
 
-            if ( result ) {
-                const name = document.getElementById( 'edit-name' ).value.trim();
-                const description = document.getElementById( 'edit-description' ).value.trim();
-                const latitude = document.getElementById( 'edit-latitude' ).value;
-                const longitude = document.getElementById( 'edit-longitude' ).value;
-                const displayOrder = parseInt( document.getElementById( 'edit-display-order' ).value ) || 0;
-                const isActive = document.getElementById( 'edit-is-active' ).checked;
-
-                if ( !name ) {
-                    BuggyCall.Utils.showToast( 'Lokasyon adı boş olamaz!', 'danger' );
-                    return;
-                }
-
-                const updateData = {
-                    name,
-                    description,
-                    display_order: displayOrder,
-                    is_active: isActive
-                };
-
-                if ( latitude ) updateData.latitude = parseFloat( latitude );
-                if ( longitude ) updateData.longitude = parseFloat( longitude );
-
-                try {
-                    await BuggyCall.API.put( `/locations/${id}`, updateData );
-                    BuggyCall.Utils.showToast( 'Lokasyon başarıyla güncellendi!', 'success' );
-                    loadLocationsPage();
-                } catch ( error ) {
-                    BuggyCall.Utils.showToast( 'Lokasyon güncellenemedi: ' + ( error.message || 'Bilinmeyen hata' ), 'danger' );
-                }
-            }
         } catch ( error ) {
             console.error( 'Error editing location:', error );
             BuggyCall.Utils.showToast( 'Lokasyon bilgileri yüklenirken hata oluştu: ' + error.message, 'danger' );
+        }
+    }
+
+    async function saveLocationEdit(modal, id) {
+        const name = document.getElementById( 'edit-name' ).value.trim();
+        const description = document.getElementById( 'edit-description' ).value.trim();
+        const latitude = document.getElementById( 'edit-latitude' ).value;
+        const longitude = document.getElementById( 'edit-longitude' ).value;
+        const displayOrder = parseInt( document.getElementById( 'edit-display-order' ).value ) || 0;
+        const isActive = document.getElementById( 'edit-is-active' ).checked;
+
+        if ( !name ) {
+            BuggyCall.Utils.showToast( 'Lokasyon adı boş olamaz!', 'danger' );
+            return;
+        }
+
+        const updateData = {
+            name,
+            description,
+            display_order: displayOrder,
+            is_active: isActive
+        };
+
+        if ( latitude ) updateData.latitude = parseFloat( latitude );
+        if ( longitude ) updateData.longitude = parseFloat( longitude );
+
+        // Handle image update
+        const imageInput = document.getElementById('edit-location-image');
+        if (window.editImageRemoved) {
+            updateData.location_image = null;
+        } else if (imageInput && imageInput.files && imageInput.files[0]) {
+            const file = imageInput.files[0];
+            
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                BuggyCall.Utils.showToast('Görsel boyutu 5MB\'dan küçük olmalı!', 'danger');
+                return;
+            }
+
+            try {
+                const base64 = await fileToBase64(file);
+                updateData.location_image = base64;
+            } catch (error) {
+                console.error('Image conversion error:', error);
+                BuggyCall.Utils.showToast('Görsel yüklenemedi!', 'danger');
+                return;
+            }
+        }
+
+        try {
+            await BuggyCall.API.put( `/locations/${id}`, updateData );
+            BuggyModal.closeModal(modal);
+            BuggyCall.Utils.showToast( 'Lokasyon başarıyla güncellendi!', 'success' );
+            loadLocationsPage();
+        } catch ( error ) {
+            BuggyCall.Utils.showToast( 'Lokasyon güncellenemedi: ' + ( error.message || 'Bilinmeyen hata' ), 'danger' );
         }
     }
 

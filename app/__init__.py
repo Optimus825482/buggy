@@ -118,6 +118,7 @@ def create_app(config_name=None):
         from app.models.request import BuggyRequest
         from app.models.audit import AuditTrail
         from app.models.session import Session
+        from app.models.notification_log import NotificationLog  # Notification tracking
     
     # Initialize CORS
     CORS(app, 
@@ -157,6 +158,15 @@ def create_app(config_name=None):
     
     # Register shell context
     register_shell_context(app)
+    
+    # Initialize background jobs (skip during migrations and testing)
+    if not os.getenv('SKIP_BACKGROUND_JOBS') and not app.config['TESTING']:
+        try:
+            from app.services.background_jobs import BackgroundJobsService
+            BackgroundJobsService.init_scheduler(app)
+            app.logger.info("✅ Background jobs initialized")
+        except Exception as e:
+            app.logger.error(f"❌ Failed to initialize background jobs: {e}")
     
     return app
 
@@ -240,15 +250,18 @@ def register_blueprints(app):
     from app.routes.system_reset import system_reset_bp
     from app.routes.system_admin import system_admin_bp
     from app.routes.test import test_bp
+    from app.routes.admin_notification_api import admin_notification_api
+    from app.routes.map_api import map_api
 
     app.register_blueprint(setup_bp)  # No prefix, setup routes at root level
     app.register_blueprint(system_reset_bp)  # No prefix, system reset at root level
     app.register_blueprint(system_admin_bp)  # No prefix, system admin at root level
     
-    # Exempt setup, system reset, and system admin from CSRF (they use JSON without CSRF tokens)
+    # Exempt setup, system reset, system admin, and map API from CSRF
     csrf.exempt(setup_bp)
     csrf.exempt(system_reset_bp)
     csrf.exempt(system_admin_bp)
+    csrf.exempt(map_api)  # Map API uses GET requests for thumbnails
     
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -257,6 +270,8 @@ def register_blueprints(app):
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(reports_bp, url_prefix='/api/reports')
     app.register_blueprint(audit_bp, url_prefix='/api')
+    app.register_blueprint(admin_notification_api)  # Admin notification monitoring
+    app.register_blueprint(map_api)  # Map thumbnail generation
     app.register_blueprint(health_bp)  # No prefix for health endpoints
     
     # Test routes (sadece development'ta)

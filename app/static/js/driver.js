@@ -272,9 +272,18 @@ const Driver = {
         }
         
         try {
+            // Show location selection modal
+            const locationId = await this.showLocationSelectionModal();
+            
+            if (!locationId) {
+                return; // User cancelled
+            }
+            
             BuggyCall.Utils.showLoading();
             
-            await BuggyCall.API.put(`/requests/${this.currentRequest.id}/complete`, {});
+            await BuggyCall.API.put(`/requests/${this.currentRequest.id}/complete`, {
+                current_location_id: locationId
+            });
             
             await BuggyCall.Utils.showSuccess('Talep başarıyla tamamlandı!');
             this.currentRequest = null;
@@ -286,6 +295,141 @@ const Driver = {
             await BuggyCall.Utils.showError('Talep tamamlanırken hata oluştu: ' + error.message);
             BuggyCall.Utils.hideLoading();
         }
+    },
+
+    /**
+     * Show location selection modal
+     */
+    async showLocationSelectionModal() {
+        return new Promise(async (resolve) => {
+            try {
+                // Load locations
+                const response = await BuggyCall.API.get('/locations');
+                const locations = response.locations || response.data?.items || [];
+                
+                if (locations.length === 0) {
+                    await BuggyCall.Utils.showError('Lokasyon bulunamadı!');
+                    resolve(null);
+                    return;
+                }
+                
+                // Create location cards HTML
+                const locationCards = locations.map(loc => {
+                    const imageOrIcon = loc.location_image 
+                        ? `<img src="${loc.location_image}" alt="${this.escapeHtml(loc.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 11px;">`
+                        : `<i class="fas fa-map-marker-alt" style="color: white; font-size: 1.5rem;"></i>`;
+                    
+                    return `
+                        <button class="location-select-card" data-location-id="${loc.id}" style="
+                            width: 100%;
+                            padding: 1rem;
+                            margin-bottom: 0.75rem;
+                            background: white;
+                            border: 2px solid #ddd;
+                            border-radius: 12px;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                            display: flex;
+                            align-items: center;
+                            gap: 1rem;
+                            text-align: left;
+                        ">
+                            <div style="
+                                width: 60px;
+                                height: 60px;
+                                background: linear-gradient(135deg, #1BA5A8 0%, #158587 100%);
+                                border-radius: 11px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                flex-shrink: 0;
+                                box-shadow: 0 4px 12px rgba(27, 165, 168, 0.25);
+                            ">
+                                ${imageOrIcon}
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 600; color: #2C3E50; font-size: 1rem; margin-bottom: 0.25rem;">
+                                    ${this.escapeHtml(loc.name)}
+                                </div>
+                                <div style="font-size: 0.875rem; color: #5A6C7D;">
+                                    ${loc.description ? this.escapeHtml(loc.description) : 'Şu anda bu konumdasınız'}
+                                </div>
+                            </div>
+                            <div style="flex-shrink: 0; color: #cbd5e1; font-size: 1.25rem;">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                        </button>
+                    `;
+                }).join('');
+                
+                const modal = BuggyModal.showCustomModal({
+                    title: 'Şu Anki Konumunuz',
+                    type: 'info',
+                    size: 'medium',
+                    customContent: `
+                        <div style="margin-bottom: 1rem;">
+                            <p style="color: #5A6C7D; font-size: 0.875rem; margin-bottom: 1rem;">
+                                Misafiri bıraktıktan sonra şu anda hangi konumdasınız?
+                            </p>
+                            <div id="location-cards-container" style="max-height: 400px; overflow-y: auto;">
+                                ${locationCards}
+                            </div>
+                        </div>
+                    `,
+                    buttons: [
+                        {
+                            text: 'İptal',
+                            class: 'btn-secondary',
+                            onClick: () => {
+                                BuggyModal.closeModal(modal);
+                                resolve(null);
+                            }
+                        }
+                    ]
+                });
+                
+                // Add click handlers to location cards
+                setTimeout(() => {
+                    const cards = document.querySelectorAll('.location-select-card');
+                    cards.forEach(card => {
+                        card.addEventListener('click', () => {
+                            const locationId = parseInt(card.dataset.locationId);
+                            BuggyModal.closeModal(modal);
+                            resolve(locationId);
+                        });
+                        
+                        // Hover effect
+                        card.addEventListener('mouseenter', () => {
+                            card.style.borderColor = '#1BA5A8';
+                            card.style.background = '#f0f9ff';
+                            card.style.transform = 'translateY(-2px)';
+                            card.style.boxShadow = '0 8px 20px rgba(27, 165, 168, 0.15)';
+                        });
+                        
+                        card.addEventListener('mouseleave', () => {
+                            card.style.borderColor = '#ddd';
+                            card.style.background = 'white';
+                            card.style.transform = 'translateY(0)';
+                            card.style.boxShadow = 'none';
+                        });
+                    });
+                }, 100);
+                
+            } catch (error) {
+                console.error('Error loading locations:', error);
+                await BuggyCall.Utils.showError('Lokasyonlar yüklenemedi!');
+                resolve(null);
+            }
+        });
+    },
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     },
 
     /**

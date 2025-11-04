@@ -9,11 +9,14 @@
 /* Optimized and Enhanced Version - Powered by Erkan ERDEM */
 
 :root {
-    --primary-gradient: linear-gradient(135deg, #1BA5A8 0%, #5BC0C3 100%);
-    --accent-gradient: linear-gradient(135deg, #F28C38 0%, #F5A864 100%);
-    --success-color: #10b981;
-    --error-color: #ef4444;
-    --warning-color: #f59e0b;
+    /* Merit Hotels Renk Paleti */
+    --primary-navy: #1A2B4A;
+    --royal-gold: #D4AF37;
+    --primary-gradient: linear-gradient(135deg, var(--primary-navy) 0%, #2A3B5A 100%);
+    --accent-gradient: linear-gradient(135deg, var(--royal-gold) 0%, #E4BF47 100%);
+    --success-color: #2E7D32;
+    --error-color: #B71C1C;
+    --warning-color: var(--royal-gold);
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
     --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
     --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.12);
@@ -25,7 +28,7 @@
 
 /* ==================== BASE LAYOUT ==================== */
 body {
-  background: linear-gradient(180deg, #5BC0C3 0%, #4AAFB2 100%);
+  background: linear-gradient(180deg, #F8F8F8 0%, #E8F4F8 100%);
   min-height: 100vh;
 }
 
@@ -48,52 +51,87 @@ body {
 /* ==================== LOGO SECTION ==================== */
 .logo-section {
     text-align: center;
-    margin-bottom: 32px;
-    margin-top: 40px;
+    margin-bottom: 24px;
+    margin-top: 20px;
     animation: fadeInDown 0.6s ease-out;
 }
 
-.logo-wrapper {
- 
-    margin: 0 auto 20px;
-    background: #FFFFFF;
-    border-radius: 32px;
+/* Location Image Wrapper (Large) */
+.location-image-wrapper {
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 16px;
+    position: relative;
+}
+
+#location-main-image-container {
+    width: 100%;
+    height: 100%;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: 3px solid var(--royal-gold);
+    animation: float 3s ease-in-out infinite;
+}
+
+#location-main-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#location-main-icon-container {
+    width: 100%;
+    height: 100%;
+    background: var(--primary-gradient);
+    border-radius: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: 3px solid var(--royal-gold);
     animation: float 3s ease-in-out infinite;
-    position: relative;
 }
 
-.logo-wrapper::before {
-    content: '';
-    position: absolute;
-    inset: -8px;
-    background: linear-gradient(135deg, rgba(27, 165, 168, 0.1), rgba(91, 192, 195, 0.1));
-    border-radius: 36px;
-    z-index: -1;
-    animation: pulse-ring 2s ease-in-out infinite;
+#location-main-icon-container i {
+    font-size: 64px;
+    color: white;
 }
 
-.logo-wrapper img {
-    width: 60%;
-    height: auto;
+/* Location Name Display */
+.location-name-display {
+    margin-bottom: 16px;
 }
 
-.page-title {
-    font-size: clamp(24px, 6vw, 32px);
-    font-weight: 800;
-    color: #FFFFFF;
-    margin-bottom: 8px;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.location-name-display span {
+    font-size: clamp(18px, 4.5vw, 22px);
+    font-weight: 700;
+    color: var(--primary-navy);
+    display: block;
 }
 
-.page-subtitle {
-    font-size: clamp(14px, 3.5vw, 16px);
-    color: rgba(255, 255, 255, 0.9);
-    font-weight: 500;
-    transition: all 0.3s ease;
+/* Brand Title Section (Above Location Image) */
+.brand-title-section {
+    margin-bottom: 16px;
+}
+
+.brand-title-text {
+    font-size: clamp(20px, 5vw, 26px);
+    font-weight: 700;
+    color: var(--primary-navy);
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+/* Brand Logo Section (Below Location Name) */
+.brand-logo-section {
+    margin-top: 12px;
+}
+
+.small-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
 }
 
 /* ==================== CARDS ==================== */
@@ -129,7 +167,7 @@ body {
 
 .qr-icon-wrapper i {
     font-size: clamp(36px, 10vw, 48px);
-    background: linear-gradient(135deg, #1BA5A8, #F28C38);
+    background: linear-gradient(135deg, var(--primary-navy), var(--royal-gold));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -228,7 +266,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #1BA5A8;
+    color: var(--primary-navy);
     font-size: 20px;
     border: 1px solid #E5E7EB;
     flex-shrink: 0;
@@ -253,9 +291,9 @@ body {
 }
 
 .modern-input:focus {
-    border-color: #1BA5A8;
+    border-color: var(--primary-navy);
     background: white;
-    box-shadow: 0 0 0 4px rgba(27, 165, 168, 0.1);
+    box-shadow: 0 0 0 4px rgba(26, 43, 74, 0.1);
     outline: none;
 }
 
@@ -263,50 +301,35 @@ body {
     color: #9CA3AF;
 }
 
-/* ==================== LOCATION DISPLAY ==================== */
-.location-display {
-    text-align: center;
-    padding: 16px;
-    background: #F9FAFB;
-    border-radius: 12px;
-    margin-top: 16px;
-    border: 1px solid #E5E7EB;
-}
-
-.location-display-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    color: #1BA5A8;
-    font-weight: 600;
-    font-size: clamp(13px, 3.5vw, 15px);
-}
+/* ==================== REMOVED - Location display moved to logo section ==================== */
 
 /* ==================== FOOTER SECTION ==================== */
 .footer-section {
     text-align: center;
-    padding: 24px 0;
+    padding: 2rem 0;
+    background: var(--primary-navy);
+    border-top: 2px solid var(--royal-gold);
+    margin-top: 2rem;
+    margin-left: calc(-1 * clamp(16px, 4vw, 24px));
+    margin-right: calc(-1 * clamp(16px, 4vw, 24px));
+    width: calc(100% + 2 * clamp(16px, 4vw, 24px));
     animation: fadeIn 0.6s ease-out 0.4s both;
 }
 
 .hotel-name {
-    font-size: clamp(16px, 4vw, 18px);
-    font-weight: 700;
-    color: #2C3E50;
-    margin-bottom: 16px;
+    font-size: clamp(14px, 3.5vw, 16px);
+    font-weight: 600;
+    color: #D8D8D8;
+    letter-spacing: 0.5px;
+    margin: 0;
 }
 
 .powered-by {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 8px;
+    display: none;
 }
 
 .brand-name {
-    font-size: clamp(14px, 3.5vw, 15px);
-    font-weight: 700;
-    color: #FFFFFF;
+    display: none;
 }
 
 /* ==================== MODAL STYLES ==================== */
@@ -385,7 +408,7 @@ body {
 #qr-reader {
     border-radius: var(--radius-md);
     overflow: hidden;
-    border: 3px solid #1BA5A8;
+    border: 3px solid var(--primary-navy);
 }
 
 .qr-reader-hint {
@@ -449,7 +472,7 @@ body {
         transform: scale(1);
     }
     50% {
-        border-color: #1BA5A8;
+        border-color: var(--primary-navy);
         transform: scale(1.05);
     }
 }
@@ -531,18 +554,34 @@ body {
 
 {% block content %}
 <div class="guest-call-container" data-location-id="{% if location_id %}{{ location_id }}{% endif %}">
-    <!-- Logo & Title Section -->
+    <!-- Location Image & Logo Section -->
     <div class="logo-section">
-        <div class="logo-wrapper" role="img" aria-label="Buggy Call Logo">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Buggy Call Logo">
+        <div class="brand-logo-section">
+       <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Buggy Call Logo" class="small-logo">
         </div>
-        <!-- Location Info -->
-            <div class="location-display" id="location-display">
-                <div class="location-display-content">
-                    <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
-                    <span id="location-name-display">Lokasyon yükleniyor...</span>
-                </div>
+        <!-- Brand Title -->
+        <div class="brand-title-section">
+            <!-- Small Logo -->
+        
+           <p class="brand-title-text">      Buggy Call System</p>  </div>
+      
+        
+        <!-- Location Image (Large) -->
+        <div class="location-image-wrapper" id="location-image-wrapper">
+            <div id="location-main-image-container" style="display: none;">
+                <img id="location-main-image" alt="Lokasyon görseli">
             </div>
+            <div id="location-main-icon-container" style="display: flex;">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+        </div>
+        
+        <!-- Location Name -->
+        <div class="location-name-display">
+            <span id="location-name-display">Lokasyon yükleniyor...</span>
+        </div>
+        
+        
     </div>
 
     <!-- Main Content -->
@@ -604,9 +643,12 @@ body {
 
     <!-- Footer Section -->
     <footer class="footer-section">
-        <p class="hotel-name" id="hotel-name">Buggy Call System</p>
-        <p class="powered-by">Powered by</p>
-        <p class="brand-name">Erkan ERDEM</p>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+            <img src="{{ url_for('static', filename='images/Merit_International.png') }}" 
+                 alt="Merit International Hotels & Resorts" 
+                 style="height: 50px; width: auto; object-fit: contain;">
+            <p class="hotel-name">MERIT INTERNATIONAL HOTELS & RESORTS © 2025 COPYRIGHT</p>
+        </div>
     </footer>
 </div>
 
@@ -744,7 +786,10 @@ const GuestCall = (() => {
             console.log('✅ Location ID bulundu, form gösteriliyor:', locationId);
             state.selectedLocationId = parseInt(locationId, 10);
             transitionToCallForm();
-            loadLocationInfo(locationId);
+            // DOM'un hazır olması için kısa bir gecikme
+            setTimeout(() => {
+                loadLocationInfo(locationId);
+            }, 100);
         } else {
             console.log('❌ Location ID bulunamadı, QR scanner gösteriliyor');
             loadHotelName();
@@ -778,7 +823,7 @@ const GuestCall = (() => {
         const displayEl = $(SELECTORS.LOCATION_DISPLAY);
         if (!displayEl) return;
 
-        updateLocationDisplay('<i class="fas fa-spinner fa-spin"></i> Lokasyon yükleniyor...', '#6B7280');
+        updateLocationDisplay('<i class="fas fa-spinner fa-spin"></i> Lokasyon yükleniyor...', '#6B7280', null);
 
         try {
             // Ensure locationId is integer
@@ -799,16 +844,19 @@ const GuestCall = (() => {
             const location = data.data?.location || data.location;
 
             if (data.success && location) {
+                console.log('✅ Location found:', location);
+                console.log('📸 Location image:', location.location_image);
                 state.selectedLocationName = location.name;
-                updateLocationDisplay(`<strong>${location.name}</strong>`, '#1BA5A8');
+                updateLocationDisplay(`<strong>${location.name}</strong>`, '#1A2B4A', location.location_image);
+                console.log('✅ updateLocationDisplay called');
            
             } else {
                 console.error('❌ Location not found in response:', data);
-                updateLocationDisplay('<i class="fas fa-exclamation-circle"></i> Lokasyon bulunamadı', '#E74C3C');
+                updateLocationDisplay('<i class="fas fa-exclamation-circle"></i> Lokasyon bulunamadı', '#E74C3C', null);
             }
         } catch (error) {
             console.error('❌ Error loading location:', error);
-            updateLocationDisplay('<i class="fas fa-exclamation-circle"></i> Yükleme hatası', '#E74C3C');
+            updateLocationDisplay('<i class="fas fa-exclamation-circle"></i> Yükleme hatası', '#E74C3C', null);
         }
     };
 
@@ -828,11 +876,39 @@ const GuestCall = (() => {
     };
 
     // ==================== UI UPDATES ====================
-    const updateLocationDisplay = (content, color) => {
-        const display = $(SELECTORS.LOCATION_DISPLAY);
-        if (display) {
-            display.innerHTML = content;
-            display.style.color = color;
+    const updateLocationDisplay = (content, color, locationImage = null) => {
+        console.log('🔧 updateLocationDisplay called with:', {content, color, locationImage: locationImage ? 'YES' : 'NO'});
+        
+        const nameDisplay = $('location-name-display');
+        const mainImageContainer = $('location-main-image-container');
+        const mainImage = $('location-main-image');
+        const mainIconContainer = $('location-main-icon-container');
+        
+        console.log('🔍 Elements found:', {
+            nameDisplay: !!nameDisplay,
+            mainImageContainer: !!mainImageContainer,
+            mainImage: !!mainImage,
+            mainIconContainer: !!mainIconContainer
+        });
+        
+        if (nameDisplay) {
+            nameDisplay.innerHTML = content;
+            nameDisplay.style.color = color;
+            console.log('✅ Name updated:', nameDisplay.innerHTML);
+        } else {
+            console.error('❌ nameDisplay not found!');
+        }
+        
+        // Büyük görsel varsa göster, yoksa icon göster
+        if (locationImage && mainImageContainer && mainImage && mainIconContainer) {
+            mainImage.src = locationImage;
+            mainImageContainer.style.display = 'block';
+            mainIconContainer.style.display = 'none';
+            console.log('✅ Image displayed');
+        } else if (mainImageContainer && mainIconContainer) {
+            mainImageContainer.style.display = 'none';
+            mainIconContainer.style.display = 'flex';
+            console.log('✅ Icon displayed');
         }
     };
 
@@ -1010,7 +1086,7 @@ const GuestCall = (() => {
                     }
                     .confirm-detail i {
                         width: 24px;
-                        color: #1BA5A8;
+                        color: var(--primary-navy);
                         font-size: 18px;
                         text-align: center;
                     }
@@ -1267,8 +1343,8 @@ const GuestCall = (() => {
                     width: 48px;
                     height: 48px;
                     margin: 0 auto;
-                    border: 3px solid rgba(27, 165, 168, 0.2);
-                    border-top-color: #1BA5A8;
+                    border: 3px solid rgba(26, 43, 74, 0.2);
+                    border-top-color: var(--primary-navy);
                     border-radius: 50%;
                     animation: spin 1s linear infinite;
                 "></div>
@@ -1301,8 +1377,8 @@ const GuestCall = (() => {
                     width: 64px;
                     height: 64px;
                     margin: 0 auto 20px;
-                    border: 4px solid rgba(27, 165, 168, 0.2);
-                    border-top-color: #1BA5A8;
+                    border: 4px solid rgba(26, 43, 74, 0.2);
+                    border-top-color: var(--primary-navy);
                     border-radius: 50%;
                     animation: spin 1s linear infinite;
                 "></div>
@@ -1378,9 +1454,8 @@ const GuestCall = (() => {
             '"': '&quot;',
             "'": '&#039;'
         };
-        return text.replace(/[&<>"']/g, m => map[m]);
-    };
-
+        return text.replace(/[&<>"']/g, m => map[m])
+  };
     // ==================== INITIALIZATION ====================
     document.addEventListener('DOMContentLoaded', initializePage);
 

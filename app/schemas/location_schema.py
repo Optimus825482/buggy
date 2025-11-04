@@ -14,6 +14,7 @@ class LocationSchema(Schema):
     description = fields.Str(allow_none=True)
     qr_code_data = fields.Str(dump_only=True)
     qr_code_image = fields.Str(dump_only=True)
+    location_image = fields.Str(allow_none=True)  # Base64 encoded image
     display_order = fields.Int(missing=0)
     latitude = fields.Decimal(places=8, allow_none=True)
     longitude = fields.Decimal(places=8, allow_none=True)
@@ -56,6 +57,7 @@ class LocationUpdateSchema(Schema):
     
     name = fields.Str(validate=validate.Length(min=1, max=255))
     description = fields.Str(allow_none=True)
+    location_image = fields.Str(allow_none=True)  # Base64 encoded image
     display_order = fields.Int()
     latitude = fields.Decimal(places=8, allow_none=True)
     longitude = fields.Decimal(places=8, allow_none=True)

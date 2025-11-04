@@ -24,6 +24,7 @@ class Location(db.Model, BaseModel):
     description = Column(Text)
     qr_code_data = Column(String(500), nullable=False, unique=True, index=True)
     qr_code_image = Column(Text)  # Base64 encoded image or file path
+    location_image = Column(Text)  # Base64 encoded location image or file path
     display_order = Column(Integer, default=0, nullable=False, index=True)  # For sorting locations
     latitude = Column(DECIMAL(10, 8))
     longitude = Column(DECIMAL(11, 8))
@@ -46,6 +47,7 @@ class Location(db.Model, BaseModel):
             'description': self.description,
             'qr_code_data': self.qr_code_data,
             'qr_code_image': self.qr_code_image,
+            'location_image': self.location_image,
             'display_order': self.display_order,
             'latitude': float(self.latitude) if self.latitude else None,
             'longitude': float(self.longitude) if self.longitude else None,

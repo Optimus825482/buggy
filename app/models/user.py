@@ -39,6 +39,8 @@ class SystemUser(db.Model, BaseModel):
     is_active = Column(Boolean, default=True, nullable=False, index=True)
     must_change_password = Column(Boolean, default=False, nullable=False)  # Force password change on next login
     push_subscription = Column(Text)  # JSON string for push notification subscription
+    push_subscription_date = Column(DateTime)  # When subscription was created/updated
+    notification_preferences = Column(Text)  # JSON string for notification preferences
     
     # Timestamps
     created_at = Column(DateTime, default=get_current_timestamp, nullable=False)
@@ -79,6 +81,32 @@ class SystemUser(db.Model, BaseModel):
         """Check password"""
         return check_password_hash(self.password_hash, password)
     
+    def get_notification_preferences(self):
+        """Get notification preferences as dict"""
+        import json
+        if self.notification_preferences:
+            try:
+                return json.loads(self.notification_preferences)
+            except:
+                pass
+        # Default preferences
+        return {
+            'enabled': True,
+            'sound': True,
+            'vibration': True,
+            'priority_only': False,
+            'quiet_hours': {
+                'enabled': False,
+                'start': '22:00',
+                'end': '08:00'
+            }
+        }
+    
+    def set_notification_preferences(self, preferences):
+        """Set notification preferences from dict"""
+        import json
+        self.notification_preferences = json.dumps(preferences)
+    
     def to_dict(self):
         """Convert to dictionary"""
         return {
@@ -91,5 +119,7 @@ class SystemUser(db.Model, BaseModel):
             'phone': self.phone,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'last_login': self.last_login.isoformat() if self.last_login else None
+            'last_login': self.last_login.isoformat() if self.last_login else None,
+            'push_subscription_date': self.push_subscription_date.isoformat() if self.push_subscription_date else None,
+            'notification_preferences': self.get_notification_preferences()
         }

@@ -208,6 +208,9 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
+    // Admin sayfası olduğunu işaretle
+    document.body.dataset.page = 'admin';
+    
     let dailyChart, statusChart, locationChart;
     let reportData = {
         requests: [],

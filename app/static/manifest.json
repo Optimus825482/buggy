@@ -7,6 +7,13 @@
   "background_color": "#1BA5A8",
   "theme_color": "#1BA5A8",
   "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "permissions": [
+    "notifications",
+    "push",
+    "background-sync",
+    "badge"
+  ],
   "icons": [
     {
       "src": "/static/icons/Icon-72.png",
@@ -90,5 +97,21 @@
         }
       ]
     }
-  ]
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+buggycall",
+      "url": "/handle?url=%s"
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

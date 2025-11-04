@@ -1,36 +1,50 @@
-# Bildirim Sesleri
+# Notification Sounds
 
-Bu klasör push bildirim sesleri için kullanılır.
+Bu klasör, push bildirimleri için kullanılan ses dosyalarını içerir.
 
-## Ses Dosyası Ekleme
+## Ses Dosyaları
 
-1. **notification.mp3** - Misafir talebi bildirimi için kullanılır
-   - Önerilen süre: 1-3 saniye
-   - Format: MP3, OGG veya WAV
-   - Boyut: Maksimum 100KB (hızlı yükleme için)
+### 1. urgent.mp3 (High Priority)
+- **Kullanım**: Yüksek öncelikli bildirimler (yeni buggy talepleri)
+- **Süre**: 1-2 saniye
+- **Boyut**: < 100KB
+- **Özellik**: Dikkat çekici, acil
 
-## Ses Dosyası Kaynakları
+### 2. notification.mp3 (Normal Priority)
+- **Kullanım**: Normal öncelikli bildirimler
+- **Süre**: 1-2 saniye
+- **Boyut**: < 100KB
+- **Özellik**: Standart bildirim sesi
 
-Ücretsiz bildirim sesleri için:
-- https://notificationsounds.com/
-- https://freesound.org/
-- https://mixkit.co/free-sound-effects/notification/
+### 3. subtle.mp3 (Low Priority)
+- **Kullanım**: Düşük öncelikli bildirimler
+- **Süre**: 0.5-1 saniye
+- **Boyut**: < 50KB
+- **Özellik**: Hafif, dikkat dağıtmayan
 
-## Örnek Kullanım
+## Ses Dosyası Gereksinimleri
 
-```python
-# Python'da bildirim gönderirken
-NotificationService.send_notification(
-    subscription_info=driver.push_subscription,
-    title="🔔 Yeni Buggy Talebi",
-    body="Lokasyon - Oda: 101",
-    sound="/static/sounds/notification.mp3",
-    vibrate=[200, 100, 200, 100, 200]
-)
-```
+- **Format**: MP3, OGG veya WAV
+- **Maksimum Boyut**: 100KB
+- **Önerilen Süre**: 1-3 saniye
+- **Sample Rate**: 44.1kHz veya 48kHz
+- **Bit Rate**: 128kbps (MP3 için)
 
-## Not
+## Ses Dosyası Oluşturma
 
-- Ses dosyası eklenmezse bildirim sessiz gönderilir
-- Tarayıcı autoplay politikası nedeniyle ilk bildirimde ses çalmayabilir
-- Kullanıcı etkileşiminden sonra sesler düzgün çalışır
+### Online Araçlar
+- [Notification Sounds](https://notificationsounds.com/)
+- [FreeSound](https://freesound.org/)
+- [Mixkit](https://mixkit.co/free-sound-effects/notification/)
+
+### Ses Düzenleme
+- [Audacity](https://www.audacityteam.org/) (Ücretsiz)
+- [Adobe Audition](https://www.adobe.com/products/audition.html)
+
+## Fallback
+
+Ses dosyaları yüklenemezse, `common.js` içindeki `playGeneratedSound()` fonksiyonu Web Audio API kullanarak otomatik olarak ses oluşturur.
+
+## Cache
+
+Ses dosyaları Service Worker tarafından otomatik olarak cache'lenir ve offline erişim için saklanır.

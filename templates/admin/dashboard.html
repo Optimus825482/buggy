@@ -258,6 +258,9 @@
 <script src="{{ url_for('static', filename='js/notification-permission.js') }}"></script>
 <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 <script>
+    // Admin sayfası olduğunu işaretle
+    document.body.dataset.page = 'admin';
+    
     // Initialize notification permission handler for admin
     document.addEventListener('DOMContentLoaded', function() {
         notificationPermissionHandler.init(

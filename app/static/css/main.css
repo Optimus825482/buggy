@@ -12,36 +12,36 @@
 
 /* ==================== CSS Variables ==================== */
 :root {
-    /* Logo Brand Colors */
-    --primary-color: #1BA5A8;
-    /* Turquoise - Logo primary */
-    --primary-dark: #158B8E;
-    /* Darker turquoise */
-    --primary-light: #5BC0C3;
-    /* Lighter turquoise */
+    /* Merit Hotels Brand Colors */
+    --primary-color: #1A2B4A;
+    /* Navy - Merit Hotels primary */
+    --primary-dark: #0F1A2F;
+    /* Darker navy */
+    --primary-light: #2A3B5A;
+    /* Lighter navy */
 
-    --accent-color: #F28C38;
-    /* Orange - Logo accent */
-    --accent-dark: #D97826;
-    /* Darker orange */
-    --accent-light: #F5A864;
-    /* Lighter orange */
+    --accent-color: #D4AF37;
+    /* Royal Gold - Merit Hotels accent */
+    --accent-dark: #B49527;
+    /* Darker gold */
+    --accent-light: #E4BF47;
+    /* Lighter gold */
 
-    --dark-color: #2C3E50;
-    /* Dark blue-gray - Logo dark */
-    --light-color: #ECF0F1;
-    /* Light gray - Logo light */
+    --dark-color: #0F1419;
+    /* Midnight blue - Merit Hotels dark */
+    --light-color: #F8F8F8;
+    /* Pearl white - Merit Hotels light */
     --white-color: #FFFFFF;
 
-    /* Semantic Colors - Logo Compatible */
-    --success-color: #1BA5A8;
-    /* Use primary for success */
-    --danger-color: #E74C3C;
-    /* Complementary red */
-    --warning-color: #F28C38;
-    /* Use accent for warning */
-    --info-color: #1BA5A8;
-    /* Use primary for info */
+    /* Semantic Colors - Merit Hotels Compatible */
+    --success-color: #2E7D32;
+    /* Luxury green */
+    --danger-color: #B71C1C;
+    /* Deep red */
+    --warning-color: #D4AF37;
+    /* Use gold for warning */
+    --info-color: #1565C0;
+    /* Deep blue */
 
     /* Neutral Colors - High Contrast */
     --text-primary: #111827;
@@ -240,10 +240,10 @@ a:hover {
 
 /* ==================== Header ==================== */
 .header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    background: linear-gradient(135deg, #1A2B4A 0%, #0F1A2F 100%);
     color: var(--text-white);
     padding: var(--spacing-md) 0;
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 6px -1px rgba(26, 43, 74, 0.1), 0 2px 4px -1px rgba(26, 43, 74, 0.06);
     position: sticky;
     top: 0;
     z-index: var(--z-sticky);
@@ -309,16 +309,16 @@ a:hover {
     box-shadow: var(--shadow-sm);
 }
 
-/* Powered by styling */
-.powered-by {
+/* Merit Hotels branding */
+.merit-branding {
     text-align: center;
     margin-top: 0.5rem;
     font-size: 0.9rem;
     color: var(--text-secondary);
 }
 
-.powered-by strong {
-    color: var(--primary-color);
+.merit-branding strong {
+    color: #D4AF37;
     font-weight: 600;
 }
 
@@ -403,34 +403,34 @@ a:hover {
 
 /* Button Variants */
 .btn-primary {
-    background-color: var(--primary-color);
+    background: linear-gradient(135deg, #1A2B4A 0%, #2A3B5A 100%);
     color: var(--text-white);
 }
 
 .btn-primary:hover {
-    background-color: var(--primary-dark);
+    background: linear-gradient(135deg, #0F1A2F 0%, #1A2B4A 100%);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 10px 25px -5px rgba(26, 43, 74, 0.3);
 }
 
 .btn-accent {
-    background-color: var(--accent-color);
-    color: var(--text-white);
+    background: linear-gradient(135deg, #D4AF37 0%, #E4BF47 100%);
+    color: #1A2B4A;
 }
 
 .btn-accent:hover {
-    background-color: var(--accent-dark);
+    background: linear-gradient(135deg, #B49527 0%, #D4AF37 100%);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 10px 25px -5px rgba(212, 175, 55, 0.3);
 }
 
 .btn-success {
-    background-color: var(--success-color);
+    background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%);
     color: var(--text-white);
 }
 
 .btn-danger {
-    background-color: var(--danger-color);
+    background: linear-gradient(135deg, #B71C1C 0%, #E53935 100%);
     color: var(--text-white);
 }
 
@@ -441,12 +441,12 @@ a:hover {
 
 .btn-outline-primary {
     background-color: transparent;
-    color: var(--primary-color);
-    border-color: var(--primary-color);
+    color: #1A2B4A;
+    border-color: #1A2B4A;
 }
 
 .btn-outline-primary:hover {
-    background-color: var(--primary-color);
+    background: linear-gradient(135deg, #1A2B4A 0%, #2A3B5A 100%);
     color: var(--text-white);
 }
 
@@ -505,18 +505,19 @@ a:hover {
 .stat-card {
     background: white;
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 20px rgba(26, 43, 74, 0.08);
     padding: 1.5rem;
     display: flex;
     align-items: center;
     gap: 1rem;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #C0C0C0;
+    border-left: 4px solid #D4AF37;
 }
 
 .stat-card:hover {
     transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 10px 30px rgba(26, 43, 74, 0.15);
 }
 
 .stat-icon {
@@ -588,8 +589,8 @@ a:hover {
 
 .form-control:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(27, 165, 168, 0.1);
+    border-color: #1A2B4A;
+    box-shadow: 0 0 0 3px rgba(26, 43, 74, 0.1);
 }
 
 .form-control:disabled {
@@ -599,7 +600,7 @@ a:hover {
 }
 
 .form-control.error {
-    border-color: var(--danger-color);
+    border-color: #B71C1C;
 }
 
 .form-text {
@@ -613,7 +614,7 @@ a:hover {
     display: block;
     margin-top: var(--spacing-xs);
     font-size: var(--font-size-sm);
-    color: var(--danger-color);
+    color: #B71C1C;
 }
 
 /* Checkbox & Radio */
@@ -650,7 +651,7 @@ a:hover {
 }
 
 .table thead {
-    background: var(--primary-color);
+    background: linear-gradient(135deg, #1A2B4A 0%, #2A3B5A 100%);
     color: var(--text-white);
 }
 
@@ -1271,27 +1272,27 @@ a:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Available / Online - Vibrant Green */
+/* Available / Online - Luxury Green */
 .badge-available {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
 }
 
 .badge-available:hover {
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+    box-shadow: 0 6px 16px rgba(46, 125, 50, 0.5);
     transform: translateY(-1px);
 }
 
-/* Busy - Bright Orange/Amber */
+/* Busy - Royal Gold */
 .badge-busy {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: white;
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    background: linear-gradient(135deg, #D4AF37 0%, #E4BF47 100%);
+    color: #1A2B4A;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
 }
 
 .badge-busy:hover {
-    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.5);
+    box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5);
     transform: translateY(-1px);
 }
 
@@ -1307,51 +1308,51 @@ a:hover {
     transform: translateY(-1px);
 }
 
-/* Pending - Yellow */
+/* Pending - Gold */
 .badge-pending {
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-    color: #78350f;
-    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+    background: linear-gradient(135deg, #D4AF37 0%, #E4BF47 100%);
+    color: #1A2B4A;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
 }
 
 .badge-pending:hover {
-    box-shadow: 0 6px 16px rgba(251, 191, 36, 0.5);
+    box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5);
     transform: translateY(-1px);
 }
 
-/* Accepted - Blue */
+/* Accepted - Navy Blue */
 .badge-accepted {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #1565C0 0%, #42A5F5 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 12px rgba(21, 101, 192, 0.4);
 }
 
 .badge-accepted:hover {
-    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 6px 16px rgba(21, 101, 192, 0.5);
     transform: translateY(-1px);
 }
 
-/* Completed - Green */
+/* Completed - Luxury Green */
 .badge-completed {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
 }
 
 .badge-completed:hover {
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+    box-shadow: 0 6px 16px rgba(46, 125, 50, 0.5);
     transform: translateY(-1px);
 }
 
-/* Cancelled - Red */
+/* Cancelled - Deep Red */
 .badge-cancelled {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, #B71C1C 0%, #E53935 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    box-shadow: 0 4px 12px rgba(183, 28, 28, 0.4);
 }
 
 .badge-cancelled:hover {
-    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
+    box-shadow: 0 6px 16px rgba(183, 28, 28, 0.5);
     transform: translateY(-1px);
 }
 
@@ -1384,5 +1385,72 @@ a:hover {
     .badge {
         font-size: 0.7rem;
         padding: 0.3rem 0.6rem;
+    }
+}
+
+/* ==================== Toast Notifications ==================== */
+.toast-container {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: var(--z-toast);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast {
+    background: white;
+    color: var(--text-primary);
+    padding: 12px 20px;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-lg);
+    min-width: 250px;
+    max-width: 400px;
+    opacity: 0;
+    transform: translateX(400px);
+    transition: all 0.3s ease-out;
+    pointer-events: auto;
+    border-left: 4px solid var(--primary-color);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast-success {
+    border-left-color: var(--success-color);
+    background: linear-gradient(to right, rgba(16, 185, 129, 0.1), white);
+}
+
+.toast-error {
+    border-left-color: var(--danger-color);
+    background: linear-gradient(to right, rgba(239, 68, 68, 0.1), white);
+}
+
+.toast-warning {
+    border-left-color: var(--warning-color);
+    background: linear-gradient(to right, rgba(245, 158, 11, 0.1), white);
+}
+
+.toast-info {
+    border-left-color: var(--info-color);
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.1), white);
+}
+
+@media (max-width: 768px) {
+    .toast-container {
+        top: 70px;
+        right: 10px;
+        left: 10px;
+    }
+    
+    .toast {
+        min-width: auto;
+        max-width: none;
     }
 }

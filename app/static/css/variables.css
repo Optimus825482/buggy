@@ -5,59 +5,61 @@
  */
 
 :root {
-  /* ========== Primary Colors (from Logo) ========== */
-  --primary-turquoise: #1BA5A8;
-  --primary-turquoise-light: #2BC1C5;
-  --primary-turquoise-dark: #158587;
-  --primary-turquoise-darker: #0F6769;
+  /* ========== Merit Hotels Primary Colors ========== */
+  --primary-navy: #1A2B4A;
+  --primary-navy-light: #2A3B5A;
+  --primary-navy-dark: #0F1A2F;
+  --primary-navy-darker: #0A1220;
 
-  --accent-orange: #E67E22;
-  --accent-orange-light: #F39C12;
-  --accent-orange-dark: #D35400;
+  --royal-gold: #D4AF37;
+  --royal-gold-light: #E4BF47;
+  --royal-gold-dark: #B49527;
 
-  --dark-gray: #2C3E50;
-  --dark-gray-light: #34495E;
-  --dark-gray-lighter: #4A5F7F;
+  --platinum-silver: #8B8B8B;
+  --platinum-silver-light: #A8A8A8;
+  --platinum-silver-dark: #6B6B6B;
 
-  --light-gray: #BDC3C7;
-  --light-gray-lighter: #ECF0F1;
-  --light-gray-lightest: #F8F9FA;
+  --pearl-white: #F8F8F8;
+  --champagne-gold: #F7E7CE;
+  --midnight-blue: #0F1419;
+  --crystal-blue: #E8F4F8;
 
   /* ========== Semantic Colors ========== */
-  --color-primary: var(--primary-turquoise);
-  --color-primary-hover: var(--primary-turquoise-dark);
-  --color-secondary: var(--accent-orange);
-  --color-secondary-hover: var(--accent-orange-dark);
+  --color-primary: var(--primary-navy);
+  --color-primary-hover: var(--primary-navy-dark);
+  --color-secondary: var(--royal-gold);
+  --color-secondary-hover: var(--royal-gold-dark);
 
-  --color-success: #27AE60;
-  --color-success-light: #2ECC71;
-  --color-success-dark: #229954;
+  --color-success: #2E7D32;
+  --color-success-light: #4CAF50;
+  --color-success-dark: #1B5E20;
 
-  --color-danger: #E74C3C;
-  --color-danger-light: #EC7063;
-  --color-danger-dark: #C0392B;
+  --color-danger: #B71C1C;
+  --color-danger-light: #E53935;
+  --color-danger-dark: #8B0000;
 
-  --color-warning: #F39C12;
-  --color-warning-light: #F8C471;
-  --color-warning-dark: #D68910;
+  --color-warning: var(--royal-gold);
+  --color-warning-light: var(--royal-gold-light);
+  --color-warning-dark: var(--royal-gold-dark);
 
-  --color-info: #3498DB;
-  --color-info-light: #5DADE2;
-  --color-info-dark: #2874A6;
+  --color-info: #1565C0;
+  --color-info-light: #42A5F5;
+  --color-info-dark: #0D47A1;
 
   /* ========== Background Colors ========== */
   --bg-primary: #FFFFFF;
-  --bg-secondary: var(--light-gray-lightest);
-  --bg-tertiary: var(--light-gray-lighter);
-  --bg-dark: var(--dark-gray);
-  --bg-darker: #1A252F;
+  --bg-secondary: var(--pearl-white);
+  --bg-tertiary: var(--crystal-blue);
+  --bg-dark: var(--primary-navy);
+  --bg-darker: var(--midnight-blue);
 
   /* ========== Text Colors ========== */
-  --text-primary: var(--dark-gray);
+  --text-primary: var(--primary-navy);
   --text-secondary: #5A6C7D;
   --text-muted: #95A5A6;
   --text-light: #FFFFFF;
-  --text-link: var(--primary-turquoise);
+  --text-gold: var(--royal-gold);
+  --text-link: var(--primary-navy);
 
   /* ========== Border & Dividers ========== */
   --border-color: #DFE6E9;
@@ -73,10 +75,10 @@
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
 
   /* Colored Shadows */
-  --shadow-primary: 0 10px 25px -5px rgba(27, 165, 168, 0.3);
-  --shadow-secondary: 0 10px 25px -5px rgba(230, 126, 34, 0.3);
-  --shadow-success: 0 10px 25px -5px rgba(39, 174, 96, 0.3);
-  --shadow-danger: 0 10px 25px -5px rgba(231, 76, 60, 0.3);
+  --shadow-primary: 0 10px 25px -5px rgba(26, 43, 74, 0.3);
+  --shadow-secondary: 0 10px 25px -5px rgba(212, 175, 55, 0.3);
+  --shadow-success: 0 10px 25px -5px rgba(46, 125, 50, 0.3);
+  --shadow-danger: 0 10px 25px -5px rgba(183, 28, 28, 0.3);
 
   /* ========== Spacing Scale ========== */
   --space-xs: 0.25rem;   /* 4px */
@@ -149,10 +151,11 @@
   --status-available: var(--color-success);
 
   /* ========== Gradients ========== */
-  --gradient-primary: linear-gradient(135deg, var(--primary-turquoise) 0%, var(--primary-turquoise-dark) 100%);
-  --gradient-secondary: linear-gradient(135deg, var(--accent-orange) 0%, var(--accent-orange-dark) 100%);
-  --gradient-dark: linear-gradient(135deg, var(--dark-gray) 0%, var(--dark-gray-light) 100%);
-  --gradient-sunset: linear-gradient(135deg, var(--accent-orange) 0%, var(--primary-turquoise) 100%);
+  --gradient-primary: linear-gradient(135deg, var(--primary-navy) 0%, var(--primary-navy-light) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--royal-gold) 0%, var(--royal-gold-light) 100%);
+  --gradient-gold: linear-gradient(135deg, var(--royal-gold) 0%, var(--royal-gold-light) 100%);
+  --gradient-luxury: linear-gradient(135deg, var(--primary-navy) 0%, var(--royal-gold) 100%);
+  --gradient-premium: linear-gradient(135deg, var(--platinum-silver) 0%, var(--pearl-white) 100%);
 
   /* ========== Component Specific ========== */
   --card-bg: var(--bg-primary);
@@ -165,7 +168,7 @@
 
   --input-height: 2.5rem;
   --input-border: var(--border-color);
-  --input-focus-border: var(--primary-turquoise);
+  --input-focus-border: var(--primary-navy);
 
   /* ========== Header Heights ========== */
   --header-height: 4rem;

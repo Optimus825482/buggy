@@ -65,12 +65,12 @@ body {
 
 .glass-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 40px 0 rgba(27, 165, 168, 0.15);
+  box-shadow: 0 20px 40px 0 rgba(26, 43, 74, 0.15);
 }
 
 /* ========== Gradient Buttons ========== */
 .btn-gradient-primary {
-  background: linear-gradient(135deg, #1BA5A8 0%, #158B8E 100%);
+  background: linear-gradient(135deg, #1A2B4A 0%, #0F1A2F 100%);
   color: white;
   border: none;
   position: relative;
@@ -85,7 +85,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #5BC0C3 0%, #1BA5A8 100%);
+  background: linear-gradient(135deg, #2A3B5A 0%, #1A2B4A 100%);
   z-index: -1;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -96,13 +96,13 @@ body {
 }
 
 .btn-gradient-secondary {
-  background: linear-gradient(135deg, #F28C38 0%, #D97826 100%);
-  color: white;
+  background: linear-gradient(135deg, #D4AF37 0%, #B49527 100%);
+  color: #1A2B4A;
   border: none;
 }
 
 .btn-gradient-secondary:hover {
-  background: linear-gradient(135deg, #F5A864 0%, #F28C38 100%);
+  background: linear-gradient(135deg, #E4BF47 0%, #D4AF37 100%);
 }
 
 /* ========== Status Indicators with Pulse ========== */
@@ -116,13 +116,13 @@ body {
 }
 
 .status-online {
-  background: #10B981;
-  box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+  background: #2E7D32;
+  box-shadow: 0 0 0 rgba(46, 125, 50, 0.4);
 }
 
 .status-busy {
-  background: #F28C38;
-  box-shadow: 0 0 0 rgba(242, 140, 56, 0.4);
+  background: #D4AF37;
+  box-shadow: 0 0 0 rgba(212, 175, 55, 0.4);
 }
 
 .status-offline {
@@ -133,13 +133,13 @@ body {
 
 @keyframes pulse-ring {
   0% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 10px rgba(46, 125, 50, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 0 rgba(46, 125, 50, 0);
   }
 }
 
@@ -151,12 +151,12 @@ body {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1BA5A8 0%, #158B8E 100%);
+  background: linear-gradient(135deg, #1A2B4A 0%, #0F1A2F 100%);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(27, 165, 168, 0.4);
+  box-shadow: 0 8px 24px rgba(26, 43, 74, 0.4);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   z-index: 1000;
@@ -164,7 +164,7 @@ body {
 
 .fab:hover {
   transform: scale(1.1) rotate(90deg);
-  box-shadow: 0 12px 32px rgba(27, 165, 168, 0.6);
+  box-shadow: 0 12px 32px rgba(26, 43, 74, 0.6);
 }
 
 .fab:active {
@@ -178,18 +178,18 @@ body {
   padding: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
-  border-left: 4px solid #1BA5A8;
+  border-left: 4px solid #D4AF37;
 }
 
 .stat-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(27, 165, 168, 0.15);
+  box-shadow: 0 8px 30px rgba(26, 43, 74, 0.15);
 }
 
 .stat-value {
   font-size: 2.5rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #1BA5A8 0%, #F28C38 100%);
+  background: linear-gradient(135deg, #1A2B4A 0%, #D4AF37 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -217,7 +217,7 @@ body {
   top: 0;
   bottom: 0;
   width: 2px;
-  background: linear-gradient(180deg, #1BA5A8 0%, #F28C38 100%);
+  background: linear-gradient(180deg, #1A2B4A 0%, #D4AF37 100%);
 }
 
 .timeline-item {
@@ -234,13 +234,13 @@ body {
   height: 16px;
   border-radius: 50%;
   background: white;
-  border: 3px solid #1BA5A8;
-  box-shadow: 0 0 0 4px rgba(27, 165, 168, 0.1);
+  border: 3px solid #1A2B4A;
+  box-shadow: 0 0 0 4px rgba(26, 43, 74, 0.1);
 }
 
 .timeline-item.completed::before {
-  background: #1BA5A8;
-  border-color: #1BA5A8;
+  background: #1A2B4A;
+  border-color: #1A2B4A;
 }
 
 /* ========== Location Card ========== */
@@ -259,7 +259,7 @@ body {
 }
 
 .location-card-header {
-  background: linear-gradient(135deg, #1BA5A8 0%, #5BC0C3 100%);
+  background: linear-gradient(135deg, #1A2B4A 0%, #2A3B5A 100%);
   color: white;
   padding: 16px 20px;
   font-weight: 600;
@@ -298,13 +298,13 @@ body {
 }
 
 .buggy-card.available {
-  border-color: #10B981;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, white 100%);
+  border-color: #2E7D32;
+  background: linear-gradient(135deg, rgba(46, 125, 50, 0.05) 0%, white 100%);
 }
 
 .buggy-card.busy {
-  border-color: #F28C38;
-  background: linear-gradient(135deg, rgba(242, 140, 56, 0.05) 0%, white 100%);
+  border-color: #D4AF37;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.05) 0%, white 100%);
 }
 
 .buggy-card.offline {
@@ -316,14 +316,14 @@ body {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1BA5A8 0%, #5BC0C3 100%);
+  background: linear-gradient(135deg, #1A2B4A 0%, #D4AF37 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-size: 24px;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(27, 165, 168, 0.3);
+  box-shadow: 0 4px 12px rgba(26, 43, 74, 0.3);
 }
 
 /* ========== Request Card ========== */
@@ -334,11 +334,11 @@ body {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   margin-bottom: 16px;
   transition: all 0.3s ease;
-  border-left: 4px solid #1BA5A8;
+  border-left: 4px solid #1A2B4A;
 }
 
 .request-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(26, 43, 74, 0.1);
   transform: translateX(4px);
 }
 

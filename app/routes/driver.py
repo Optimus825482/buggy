@@ -39,7 +39,12 @@ def select_location():
     if not session.get('needs_location_setup'):
         return redirect(url_for('driver.dashboard'))
     
-    return render_template('driver/select_location.html')
+    # Pass session data explicitly to avoid linter issues
+    return render_template(
+        'driver/select_location.html',
+        hotel_id=session.get('hotel_id', 1),
+        user_id=session.get('user_id', 0)
+    )
 
 
 @driver_bp.route('/dashboard')

@@ -168,6 +168,7 @@ def create_location():
             name=data['name'],
             description=data.get('description', ''),
             qr_code_data='',  # Temporary, will be updated after we have the ID
+            location_image=data.get('location_image'),  # Base64 encoded image
             latitude=data.get('latitude'),
             longitude=data.get('longitude'),
             is_active=True,
@@ -244,6 +245,8 @@ def update_location(location_id):
             location.name = data['name']
         if 'description' in data:
             location.description = data['description']
+        if 'location_image' in data:
+            location.location_image = data['location_image']  # Base64 encoded image or None to remove
         if 'latitude' in data:
             location.latitude = data['latitude']
         if 'longitude' in data:

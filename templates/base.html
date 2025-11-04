@@ -101,16 +101,14 @@
     </main>
 
     <!-- Footer -->
-    <footer class="footer no-print">
+    <footer class="footer no-print" style="background: #1A2B4A; color: #D8D8D8; padding: 2rem 0; text-align: center; border-top: 2px solid #D4AF37; margin-top: 3rem;">
         {% block footer %}
         <div class="container">
-            <div class="footer-content">
-                <p>&copy; 2025 {{ app_name }}. Tüm hakları saklıdır.</p>
-                <p class="text-muted">Your Ride, On Demand.</p>
-                <p class="powered-by" style="margin-top: 0.5rem; font-size: 0.9rem;">
-                    <i class="fas fa-code" style="color: var(--accent-color);"></i>
-                    Powered by <strong style="color: var(--primary-color);">Erkan ERDEM</strong>
-                </p>
+            <div class="footer-content" style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                <img src="{{ url_for('static', filename='images/Merit_International.png') }}" 
+                     alt="Merit International Hotels & Resorts" 
+                     style="height: 60px; width: auto; object-fit: contain;">
+                <p class="footer-copyright" style="font-size: 0.875rem; font-weight: 600; letter-spacing: 0.5px; margin: 0; color: #D8D8D8;">MERIT INTERNATIONAL HOTELS & RESORTS © 2025 COPYRIGHT</p>
             </div>
         </div>
         {% endblock %}
@@ -143,8 +141,19 @@
             transition: opacity 0.3s ease;
         }
 
+        /* Admin sayfalarında connection indicator'ı gizle */
+        body[data-page="admin"] .connection-indicator {
+            display: none !important;
+        }
+
+        /* Sadece offline durumunda göster */
         body.offline .connection-indicator {
             opacity: 1;
+        }
+        
+        /* Online durumunda gösterme */
+        body.online .connection-indicator {
+            opacity: 0;
         }
 
         .connection-status {

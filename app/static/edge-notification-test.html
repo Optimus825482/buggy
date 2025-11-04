@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge Bildirim Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .info-box p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .status.warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .log-time {
+            color: #6c757d;
+            margin-right: 10px;
+        }
+        
+        .log-level {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .log-level.info { color: #0dcaf0; }
+        .log-level.success { color: #198754; }
+        .log-level.error { color: #dc3545; }
+        .log-level.warn { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Edge Bildirim Test</h1>
+        <p class="subtitle">Microsoft Edge için bildirim izni testi</p>
+        
+        <div class="info-box">
+            <h3>📋 Test Adımları:</h3>
+            <p>
+                1. "Bildirim İzni İste" butonuna tıklayın<br>
+                2. Edge'in izin penceresinde "İzin Ver" seçin<br>
+                3. "Test Bildirimi Gönder" ile test edin
+            </p>
+        </div>
+        
+        <div id="status" class="status info">
+            Durum: Hazır
+        </div>
+        
+        <button onclick="checkSupport()">🔍 Tarayıcı Desteğini Kontrol Et</button>
+        <button onclick="requestPermissionSync()">🔔 Bildirim İzni İste (Senkron)</button>
+        <button onclick="testNotification()">📨 Test Bildirimi Gönder</button>
+        <button onclick="checkPermissionStatus()">📊 İzin Durumunu Kontrol Et</button>
+        <button onclick="clearLog()">🗑️ Logu Temizle</button>
+        
+        <div id="log" class="log"></div>
+    </div>
+    
+    <script>
+        function log(message, level = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString('tr-TR');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">${time}</span>
+                <span class="log-level ${level}">[${level.toUpperCase()}]</span>
+                <span>${message}</span>
+            `;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(`[${level.toUpperCase()}] ${message}`);
+        }
+        
+        function setStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            log('Log temizlendi', 'info');
+        }
+        
+        function checkSupport() {
+            log('Tarayıcı desteği kontrol ediliyor...', 'info');
+            
+            // Browser info
+            const userAgent = navigator.userAgent;
+            const isEdge = /Edg/.test(userAgent);
+            const isChrome = /Chrome/.test(userAgent) && !/Edg/.test(userAgent);
+            
+            log(`User Agent: ${userAgent}`, 'info');
+            log(`Edge: ${isEdge ? 'Evet' : 'Hayır'}`, isEdge ? 'success' : 'info');
+            log(`Chrome: ${isChrome ? 'Evet' : 'Hayır'}`, isChrome ? 'success' : 'info');
+            
+            // Notification API
+            if ('Notification' in window) {
+                log('✅ Notification API destekleniyor', 'success');
+                log(`Mevcut izin durumu: ${Notification.permission}`, 'info');
+            } else {
+                log('❌ Notification API desteklenmiyor', 'error');
+                setStatus('Tarayıcı bildirimleri desteklemiyor', 'error');
+                return;
+            }
+            
+            // Service Worker
+            if ('serviceWorker' in navigator) {
+                log('✅ Service Worker destekleniyor', 'success');
+            } else {
+                log('⚠️ Service Worker desteklenmiyor', 'warn');
+            }
+            
+            // Push API
+            if ('PushManager' in window) {
+                log('✅ Push API destekleniyor', 'success');
+            } else {
+                log('⚠️ Push API desteklenmiyor', 'warn');
+            }
+            
+            setStatus('Tarayıcı kontrolü tamamlandı', 'success');
+        }
+        
+        function requestPermissionSync() {
+            log('Bildirim izni isteniyor (senkron yöntem)...', 'info');
+            
+            if (!('Notification' in window)) {
+                log('❌ Notification API desteklenmiyor', 'error');
+                setStatus('Tarayıcı bildirimleri desteklemiyor', 'error');
+                return;
+            }
+            
+            if (Notification.permission === 'granted') {
+                log('✅ İzin zaten verilmiş', 'success');
+                setStatus('İzin durumu: Verilmiş', 'success');
+                return;
+            }
+            
+            if (Notification.permission === 'denied') {
+                log('❌ İzin reddedilmiş - Tarayıcı ayarlarından manuel olarak açın', 'error');
+                setStatus('İzin reddedilmiş - Ayarlardan açın', 'error');
+                return;
+            }
+            
+            // Synchronous call - Edge requires this
+            log('İzin penceresi açılıyor...', 'info');
+            setStatus('İzin penceresi açılıyor...', 'warning');
+            
+            Notification.requestPermission().then(function(permission) {
+                log(`İzin sonucu: ${permission}`, permission === 'granted' ? 'success' : 'error');
+                
+                if (permission === 'granted') {
+                    setStatus('✅ Bildirim izni verildi!', 'success');
+                } else if (permission === 'denied') {
+                    setStatus('❌ Bildirim izni reddedildi', 'error');
+                } else {
+                    setStatus('⏸️ İzin beklemede', 'warning');
+                }
+            }).catch(function(error) {
+                log(`❌ Hata: ${error.message}`, 'error');
+                setStatus('İzin isteği başarısız', 'error');
+            });
+        }
+        
+        function testNotification() {
+            log('Test bildirimi gönderiliyor...', 'info');
+            
+            if (!('Notification' in window)) {
+                log('❌ Notification API desteklenmiyor', 'error');
+                setStatus('Tarayıcı bildirimleri desteklemiyor', 'error');
+                return;
+            }
+            
+            if (Notification.permission !== 'granted') {
+                log('⚠️ Önce bildirim izni verin', 'warn');
+                setStatus('Önce bildirim izni gerekli', 'warning');
+                return;
+            }
+            
+            try {
+                const notification = new Notification('🎉 Test Başarılı!', {
+                    body: 'Edge bildirim sistemi çalışıyor',
+                    icon: '/static/img/logo.png',
+                    badge: '/static/img/badge.png',
+                    tag: 'test-notification',
+                    requireInteraction: false
+                });
+                
+                notification.onclick = function() {
+                    log('Bildirime tıklandı', 'info');
+                    notification.close();
+                };
+                
+                log('✅ Test bildirimi gönderildi', 'success');
+                setStatus('Test bildirimi gönderildi', 'success');
+            } catch (error) {
+                log(`❌ Bildirim hatası: ${error.message}`, 'error');
+                setStatus('Bildirim gönderilemedi', 'error');
+            }
+        }
+        
+        function checkPermissionStatus() {
+            log('İzin durumu kontrol ediliyor...', 'info');
+            
+            if (!('Notification' in window)) {
+                log('❌ Notification API desteklenmiyor', 'error');
+                return;
+            }
+            
+            const permission = Notification.permission;
+            log(`Mevcut izin durumu: ${permission}`, 'info');
+            
+            switch (permission) {
+                case 'granted':
+                    log('✅ İzin verilmiş - Bildirimler gönderilebilir', 'success');
+                    setStatus('İzin durumu: Verilmiş ✅', 'success');
+                    break;
+                case 'denied':
+                    log('❌ İzin reddedilmiş - Tarayıcı ayarlarından açın', 'error');
+                    log('Edge ayarları: edge://settings/content/notifications', 'info');
+                    setStatus('İzin durumu: Reddedilmiş ❌', 'error');
+                    break;
+                case 'default':
+                    log('⏸️ İzin istenmemiş - "Bildirim İzni İste" butonuna tıklayın', 'warn');
+                    setStatus('İzin durumu: Beklemede ⏸️', 'warning');
+                    break;
+            }
+        }
+        
+        // Sayfa yüklendiğinde otomatik kontrol
+        window.addEventListener('load', function() {
+            log('Sayfa yüklendi', 'info');
+            checkSupport();
+            checkPermissionStatus();
+        });
+    </script>
+</body>
+</html>

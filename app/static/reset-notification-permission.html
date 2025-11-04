@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bildirim İzni Sıfırlama</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .alert {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 10px;
+        }
+        
+        .alert h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .alert p {
+            color: #856404;
+            line-height: 1.6;
+        }
+        
+        .steps {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .steps h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        
+        .step {
+            display: flex;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .step:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-right: 20px;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-content h4 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .step-content p {
+            color: #666;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
+        .step-content code {
+            background: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #d63384;
+        }
+        
+        .quick-links {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .quick-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        
+        .quick-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .quick-link h4 {
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+        
+        .quick-link p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .status-box {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .status-box.denied {
+            background: #ffebee;
+            border-color: #f44336;
+        }
+        
+        .status-box.granted {
+            background: #e8f5e9;
+            border-color: #4caf50;
+        }
+        
+        .status-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .status-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .status-desc {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        @media (max-width: 600px) {
+            .quick-links {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Bildirim İzni Sıfırlama</h1>
+        <p class="subtitle">Edge'de reddedilen bildirim iznini düzeltme rehberi</p>
+        
+        <div class="alert">
+            <h3>⚠️ İzin Reddedilmiş</h3>
+            <p>
+                Bildirim izni daha önce reddedilmiş. JavaScript ile tekrar izin isteyemezsiniz.
+                Edge ayarlarından manuel olarak izin vermeniz gerekiyor.
+            </p>
+        </div>
+        
+        <div id="statusBox" class="status-box">
+            <div class="status-icon">🔍</div>
+            <div class="status-text">Kontrol ediliyor...</div>
+            <div class="status-desc">Lütfen bekleyin</div>
+        </div>
+        
+        <div class="quick-links">
+            <a href="edge://settings/content/notifications" class="quick-link" target="_blank">
+                <h4>⚙️ Edge Ayarları</h4>
+                <p>Bildirim ayarlarını aç</p>
+            </a>
+            <a href="javascript:void(0)" onclick="copyUrl()" class="quick-link">
+                <h4>📋 URL Kopyala</h4>
+                <p>localhost:5000</p>
+            </a>
+        </div>
+        
+        <div class="steps">
+            <h3>📝 Adım Adım Rehber</h3>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>Edge Ayarlarını Aç</h4>
+                    <p>
+                        Yukarıdaki "Edge Ayarları" butonuna tıklayın veya adres çubuğuna 
+                        <code>edge://settings/content/notifications</code> yazın
+                    </p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>Site İznini Kontrol Et</h4>
+                    <p>
+                        "Engelle" bölümünde <code>localhost:5000</code> varsa, yanındaki 
+                        <strong>çöp kutusu</strong> ikonuna tıklayarak silin
+                    </p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>İzin Ver</h4>
+                    <p>
+                        "İzin ver" bölümünde <strong>Ekle</strong> butonuna tıklayın ve 
+                        <code>localhost:5000</code> yazıp kaydedin
+                    </p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>Sayfayı Yenile</h4>
+                    <p>
+                        Bu sayfaya geri dönün ve <strong>F5</strong> tuşuna basarak yenileyin.
+                        Durum otomatik olarak güncellenecek
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <button onclick="location.reload()">🔄 Durumu Yeniden Kontrol Et</button>
+        <button onclick="testNotification()" style="margin-top: 10px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+            📨 Test Bildirimi Gönder
+        </button>
+    </div>
+    
+    <script>
+        function updateStatus() {
+            const statusBox = document.getElementById('statusBox');
+            
+            if (!('Notification' in window)) {
+                statusBox.className = 'status-box denied';
+                statusBox.innerHTML = `
+                    <div class="status-icon">❌</div>
+                    <div class="status-text">Desteklenmiyor</div>
+                    <div class="status-desc">Tarayıcınız bildirimleri desteklemiyor</div>
+                `;
+                return;
+            }
+            
+            const permission = Notification.permission;
+            
+            if (permission === 'granted') {
+                statusBox.className = 'status-box granted';
+                statusBox.innerHTML = `
+                    <div class="status-icon">✅</div>
+                    <div class="status-text">İzin Verildi!</div>
+                    <div class="status-desc">Bildirimler çalışıyor</div>
+                `;
+            } else if (permission === 'denied') {
+                statusBox.className = 'status-box denied';
+                statusBox.innerHTML = `
+                    <div class="status-icon">🚫</div>
+                    <div class="status-text">İzin Reddedildi</div>
+                    <div class="status-desc">Yukarıdaki adımları takip edin</div>
+                `;
+            } else {
+                statusBox.className = 'status-box';
+                statusBox.innerHTML = `
+                    <div class="status-icon">⏸️</div>
+                    <div class="status-text">İzin Bekleniyor</div>
+                    <div class="status-desc">Henüz izin istenmemiş</div>
+                `;
+            }
+        }
+        
+        function copyUrl() {
+            const url = 'localhost:5000';
+            navigator.clipboard.writeText(url).then(() => {
+                alert('✅ URL kopyalandı: ' + url);
+            }).catch(() => {
+                prompt('URL\'yi kopyalayın:', url);
+            });
+        }
+        
+        function testNotification() {
+            if (Notification.permission !== 'granted') {
+                alert('⚠️ Önce bildirim izni verin!');
+                return;
+            }
+            
+            try {
+                new Notification('🎉 Başarılı!', {
+                    body: 'Edge bildirim izni çalışıyor',
+                    icon: '/static/img/logo.png',
+                    tag: 'test'
+                });
+                alert('✅ Test bildirimi gönderildi!');
+            } catch (error) {
+                alert('❌ Hata: ' + error.message);
+            }
+        }
+        
+        // Sayfa yüklendiğinde durumu kontrol et
+        window.addEventListener('load', updateStatus);
+        
+        // Her 2 saniyede bir durumu kontrol et
+        setInterval(updateStatus, 2000);
+    </script>
+</body>
+</html>

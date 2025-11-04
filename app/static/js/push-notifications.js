@@ -38,9 +38,11 @@ class PushNotificationManager {
 
     /**
      * Request notification permission
+     * Note: Must be called from a user gesture (click, touch, etc.)
      */
     async requestPermission() {
         if (!this.isSupported) {
+            console.warn('[Push] Notifications not supported');
             return 'denied';
         }
 
@@ -50,7 +52,20 @@ class PushNotificationManager {
         }
 
         try {
-            this.permission = await Notification.requestPermission();
+            // Edge/Chrome requires synchronous call in user gesture
+            // Use promise-based API for better compatibility
+            const permission = await new Promise((resolve, reject) => {
+                const permissionPromise = Notification.requestPermission();
+                
+                if (permissionPromise) {
+                    permissionPromise.then(resolve).catch(reject);
+                } else {
+                    // Fallback for older browsers
+                    Notification.requestPermission(resolve);
+                }
+            });
+            
+            this.permission = permission;
             console.log('[Push] Permission result:', this.permission);
 
             if (this.permission === 'granted') {
@@ -61,6 +76,7 @@ class PushNotificationManager {
             return this.permission;
         } catch (error) {
             console.error('[Push] Permission request error:', error);
+            this.permission = 'denied';
             return 'denied';
         }
     }

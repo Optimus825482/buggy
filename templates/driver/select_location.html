@@ -317,7 +317,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="location-wrapper">
+<div class="location-wrapper" data-hotel-id="{{ hotel_id }}" data-user-id="{{ user_id }}"></div>
     <div class="location-container">
         <div class="location-header">
             <div class="location-icon">
@@ -345,9 +345,10 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/notification-permission.js') }}"></script>
 <script>
-    // Session data (from server-side render)
-    const hotelId = {{ session.get('hotel_id', 1) }};
-    const userId = {{ session.get('user_id', 0) }};
+    // Session data (from data attributes)
+    const wrapper = document.querySelector('.location-wrapper');
+    const hotelId = parseInt(wrapper.dataset.hotelId) || 1;
+    const userId = parseInt(wrapper.dataset.userId) || 0;
     
     // Check session validity via API call (not cached)
     async function checkSession() {
@@ -444,20 +445,27 @@
     }
     
     function renderLocationCards(locations) {
-        const locationCards = locations.map(loc => `
-            <button class="location-card" onclick="selectLocation(${loc.id}, event)" data-location-id="${loc.id}">
-                <div class="location-card-icon">
-                    <i class="fas fa-map-marker-alt" style="color: white; font-size: 1.375rem;"></i>
-                </div>
-                <div class="location-card-content">
-                    <div class="location-card-title">${escapeHtml(loc.name)}</div>
-                    <div class="location-card-subtitle">${loc.description ? escapeHtml(loc.description) : 'Konumu seç ve devam et'}</div>
-                </div>
-                <div class="location-card-arrow">
-                    <i class="fas fa-chevron-right"></i>
-                </div>
-            </button>
-        `).join('');
+        const locationCards = locations.map(loc => {
+            // Görsel varsa göster, yoksa icon göster
+            const imageOrIcon = loc.location_image 
+                ? `<img src="${loc.location_image}" alt="${escapeHtml(loc.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 11px;">`
+                : `<i class="fas fa-map-marker-alt" style="color: white; font-size: 1.375rem;"></i>`;
+            
+            return `
+                <button class="location-card" onclick="selectLocation(${loc.id}, event)" data-location-id="${loc.id}">
+                    <div class="location-card-icon">
+                        ${imageOrIcon}
+                    </div>
+                    <div class="location-card-content">
+                        <div class="location-card-title">${escapeHtml(loc.name)}</div>
+                        <div class="location-card-subtitle">${loc.description ? escapeHtml(loc.description) : 'Konumu seç ve devam et'}</div>
+                    </div>
+                    <div class="location-card-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </button>
+            `;
+        }).join('');
         
         document.getElementById('location-list').innerHTML = locationCards;
     }
@@ -583,17 +591,25 @@
                 }, 100);
                 
                 // Handle allow button
-                dialog.querySelector('.btn-allow').onclick = async () => {
-                    try {
-                        const result = await Notification.requestPermission();
-                        await updateNotificationPermissionSession(result);
-                        closeDialog(dialog);
-                        resolve();
-                    } catch (error) {
+                dialog.querySelector('.btn-allow').onclick = () => {
+                    // Edge/Chrome requires synchronous call to requestPermission
+                    // Must be called directly in user gesture handler
+                    Notification.requestPermission().then(async (result) => {
+                        try {
+                            console.log('[LocationSelect] Permission result:', result);
+                            await updateNotificationPermissionSession(result);
+                            closeDialog(dialog);
+                            resolve();
+                        } catch (error) {
+                            console.error('[LocationSelect] Error updating permission:', error);
+                            closeDialog(dialog);
+                            resolve();
+                        }
+                    }).catch((error) => {
                         console.error('[LocationSelect] Error requesting permission:', error);
                         closeDialog(dialog);
                         resolve();
-                    }
+                    });
                 };
                 
                 // Handle later button
