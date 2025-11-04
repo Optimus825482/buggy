@@ -55,7 +55,7 @@
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     }
     
-    .buggy-code {
+    .shuttle-code {
         display: inline-block;
         padding: 0.2rem 0.625rem;
         background: rgba(255, 255, 255, 0.2);
@@ -324,8 +324,8 @@
                 <i class="fas fa-golf-ball" style="font-size: 1.875rem; color: white;"></i>
             </div>
             <h1>Hoş Geldiniz!</h1>
-            <p id="buggy-info" style="opacity: 0.95; margin-top: 0.5rem; line-height: 1.4;">
-                <span id="buggy-code" class="buggy-code">...</span> aracını aktif duruma getiriyorsunuz
+            <p id="shuttle-info" style="opacity: 0.95; margin-top: 0.5rem; line-height: 1.4;">
+                <span id="shuttle-code" class="shuttle-code">...</span> aracını aktif duruma getiriyorsunuz
             </p>
             <p style="opacity: 0.9; font-size: 0.8125rem; margin-top: 0.5rem; line-height: 1.4; max-width: 92%; margin-left: auto; margin-right: auto;">
                 Aracın şu anda hangi konumda olduğunu seçin
@@ -353,7 +353,7 @@
     // Check session validity via API call (not cached)
     async function checkSession() {
         try {
-            const response = await fetch('/api/driver/buggy-info', {
+            const response = await fetch('/api/driver/shuttle-info', {
                 method: 'GET',
                 credentials: 'include',
                 cache: 'no-cache'
@@ -391,32 +391,32 @@
     
     // Load locations on page load
     document.addEventListener('DOMContentLoaded', async function() {
-        await loadBuggyInfo();
+        await loadShuttleInfo();
         await loadLocations();
     });
     
-    async function loadBuggyInfo() {
+    async function loadShuttleInfo() {
         try {
-            const response = await fetch('/api/driver/buggy-info');
+            const response = await fetch('/api/driver/shuttle-info');
             const data = await response.json();
             
             if (data.success && data.buggy) {
-                const buggyCode = data.buggy.code || 'Buggy';
-                const buggyIcon = data.buggy.icon || '🏌️';
+                const shuttleCode = data.buggy.code || 'Shuttle';
+                const shuttleIcon = data.buggy.icon || '🏌️';
                 
-                // Update buggy code
-                document.getElementById('buggy-code').textContent = buggyCode;
+                // Update shuttle code
+                document.getElementById('shuttle-code').textContent = shuttleCode;
                 
                 // Update icon if emoji
                 const iconElement = document.querySelector('.location-icon i');
-                if (buggyIcon && buggyIcon.length <= 2) {
+                if (shuttleIcon && shuttleIcon.length <= 2) {
                     // It's an emoji
-                    iconElement.outerHTML = `<span style="font-size: 2rem;">${buggyIcon}</span>`;
+                    iconElement.outerHTML = `<span style="font-size: 2rem;">${shuttleIcon}</span>`;
                 }
             }
         } catch (error) {
-            console.error('[LocationSelect] Error loading buggy info:', error);
-            document.getElementById('buggy-code').textContent = 'Buggy';
+            console.error('[LocationSelect] Error loading shuttle info:', error);
+            document.getElementById('shuttle-code').textContent = 'Shuttle';
         }
     }
     
@@ -647,7 +647,7 @@
                     <i class="fas fa-bell"></i>
                 </div>
                 <h3>Bildirimler</h3>
-                <p>Misafirlerden gelen buggy taleplerini anında almak için bildirim izni verin.</p>
+                <p>Misafirlerden gelen shuttle taleplerini anında almak için bildirim izni verin.</p>
                 <div class="notification-permission-actions">
                     <button class="btn-allow">
                         <i class="fas fa-check"></i> İzin Ver

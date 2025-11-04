@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Frontend'de Buggy -> Shuttle değişikliği
+Frontend'de Shuttle terminolojisi güncelleme
 Sadece kullanıcıya görünen metinleri değiştirir
 Backend kodu dokunulmaz
 """
@@ -32,9 +32,9 @@ REPLACEMENTS = {
     'Yeni Buggy Talebi': 'Yeni Shuttle Talebi',
     
     # İngilizce metinler (yorumlarda vs)
-    'Buggy Call System': 'Shuttle Call System',
-    'Buggy Call Logo': 'Shuttle Call Logo',
-    'Buggy Call -': 'Shuttle Call -',
+    'Shuttle Call System': 'Shuttle Call System',
+    'Shuttle Call Logo': 'Shuttle Call Logo',
+    'Shuttle Call -': 'Shuttle Call -',
 }
 
 # Değiştirilmeyecek dosyalar (backend)
@@ -97,7 +97,7 @@ def replace_in_file(file_path):
 def main():
     """Ana fonksiyon"""
     print("=" * 60)
-    print("🔄 Buggy -> Shuttle Değişikliği (Frontend Only)")
+    print("🔄 Shuttle Terminolojisi Güncelleme (Frontend Only)")
     print("=" * 60)
     
     # Çalışma dizini

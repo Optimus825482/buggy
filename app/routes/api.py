@@ -2143,23 +2143,24 @@ def get_active_request():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@api_bp.route('/driver/buggy-info', methods=['GET'])
+@api_bp.route('/driver/shuttle-info', methods=['GET'])
+@api_bp.route('/driver/buggy-info', methods=['GET'])  # Backward compatibility
 @require_login
 @require_role('driver')
-def get_driver_buggy_info():
-    """Get driver's assigned buggy information"""
+def get_driver_shuttle_info():
+    """Get driver's assigned shuttle information"""
     try:
         user = SystemUser.query.get(session['user_id'])
         
         if not user.buggy:
             return jsonify({
                 'success': False,
-                'error': 'Size atanmış buggy bulunamadı'
+                'error': 'Size atanmış shuttle bulunamadı'
             }), 404
         
         return jsonify({
             'success': True,
-            'buggy': {
+            'buggy': {  # Keep 'buggy' key for backward compatibility
                 'id': user.buggy.id,
                 'code': user.buggy.code,
                 'model': user.buggy.model,

@@ -169,6 +169,6 @@ const PlatformDetection = {
 window.PlatformDetection = PlatformDetection;
 
 // Log platform info on load
-if (window.BuggyCall && window.BuggyCall.CONFIG && window.BuggyCall.CONFIG.DEBUG) {
+if (window.ShuttleCall && window.ShuttleCall.CONFIG && window.ShuttleCall.CONFIG.DEBUG) {
     PlatformDetection.logPlatformInfo();
 }

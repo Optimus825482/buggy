@@ -1,5 +1,5 @@
 """
-Test Runner for BuggyCall Application
+Test Runner for ShuttleCall Application
 Runs all test suites and generates report
 """
 import sys
@@ -11,7 +11,7 @@ def main():
     """Run all tests with detailed reporting"""
     
     print("=" * 80)
-    print("BuggyCall Application - Comprehensive Test Suite")
+    print("ShuttleCall Application - Comprehensive Test Suite")
     print("=" * 80)
     print(f"Test started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 80)

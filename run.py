@@ -1,5 +1,5 @@
 """
-Buggy Call - Main Entry Point
+Shuttle Call - Main Entry Point
 """
 from app import create_app, socketio
 import os

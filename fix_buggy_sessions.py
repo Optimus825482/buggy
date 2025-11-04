@@ -1,6 +1,6 @@
 """
-Script to fix active BuggyDriver sessions
-This closes all active driver sessions for a specific buggy
+Script to fix active ShuttleDriver sessions
+This closes all active driver sessions for a specific shuttle
 """
 from app import create_app, db
 from app.models.buggy_driver import BuggyDriver
@@ -17,7 +17,7 @@ def close_buggy_driver_sessions(buggy_id):
         ).all()
         
         if not active_sessions:
-            print(f"No active sessions found for buggy {buggy_id}")
+            print(f"No active sessions found for shuttle {buggy_id}")
             return
         
         print(f"Found {len(active_sessions)} active session(s) for buggy {buggy_id}")

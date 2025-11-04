@@ -2,14 +2,14 @@
 // Version 3.0.0 - Enhanced with offline queue, badge management, and performance optimizations
 // Powered by Erkan ERDEM
 
-const CACHE_VERSION = 'buggycall-v3.0.0';
+const CACHE_VERSION = 'shuttlecall-v3.0.1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 
 // IndexedDB Configuration
-const DB_NAME = 'BuggyCallDB';
-const DB_VERSION = 2;
+const DB_NAME = 'ShuttleCallDB';
+const DB_VERSION = 3; // Incremented for DB name change
 const STORE_NOTIFICATIONS = 'notifications';
 const STORE_PENDING_ACTIONS = 'pendingActions';
 const STORE_DELIVERY_LOG = 'deliveryLog';

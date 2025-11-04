@@ -203,8 +203,8 @@
     loginForm.addEventListener( 'submit', async ( e ) => {
         e.preventDefault();
 
-        const formData = BuggyCall.Form.getData( loginForm );
-        BuggyCall.Utils.showLoading();
+        const formData = ShuttleCall.Form.getData( loginForm );
+        ShuttleCall.Utils.showLoading();
 
         try {
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
@@ -232,7 +232,7 @@
                 }
 
                 // Show success message
-                BuggyCall.Utils.showToast( data.message || 'Giriş başarılı!', 'success' );
+                ShuttleCall.Utils.showToast( data.message || 'Giriş başarılı!', 'success' );
 
                 // Redirect based on role
                 if ( data.user && data.user.role === 'admin' ) {
@@ -244,19 +244,19 @@
                     window.location.href = '/';
                 }
             } else {
-                await BuggyCall.Utils.showError( 
+                await ShuttleCall.Utils.showError( 
                     data.error || data.message || 'Kullanıcı adı veya şifre hatalı', 
                     'Giriş Başarısız' 
                 );
             }
         } catch ( error ) {
             console.error( 'Login error:', error );
-            await BuggyCall.Utils.showError( 
+            await ShuttleCall.Utils.showError( 
                 'Sunucuya bağlanılamadı. Lütfen internet bağlantınızı kontrol edin.', 
                 'Bağlantı Hatası' 
             );
         } finally {
-            BuggyCall.Utils.hideLoading();
+            ShuttleCall.Utils.hideLoading();
         }
     } );
 </script>

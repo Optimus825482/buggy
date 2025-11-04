@@ -11,7 +11,7 @@
         <i class="fas fa-map-marker-alt"></i> Lokasyonlar
     </a>
     <a href="{{ url_for('admin.buggies') }}" class="nav-link">
-        <i class="fas fa-car-alt"></i> Buggy'ler
+        <i class="fas fa-car-alt"></i> Shuttle'lar
     </a>
     <a href="{{ url_for('admin.reports') }}" class="nav-link active">
         <i class="fas fa-chart-bar"></i> Raporlar
@@ -187,7 +187,7 @@
                         <tr>
                             <th>Tarih/Saat</th>
                             <th>Lokasyon</th>
-                            <th>Buggy</th>
+                            <th>Shuttle</th>
                             <th>Yanıt Süresi</th>
                             <th>Tamamlanma Süresi</th>
                             <th>Durum</th>
@@ -304,7 +304,7 @@
 
     async function loadReports() {
         try {
-            BuggyCall.Utils.showLoading();
+            ShuttleCall.Utils.showLoading();
 
             const dateRange = document.getElementById( 'date-range' ).value;
             let url = `/api/requests`;
@@ -320,11 +320,11 @@
                 renderRecentRequests();
             }
 
-            BuggyCall.Utils.hideLoading();
+            ShuttleCall.Utils.hideLoading();
         } catch ( error ) {
             console.error( 'Error loading reports:', error );
-            BuggyCall.Utils.showToast( 'Raporlar yüklenemedi', 'danger' );
-            BuggyCall.Utils.hideLoading();
+            ShuttleCall.Utils.showToast( 'Raporlar yüklenemedi', 'danger' );
+            ShuttleCall.Utils.hideLoading();
         }
     }
 
@@ -457,13 +457,13 @@
 
         tbody.innerHTML = recent.map( req => `
             <tr>
-                <td>${BuggyCall.Utils.formatDate( req.requested_at )}</td>
+                <td>${ShuttleCall.Utils.formatDate( req.requested_at )}</td>
                 <td>${req.location?.name || '-'}</td>
                 <td>${req.buggy?.code || '-'}</td>
                 <td>${req.response_time_seconds ? Math.round( req.response_time_seconds / 60 ) + ' dk' : '-'}</td>
                 <td>${req.completion_time_seconds ? Math.round( req.completion_time_seconds / 60 ) + ' dk' : '-'}</td>
                 <td>
-                    <span class="badge ${BuggyCall.Utils.getBadgeClass( req.status )}">
+                    <span class="badge ${ShuttleCall.Utils.getBadgeClass( req.status )}">
                         ${getStatusText( req.status )}
                     </span>
                 </td>
@@ -489,14 +489,14 @@
         const blob = new Blob( [csvContent], { type: 'text/csv;charset=utf-8;' } );
         const link = document.createElement( 'a' );
         link.href = URL.createObjectURL( blob );
-        link.download = `buggy_call_rapor_${rangeText}_${new Date().toISOString().split( 'T' )[0]}.csv`;
+        link.download = `shuttle_call_rapor_${rangeText}_${new Date().toISOString().split( 'T' )[0]}.csv`;
         link.click();
 
-        BuggyCall.Utils.showToast( 'Rapor indirildi!', 'success' );
+        ShuttleCall.Utils.showToast( 'Rapor indirildi!', 'success' );
     }
 
     function generateCSV() {
-        let csv = 'Tarih,Lokasyon,Buggy,Oda,Yanıt Süresi (sn),Tamamlanma Süresi (sn),Durum\n';
+        let csv = 'Tarih,Lokasyon,Shuttle,Oda,Yanıt Süresi (sn),Tamamlanma Süresi (sn),Durum\n';
 
         reportData.requests.forEach( req => {
             csv += `"${req.requested_at}",`;

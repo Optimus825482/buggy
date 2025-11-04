@@ -1,5 +1,5 @@
 """
-Buggy Call - WSGI Entry Point for Production
+Shuttle Call - WSGI Entry Point for Production
 Handles Railway deployment - migrations run via start command
 """
 import os
@@ -15,7 +15,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 logger.info("="*60)
-logger.info("🚀 Buggy Call - Starting Application")
+logger.info("🚀 Shuttle Call - Starting Application")
 logger.info("="*60)
 
 try:

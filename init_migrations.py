@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Buggy Call - Database Migration Initialization Script
+Shuttle Call - Database Migration Initialization Script
 Bu script database migration sistemini başlatır ve ilk migration'ı oluşturur.
 """
 import os
@@ -13,7 +13,7 @@ def init_migrations():
     """Initialize Flask-Migrate and create initial migration"""
     
     print("=" * 60)
-    print("Buggy Call - Database Migration Initialization")
+    print("Shuttle Call - Database Migration Initialization")
     print("=" * 60)
     print()
     

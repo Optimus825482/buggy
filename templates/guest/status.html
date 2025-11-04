@@ -7,9 +7,7 @@
     .header {
         display: none;
     }
-    .footer {
-        display: none;
-    }
+    /* Keep footer visible */
     .status-container {
         min-height: calc(100vh - 200px);
         display: flex;
@@ -31,17 +29,44 @@
     }
 
     .spinner {
-        border: 4px solid rgba(0, 0, 0, 0.1);
-        border-left-color: var(--primary-color);
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        animation: spin 1s linear infinite;
+        position: relative;
+        width: 80px;
+        height: 80px;
         margin: 2rem auto;
     }
 
-    @keyframes spin {
-        to {
+    .spinner::before {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top-color: #1BA5A8;
+        border-right-color: #D4AF37;
+        border-radius: 50%;
+        animation: spinLoader 1s linear infinite;
+    }
+
+    .spinner::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 60%;
+        height: 60%;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-bottom-color: #1BA5A8;
+        border-left-color: #D4AF37;
+        border-radius: 50%;
+        animation: spinLoader 0.8s linear infinite reverse;
+    }
+
+    @keyframes spinLoader {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
             transform: rotate(360deg);
         }
     }
@@ -75,7 +100,7 @@
                 <i class="fas fa-check-circle status-icon" style="color: var(--success-color);"></i>
                 <h3>Shuttle Yolda!</h3>
                 <p class="text-muted">Shuttle'iniz size doğru geliyor</p>
-                <div id="buggy-info" class="alert alert-info mt-3"></div>
+                <div id="shuttle-info" class="alert alert-info mt-3"></div>
             </div>
 
             <!-- Completed Status -->
@@ -107,6 +132,18 @@
         </div>
     </div>
 </div>
+
+<!-- Footer Section -->
+<footer class="footer-section" style="background: #1A2B4A; border-top: 2px solid #D4AF37; padding: 2rem 0; text-align: center; margin-top: 2rem;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+        <img src="{{ url_for('static', filename='images/Merit_International.png') }}" 
+             alt="Merit International Hotels & Resorts" 
+             style="height: 50px; width: auto; object-fit: contain;">
+        <p style="font-size: 14px; font-weight: 600; color: #FFFFFF; letter-spacing: 0.5px; margin: 0;">
+            MERIT INTERNATIONAL HOTELS & RESORTS © 2025 COPYRIGHT
+        </p>
+    </div>
+</footer>
 {% endblock %}
 
 {% block extra_js %}
@@ -216,10 +253,10 @@
 
         // Update specific info
         if ( status === 'accepted' && data.buggy ) {
-            const buggyInfo = document.getElementById( 'buggy-info' );
-            if ( buggyInfo ) {
-                buggyInfo.innerHTML = `
-                    <strong><i class="fas fa-truck-pickup"></i> Shuttle:</strong> ${data.buggy.code || 'N/A'}<br>
+            const shuttleInfo = document.getElementById( 'shuttle-info' );
+            if ( shuttleInfo ) {
+                shuttleInfo.innerHTML = `
+                    <strong><i class="fas fa-shuttle-van"></i> Shuttle:</strong> ${data.buggy.code || 'N/A'}<br>
                     ${data.driver ? `<strong><i class="fas fa-user"></i> Sürücü:</strong> ${data.driver.full_name || 'N/A'}` : ''}
                 `;
             }
@@ -274,14 +311,14 @@
             const data = await response.json();
 
             if ( data.success ) {
-                BuggyCall.Utils.showToast( 'Talep iptal edildi', 'success' );
+                ShuttleCall.Utils.showToast( 'Talep iptal edildi', 'success' );
                 updateStatus( 'cancelled', {} );
             } else {
-                BuggyCall.Utils.showToast( data.error || 'İptal edilemedi', 'danger' );
+                ShuttleCall.Utils.showToast( data.error || 'İptal edilemedi', 'danger' );
             }
         } catch ( error ) {
             console.error( 'Error cancelling request:', error );
-            BuggyCall.Utils.showToast( 'Bir hata oluştu', 'danger' );
+            ShuttleCall.Utils.showToast( 'Bir hata oluştu', 'danger' );
         }
     }
 
@@ -310,16 +347,16 @@
     }
 
     function showAcceptanceNotification( data ) {
-        // Get buggy code
-        const buggyCode = data.buggy?.code || 'Buggy';
+        // Get shuttle code
+        const shuttleCode = data.buggy?.code || 'Shuttle';
         const driverName = data.driver?.full_name || '';
         
         // Create notification message
-        let message = `🎉 Talebiniz ${buggyCode} numaralı shuttle tarafından kabul edildi!`;
+        let message = `🎉 Talebiniz ${shuttleCode} numaralı shuttle tarafından kabul edildi!`;
         if ( driverName ) {
             message += `\n\nSürücü: ${driverName}`;
         }
-        message += '\n\nBuggy size doğru geliyor...';
+        message += '\n\nShuttle size doğru geliyor...';
         
         // Show alert notification
         alert( message );
@@ -335,7 +372,7 @@
         // Show browser notification if permitted
         if ( 'Notification' in window && Notification.permission === 'granted' ) {
             new Notification( 'Shuttle Kabul Edildi! 🎉', {
-                body: `${buggyCode} size doğru geliyor`,
+                body: `${shuttleCode} size doğru geliyor`,
                 icon: '/static/icons/icon-192x192.png',
                 badge: '/static/icons/icon-96x96.png',
                 vibrate: [200, 100, 200]

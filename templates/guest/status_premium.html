@@ -11,12 +11,10 @@ body {
   padding: 0;
 }
 
-/* Hide all headers, footers, and navigation */
+/* Hide all headers and navigation (keep footer visible) */
 .header, 
-.footer, 
 .navbar,
 header,
-footer,
 nav,
 .mobile-menu-toggle,
 .connection-indicator {
@@ -186,6 +184,18 @@ nav,
         </div>
     </div>
 </div>
+
+<!-- Footer Section -->
+<footer style="background: #1A2B4A; border-top: 2px solid #D4AF37; padding: 2rem 0; text-align: center; margin-top: 2rem;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+        <img src="{{ url_for('static', filename='images/Merit_International.png') }}" 
+             alt="Merit International Hotels & Resorts" 
+             style="height: 50px; width: auto; object-fit: contain;">
+        <p style="font-size: 14px; font-weight: 600; color: #FFFFFF; letter-spacing: 0.5px; margin: 0;">
+            MERIT INTERNATIONAL HOTELS & RESORTS © 2025 COPYRIGHT
+        </p>
+    </div>
+</footer>
 {% endblock %}
 
 {% block extra_js %}

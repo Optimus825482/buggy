@@ -5,8 +5,8 @@
 
 class OfflineStorage {
     constructor() {
-        this.dbName = 'BuggyCallDB';
-        this.dbVersion = 2;
+        this.dbName = 'ShuttleCallDB';
+        this.dbVersion = 3; // Incremented for DB name change
         this.db = null;
         this.init();
     }

@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/notification-permission.css') }}">
 <style>
     .driver-dashboard {
-        background: linear-gradient(135deg, #1BA5A8 0%, #158587 100%);
+        background: linear-gradient(135deg, #1A2B4A 0%, #2C3E5A 100%);
         min-height: 100vh;
         padding: 1rem;
     }
@@ -276,7 +276,7 @@
                                 <span style="font-size: 1.5rem; margin-right: 0.5rem;">{{ user.buggy.icon|safe if user.buggy.icon else '🚗' }}</span>
                                 <span style="font-weight: 600;">{{ user.buggy.code }}</span>
                             {% else %}
-                                <span style="color: #E67E22;">Buggy Atanmamış</span>
+                                <span style="color: #E67E22;">Shuttle Atanmamış</span>
                             {% endif %}
                         </p>
                         {% if user.buggy and user.buggy.current_location %}
@@ -333,11 +333,11 @@
             </div>
         </div>
         {% else %}
-        <!-- No Buggy Assigned -->
+        <!-- No Shuttle Assigned -->
         <div class="section-card">
             <div class="empty-state" style="padding: 4rem 2rem;">
                 <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: #ffc107; opacity: 1;"></i>
-                <h3 style="margin: 1rem 0; color: #333;">Buggy Atanmamış</h3>
+                <h3 style="margin: 1rem 0; color: #333;">Shuttle Atanmamış</h3>
                 <p style="color: #6c757d; max-width: 400px; margin: 0 auto;">
                     Size henüz bir shuttle atanmamış. Lütfen yöneticinizle iletişime geçin.
                 </p>
@@ -357,7 +357,7 @@
     // Set driver data from session (server-side render)
     document.body.dataset.hotelId = '{{ session.get("hotel_id", 1) }}';
     document.body.dataset.userId = '{{ session.get("user_id", 0) }}';
-    document.body.dataset.buggyId = '{{ user.buggy.id if user.buggy else 0 }}';
+    document.body.dataset.shuttleId = '{{ user.buggy.id if user.buggy else 0 }}';
     document.body.dataset.needsLocationSetup = '{{ "true" if session.get("needs_location_setup") else "false" }}';
     document.body.dataset.notificationPermissionAsked = '{{ notification_permission_asked|tojson|safe }}';
     document.body.dataset.notificationPermissionStatus = '{{ notification_permission_status|safe }}';
@@ -365,7 +365,7 @@
     // Check session validity via API call (not cached)
     async function checkSession() {
         try {
-            const response = await fetch('/api/driver/buggy-info', {
+            const response = await fetch('/api/driver/shuttle-info', {
                 method: 'GET',
                 credentials: 'include',
                 cache: 'no-cache'
@@ -436,7 +436,7 @@
         
         try {
             // Show confirmation modal
-            const confirmed = await BuggyModal.custom(modalContent, {
+            const confirmed = await ShuttleModal.custom(modalContent, {
                 title: '',
                 confirmText: 'Evet, Çıkış Yap',
                 cancelText: 'İptal',

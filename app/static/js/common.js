@@ -1121,7 +1121,7 @@ if (document.readyState === 'loading') {
 }
 
 // Export globals
-window.BuggyCall = {
+window.ShuttleCall = {
     Utils,
     API,
     Socket,
@@ -1132,5 +1132,8 @@ window.BuggyCall = {
     BadgeManager, // Badge yönetimi
     ServiceWorkerHandler // Service Worker message handler
 };
+
+// Backward compatibility
+window.BuggyCall = window.ShuttleCall;
 
 console.log('Shuttle Call initialized - Enhanced v3.0 with SW Navigation Handler');

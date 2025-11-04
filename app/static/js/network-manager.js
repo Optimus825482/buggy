@@ -396,7 +396,7 @@ class NetworkManager {
             // Check if this is a GET request - we can try to serve from cache
             if (!options.method || options.method === 'GET') {
                 try {
-                    const cache = await caches.open('buggycall-v2.0.0-dynamic');
+                    const cache = await caches.open('shuttlecall-v2.0.0-dynamic');
                     const cached = await cache.match(url);
                     if (cached) {
                         console.log('[Network] Serving from cache while offline:', url);
@@ -418,7 +418,7 @@ class NetworkManager {
             // Cache successful GET requests
             if (response.ok && (!options.method || options.method === 'GET')) {
                 try {
-                    const cache = await caches.open('buggycall-v2.0.0-dynamic');
+                    const cache = await caches.open('shuttlecall-v2.0.0-dynamic');
                     cache.put(url, response.clone());
                 } catch (error) {
                     console.error('[Network] Cache put error:', error);

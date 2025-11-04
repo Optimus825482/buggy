@@ -1,6 +1,6 @@
-// Service Worker for Buggy Call PWA - Enhanced Version
+// Service Worker for Shuttle Call PWA - Enhanced Version
 // Powered by Erkan ERDEM
-const CACHE_VERSION = 'buggycall-v2.0.5';
+const CACHE_VERSION = 'shuttlecall-v2.0.5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -396,8 +396,8 @@ self.addEventListener('message', (event) => {
 });
 
 // IndexedDB Helper Functions
-const DB_NAME = 'BuggyCallDB';
-const DB_VERSION = 1;
+const DB_NAME = 'ShuttleCallDB';
+const DB_VERSION = 3; // Incremented for DB name change
 const STORE_NAME = 'pendingRequests';
 
 async function openDB() {
