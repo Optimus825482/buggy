@@ -27,7 +27,17 @@ else
     exit 1
 fi
 
-# 3. Start application
+# 3. Fix system_users columns
+echo ""
+echo "⏳ Fixing system_users columns..."
+python fix_system_users_push_columns.py
+if [ $? -eq 0 ]; then
+    echo "✅ System users columns fixed"
+else
+    echo "⚠️  System users column fix failed (continuing anyway)"
+fi
+
+# 4. Start application
 echo ""
 echo "============================================================"
 echo "🚀 Starting Gunicorn server..."
