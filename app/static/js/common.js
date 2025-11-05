@@ -816,10 +816,23 @@ const BadgeManager = {
                     [messageChannel.port2]
                 );
 
-                setTimeout(() => reject(new Error('Timeout')), 5000);
+                // Timeout with proper cleanup
+                const timeoutId = setTimeout(() => {
+                    messageChannel.port1.close();
+                    messageChannel.port2.close();
+                    reject(new Error('Badge reset timeout'));
+                }, 5000);
+                
+                // Clear timeout on success
+                messageChannel.port1.onmessage = (event) => {
+                    clearTimeout(timeoutId);
+                    messageChannel.port1.close();
+                    messageChannel.port2.close();
+                    resolve(event.data.count || 0);
+                };
             });
         } catch (error) {
-            console.error('[Badge] Error resetting badge count:', error);
+            console.warn('[Badge] Error resetting badge count:', error);
             return 0;
         }
     },

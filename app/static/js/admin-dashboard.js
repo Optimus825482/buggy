@@ -112,14 +112,17 @@ async function showRequestDetails(requestId) {
 
 async function loadBuggiesStatus() {
     try {
+        console.log('📡 [ADMIN] Fetching buggies from API...');
         const response = await fetch('/api/buggies');
         const data = await response.json();
+        console.log('📊 [ADMIN] Buggies data received:', data);
         
         const buggiesList = document.getElementById('buggiesList');
         const availableCount = document.getElementById('availableBuggiesCount');
         
         if (data.buggies && data.buggies.length > 0) {
             const available = data.buggies.filter(b => b.status === 'available').length;
+            console.log(`✅ [ADMIN] Found ${data.buggies.length} buggies, ${available} available`);
             availableCount.textContent = available;
             
             buggiesList.innerHTML = data.buggies.map(buggy => `
@@ -200,7 +203,8 @@ function initWebSocket() {
         
         // Listen for buggy status changes (CRITICAL for logout/disconnect)
         socket.on('buggy_status_changed', (data) => {
-            console.log('Buggy status changed:', data);
+            console.log('🔔 [ADMIN] Buggy status changed event received:', data);
+            console.log('🔄 [ADMIN] Reloading buggies list...');
             // Reload buggies list to reflect new status
             loadBuggiesStatus();
         });

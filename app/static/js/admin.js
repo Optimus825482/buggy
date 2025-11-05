@@ -1008,32 +1008,19 @@ const Admin = {
      * Setup page visibility handling
      */
     setupPageVisibility() {
-        let pendingUpdates = [];
+        // Removed deferred updates - admin panel should always be up-to-date
+        // Real-time updates are critical for admin monitoring
+        console.log('✅ [ADMIN] Page visibility tracking enabled (no deferring)');
         
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                // Page went to background
-                console.log('Page hidden, deferring updates');
-            } else {
-                // Page came to foreground
-                console.log('Page visible, applying deferred updates');
-                if (pendingUpdates.length > 0) {
-                    // Apply all pending updates
-                    pendingUpdates.forEach(data => this.updateBuggyStatusRow(data));
-                    pendingUpdates = [];
-                }
+            if (!document.hidden) {
+                // Page came to foreground - refresh data
+                console.log('👁️ [ADMIN] Page visible, refreshing data...');
+                this.loadAllData();
             }
         });
         
-        // Store pending updates when page is hidden
-        const originalUpdateFn = this.updateBuggyStatusRow.bind(this);
-        this.updateBuggyStatusRow = (data) => {
-            if (document.hidden) {
-                pendingUpdates.push(data);
-            } else {
-                originalUpdateFn(data);
-            }
-        };
+        // No need to override updateBuggyStatusRow - always update immediately
         
         // Page unload handler
         window.addEventListener('beforeunload', () => {
