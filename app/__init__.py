@@ -11,7 +11,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect
 from flask_caching import Cache
-from flask_session import Session
+# Flask-Session removed - using Flask's built-in session
 import os
 import logging
 from logging.handlers import RotatingFileHandler
@@ -24,7 +24,6 @@ socketio = SocketIO()
 # Rate limiter completely removed for high-traffic hotel environments
 csrf = CSRFProtect()
 cache = Cache()
-sess = Session()
 
 
 def connect_with_retry(app, max_retries=5, delay=2):
@@ -110,8 +109,8 @@ def create_app(config_name=None):
         'CACHE_DEFAULT_TIMEOUT': 300
     })
     
-    # Initialize session
-    sess.init_app(app)
+    # Session - Flask's built-in session kullanılıyor
+    # sess.init_app(app)  # Flask-Session kaldırıldı
     
     # Import all models to ensure proper initialization
     with app.app_context():
