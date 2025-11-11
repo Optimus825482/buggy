@@ -90,3 +90,4 @@ docker-compose.override.yml
 # Coolify
 .env.coolify
 coolify.log
+COOLIFY_ENV_READY.txt

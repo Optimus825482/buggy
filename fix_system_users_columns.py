@@ -15,9 +15,25 @@ def fix_system_users_table():
     
     # Railway database URL'ini al
     database_url = os.environ.get('DATABASE_URL')
+    
+    # If DATABASE_URL not found, build from individual variables
     if not database_url:
-        print("❌ DATABASE_URL bulunamadı!")
-        return False
+        db_user = os.environ.get('MYSQLUSER') or os.environ.get('DB_USER')
+        db_pass = os.environ.get('MYSQLPASSWORD') or os.environ.get('DB_PASSWORD')
+        db_host = os.environ.get('MYSQLHOST') or os.environ.get('DB_HOST')
+        db_port = os.environ.get('MYSQLPORT') or os.environ.get('DB_PORT', '3306')
+        db_name = os.environ.get('MYSQLDATABASE') or os.environ.get('DB_NAME')
+        
+        if not all([db_user, db_pass, db_host, db_name]):
+            print("❌ Database credentials bulunamadı!")
+            return False
+        
+        # Use PyMySQL driver
+        database_url = f"mysql+pymysql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+    
+    # Ensure PyMySQL driver is used
+    if database_url.startswith('mysql://'):
+        database_url = database_url.replace('mysql://', 'mysql+pymysql://', 1)
     
     try:
         engine = create_engine(database_url)
