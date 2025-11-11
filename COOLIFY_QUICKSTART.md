@@ -47,7 +47,7 @@ VAPID_CLAIMS_EMAIL=mailto:admin@yourdomain.com
 APP_NAME=Shuttle Call
 APP_TIMEZONE=Asia/Nicosia
 LOG_LEVEL=INFO
-PORT=3000
+PORT=8000
 
 RESET_DB=true
 ```

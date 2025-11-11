@@ -75,8 +75,8 @@ MAX_CONTENT_LENGTH=16777216
 LOG_LEVEL=INFO
 LOG_FILE=logs/shuttlecall.log
 
-# Port (Coolify otomatik ayarlar)
-PORT=3000
+# Port (Coolify için 8000)
+PORT=8000
 ```
 
 ### İlk Kurulum İçin

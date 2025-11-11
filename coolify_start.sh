@@ -61,8 +61,8 @@ echo "============================================================"
 echo "🚀 Starting Gunicorn server..."
 echo "============================================================"
 
-# Port'u environment'tan al, yoksa 5000 kullan
-PORT=${PORT:-5000}
+# Port'u environment'tan al, yoksa 8000 kullan
+PORT=${PORT:-8000}
 
 exec gunicorn --worker-class gevent \
     -w 1 \
