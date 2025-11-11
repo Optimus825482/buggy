@@ -377,9 +377,9 @@ class TestDriverFlow:
             response = client.get('/driver/dashboard')
             assert response.status_code == 200
     
-    def test_driver_see_pending_requests(self, client, app):
-        """Test driver can see pending requests"""
-        # Create pending request
+    def test_driver_see_PENDING_requests(self, client, app):
+        """Test driver can see PENDING requests"""
+        # Create PENDING request
         with app.app_context():
             location = Location.query.first()
             hotel = Hotel.query.first()
@@ -400,8 +400,8 @@ class TestDriverFlow:
                 'password': 'driver123'
             })
             
-            # Get pending requests
-            response = client.get('/api/requests/pending')
+            # Get PENDING requests
+            response = client.get('/api/requests/PENDING')
             assert response.status_code == 200
             
             data = json.loads(response.data)
@@ -409,7 +409,7 @@ class TestDriverFlow:
     
     def test_driver_accept_request(self, client, app):
         """Test driver can accept a request"""
-        # Create pending request
+        # Create PENDING request
         with app.app_context():
             location = Location.query.first()
             hotel = Hotel.query.first()

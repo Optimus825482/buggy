@@ -38,8 +38,15 @@ class SystemUser(db.Model, BaseModel):
     phone = Column(String(50))
     is_active = Column(Boolean, default=True, nullable=False, index=True)
     must_change_password = Column(Boolean, default=False, nullable=False)
+    
+    # FCM Push Notification Fields
+    fcm_token = Column(String(255), index=True)  # Firebase Cloud Messaging token
+    fcm_token_date = Column(DateTime)  # Token kayıt tarihi
+    
+    # Legacy fields (pywebpush - kaldırılacak)
     push_subscription = Column(Text)
     push_subscription_date = Column(DateTime)
+    
     notification_preferences = Column(Text)
     
     # Timestamps

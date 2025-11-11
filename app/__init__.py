@@ -11,6 +11,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect
 from flask_caching import Cache
+from flask_session import Session
 import os
 import logging
 from logging.handlers import RotatingFileHandler
@@ -23,6 +24,7 @@ socketio = SocketIO()
 # Rate limiter completely removed for high-traffic hotel environments
 csrf = CSRFProtect()
 cache = Cache()
+sess = Session()
 
 
 def connect_with_retry(app, max_retries=5, delay=2):
@@ -107,6 +109,9 @@ def create_app(config_name=None):
         'CACHE_REDIS_URL': app.config.get('REDIS_URL'),
         'CACHE_DEFAULT_TIMEOUT': 300
     })
+    
+    # Initialize session
+    sess.init_app(app)
     
     # Import all models to ensure proper initialization
     with app.app_context():
@@ -252,6 +257,7 @@ def register_blueprints(app):
     from app.routes.test import test_bp
     from app.routes.admin_notification_api import admin_notification_api
     from app.routes.map_api import map_api
+    from app.routes.sse import sse_bp
 
     app.register_blueprint(setup_bp)  # No prefix, setup routes at root level
     app.register_blueprint(system_reset_bp)  # No prefix, system reset at root level
@@ -273,6 +279,7 @@ def register_blueprints(app):
     app.register_blueprint(admin_notification_api)  # Admin notification monitoring
     app.register_blueprint(map_api)  # Map thumbnail generation
     app.register_blueprint(health_bp)  # No prefix for health endpoints
+    app.register_blueprint(sse_bp, url_prefix='/sse')  # SSE for real-time notifications
     
     # Test routes (sadece development'ta)
     if app.config.get('DEBUG'):
@@ -303,11 +310,16 @@ def register_blueprints(app):
             mimetype='image/vnd.microsoft.icon'
         )
     
-    # Register service worker route
+    # Register service worker routes
     @app.route('/sw.js')
     def service_worker():
         from flask import send_from_directory
         return send_from_directory(app.static_folder, 'sw.js', mimetype='application/javascript')
+    
+    @app.route('/firebase-messaging-sw.js')
+    def firebase_service_worker():
+        from flask import send_from_directory
+        return send_from_directory(app.static_folder, 'firebase-messaging-sw.js', mimetype='application/javascript')
 
     # Register offline page route
     @app.route('/offline.html')

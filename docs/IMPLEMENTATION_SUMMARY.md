@@ -33,7 +33,7 @@
    - Sound ve vibration handling
 
 6. ✅ **Offline Queue Manager**
-   - IndexedDB schema (notifications, pendingActions, deliveryLog)
+   - IndexedDB schema (notifications, PENDINGActions, deliveryLog)
    - queueNotification() ve syncQueuedNotifications()
    - Background sync event handler
    - Network status monitoring

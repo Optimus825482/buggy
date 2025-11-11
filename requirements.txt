@@ -28,8 +28,8 @@ flask-swagger-ui==5.21.0
 qrcode==7.4.2
 Pillow==10.1.0
 
-# Push Notifications
-pywebpush==1.14.0
+# Push Notifications - Firebase Cloud Messaging
+firebase-admin==6.3.0
 
 # Background Jobs
 APScheduler==3.10.4

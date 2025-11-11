@@ -11,7 +11,10 @@ admin_bp = Blueprint('admin', __name__)
 
 
 def admin_required(fn):
-    """Decorator to require admin role"""
+    """
+    ✅ PERFORMANS OPTİMİZE: Cache'den user al
+    Decorator to require admin role
+    """
     @wraps(fn)
     def wrapper(*args, **kwargs):
         # Check session first
@@ -19,8 +22,12 @@ def admin_required(fn):
             flash('Lütfen giriş yapın', 'warning')
             return redirect(url_for('auth.login'))
         
-        user = SystemUser.query.get(session['user_id'])
+        # ✅ Cache'den user al (DB sorgusu yerine)
+        from app.utils.decorators import get_current_user_cached
+        user = get_current_user_cached()
+        
         if not user:
+            session.clear()
             flash('Kullanıcı bulunamadı', 'danger')
             return redirect(url_for('auth.login'))
         
@@ -37,7 +44,10 @@ def admin_required(fn):
 @admin_required
 def dashboard():
     """Admin dashboard"""
-    user = SystemUser.query.get(session['user_id'])
+    # ✅ Cache'den user al
+    from app.utils.decorators import get_current_user_cached
+    user = get_current_user_cached()
+    
     return render_template('admin/dashboard.html', 
                          user=user,
                          notification_permission_asked=session.get('notification_permission_asked', False),
@@ -48,7 +58,9 @@ def dashboard():
 @admin_required
 def locations():
     """Manage locations"""
-    user = SystemUser.query.get(session['user_id'])
+    # ✅ Cache'den user al
+    from app.utils.decorators import get_current_user_cached
+    user = get_current_user_cached()
     return render_template('admin/locations.html', user=user)
 
 
@@ -56,7 +68,9 @@ def locations():
 @admin_required
 def buggies():
     """Manage buggies"""
-    user = SystemUser.query.get(session['user_id'])
+    # ✅ Cache'den user al
+    from app.utils.decorators import get_current_user_cached
+    user = get_current_user_cached()
     return render_template('admin/buggies.html', user=user)
 
 
@@ -71,5 +85,7 @@ def reports():
 @admin_required
 def qr_print():
     """QR codes print page"""
-    user = SystemUser.query.get(session['user_id'])
+    # ✅ Cache'den user al
+    from app.utils.decorators import get_current_user_cached
+    user = get_current_user_cached()
     return render_template('admin/qr_print.html', user=user)

@@ -247,20 +247,272 @@
 
 
 
+    /* Responsive Optimizasyonlar */
     @media (max-width: 768px) {
+        .driver-dashboard {
+            padding: 0.75rem;
+        }
+
+        .container {
+            padding: 0 !important;
+        }
+
+        .dashboard-header {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .driver-info {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.75rem;
+        }
+
+        .driver-avatar {
+            width: 50px;
+            height: 50px;
+            font-size: 1.25rem;
+        }
+
+        .driver-info h2 {
+            font-size: 1.25rem;
+        }
+
+        .driver-info p {
+            font-size: 0.875rem;
+        }
+
         .stats-grid {
             grid-template-columns: 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
         }
-        
+
+        .stat-card {
+            padding: 1rem;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+        }
+
+        .section-card {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .section-header {
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+        }
+
+        .section-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1.125rem;
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+        }
+
+        .request-card {
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .request-header {
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+
+        .request-location {
+            font-size: 1.125rem;
+        }
+
+        .request-time {
+            font-size: 0.8125rem;
+        }
+
         .request-details {
             grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .request-actions {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .btn-accept,
+        .btn-complete {
+            width: 100%;
+            padding: 0.875rem 1rem;
+        }
+
+        .empty-state {
+            padding: 2rem 1rem;
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+        }
+
+        #PENDING-badge {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .driver-dashboard {
+            padding: 0.5rem;
+        }
+
+        .dashboard-header {
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .driver-avatar {
+            width: 45px;
+            height: 45px;
+            font-size: 1.125rem;
+        }
+
+        .driver-info h2 {
+            font-size: 1.125rem;
+        }
+
+        .driver-info p {
+            font-size: 0.8125rem;
+        }
+
+        .stat-card {
+            padding: 0.75rem;
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1.125rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+        }
+
+        .section-card {
+            padding: 0.75rem;
+        }
+
+        .section-header {
+            gap: 0.5rem;
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 1rem;
+        }
+
+        .section-title {
+            font-size: 1rem;
+        }
+
+        .request-card {
+            padding: 0.75rem;
+        }
+
+        .request-location {
+            font-size: 1rem;
+        }
+
+        .request-time {
+            font-size: 0.75rem;
+        }
+
+        .request-detail {
+            font-size: 0.875rem;
+        }
+
+        .btn-accept,
+        .btn-complete {
+            padding: 0.75rem 0.875rem;
+            font-size: 0.9375rem;
+        }
+
+        .empty-state {
+            padding: 1.5rem 0.75rem;
+        }
+
+        .empty-state i {
+            font-size: 2rem;
+        }
+
+        .empty-state h3 {
+            font-size: 1.125rem;
+        }
+
+        .empty-state p {
+            font-size: 0.875rem;
+        }
+    }
+
+    /* Landscape mode */
+    @media (max-width: 768px) and (orientation: landscape) {
+        .driver-dashboard {
+            padding: 0.5rem;
+        }
+
+        .dashboard-header {
+            padding: 0.75rem;
+        }
+
+        .section-card {
+            padding: 0.75rem;
+        }
+
+        .empty-state {
+            padding: 1.5rem 1rem;
+        }
+    }
+
+    /* Touch optimization */
+    @media (hover: none) and (pointer: coarse) {
+        .btn-accept,
+        .btn-complete {
+            min-height: 48px;
+        }
+
+        .request-card {
+            min-height: 44px;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="driver-dashboard">
+<div class="driver-dashboard" 
+     data-hotel-id="{{ user.hotel_id }}" 
+     data-user-id="{{ user.id }}" 
+     data-buggy-id="{{ user.buggy.id if user.buggy else 0 }}">
     <div class="container" style="max-width: 1200px; margin: 0 auto;">
         <!-- Header -->
         <div class="dashboard-header">
@@ -351,6 +603,15 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
+
+<!-- FCM Notifications -->
+<script src="{{ url_for('static', filename='js/fcm-notifications.js') }}"></script>
+
+<!-- Existing Scripts -->
+<script src="{{ url_for('static', filename='js/sse-client.js') }}"></script>
 <script src="{{ url_for('static', filename='js/notification-permission.js') }}"></script>
 <script src="{{ url_for('static', filename='js/driver-dashboard.js') }}"></script>
 <script>
@@ -482,11 +743,27 @@
 
     // Initialize notification permission handler
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('[Dashboard] DOM ready, initializing notification handler...');
+        
         // Initialize notification permission handler for driver
         if (typeof notificationPermissionHandler !== 'undefined') {
-            const permissionAsked = JSON.parse(document.body.dataset.notificationPermissionAsked || 'false');
-            const permissionStatus = document.body.dataset.notificationPermissionStatus || '';
-            notificationPermissionHandler.init('driver', permissionAsked, permissionStatus);
+            try {
+                const permissionAskedRaw = document.body.dataset.notificationPermissionAsked || 'false';
+                const permissionAsked = permissionAskedRaw === 'true' || permissionAskedRaw === true;
+                const permissionStatus = document.body.dataset.notificationPermissionStatus || 'default';
+                
+                console.log('[Dashboard] Notification handler data:', {
+                    permissionAsked,
+                    permissionStatus,
+                    handlerExists: !!notificationPermissionHandler
+                });
+                
+                notificationPermissionHandler.init('driver', permissionAsked, permissionStatus);
+            } catch (error) {
+                console.error('[Dashboard] Error initializing notification handler:', error);
+            }
+        } else {
+            console.error('[Dashboard] notificationPermissionHandler not found!');
         }
     });
 

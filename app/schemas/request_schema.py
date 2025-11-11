@@ -18,7 +18,7 @@ class BuggyRequestSchema(Schema):
     has_room = fields.Bool(missing=True)
     guest_device_id = fields.Str(allow_none=True, validate=validate.Length(max=255))
     notes = fields.Str(allow_none=True)
-    status = fields.Str(validate=validate.OneOf(['pending', 'accepted', 'completed', 'cancelled']))
+    status = fields.Str(validate=validate.OneOf(['PENDING', 'accepted', 'completed', 'cancelled']))
     requested_at = fields.DateTime(dump_only=True)
     accepted_at = fields.DateTime(dump_only=True)
     completed_at = fields.DateTime(dump_only=True)
@@ -74,7 +74,7 @@ class BuggyRequestCancelSchema(Schema):
 class BuggyRequestFilterSchema(Schema):
     """Schema for filtering buggy requests"""
     
-    status = fields.Str(allow_none=True, validate=validate.OneOf(['pending', 'accepted', 'completed', 'cancelled']))
+    status = fields.Str(allow_none=True, validate=validate.OneOf(['PENDING', 'accepted', 'completed', 'cancelled']))
     location_id = fields.Int(allow_none=True)
     buggy_id = fields.Int(allow_none=True)
     date_from = fields.DateTime(allow_none=True)

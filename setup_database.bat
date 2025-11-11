@@ -80,7 +80,7 @@ echo.
 echo Useful commands:
 echo   flask db current   - Show current migration
 echo   flask db history   - Show migration history
-echo   flask db upgrade   - Apply pending migrations
+echo   flask db upgrade   - Apply PENDING migrations
 echo   flask db downgrade - Rollback last migration
 echo.
 

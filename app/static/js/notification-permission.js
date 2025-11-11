@@ -61,26 +61,84 @@ class NotificationPermissionHandler {
      */
     async checkAndShowDialog() {
         try {
-            // Don't show if already asked in this session
-            if (this.alreadyAsked) {
-                console.log('[NotificationPermission] Already asked in this session');
-                return;
-            }
-
-            // Check browser permission status
+            // Check browser permission status first
             const browserStatus = await this.getBrowserPermissionStatus();
             console.log('[NotificationPermission] Browser status:', browserStatus);
 
-            // Only show if permission is 'default' (not granted or denied)
+            // Show dialog if permission is 'default' (not decided yet)
             if (browserStatus === 'default') {
+                console.log('[NotificationPermission] Permission is default, showing dialog');
                 this.showDialog();
-            } else {
+            } else if (browserStatus === 'granted') {
+                console.log('[NotificationPermission] Permission already granted');
+                // Update session with current status
+                await this.updateSessionStatus(browserStatus);
+            } else if (browserStatus === 'denied') {
+                console.log('[NotificationPermission] Permission denied by browser');
+                // Show info message about how to enable notifications
+                this.showDeniedInfo();
                 // Update session with current status
                 await this.updateSessionStatus(browserStatus);
             }
         } catch (error) {
             console.error('[NotificationPermission] Error in checkAndShowDialog:', error);
         }
+    }
+
+    /**
+     * Show info about enabling notifications when denied
+     */
+    showDeniedInfo() {
+        console.log('[NotificationPermission] Showing denied info');
+        
+        // Show a small toast with instructions
+        const toast = document.createElement('div');
+        toast.className = 'notification-permission-toast';
+        toast.innerHTML = `
+            <div style="display: flex; align-items: start; gap: 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink: 0; margin-top: 2px;">
+                    <path d="M12 9V11M12 15H12.01M5.07183 19H18.9282C20.4678 19 21.4301 17.3333 20.6603 16L13.7321 4C12.9623 2.66667 11.0377 2.66667 10.2679 4L3.33975 16C2.56995 17.3333 3.53223 19 5.07183 19Z" 
+                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div>
+                    <strong>Bildirimler Kapalı</strong>
+                    <p style="margin: 4px 0 0 0; font-size: 0.875rem; opacity: 0.9;">
+                        Tarayıcı ayarlarından bildirimleri açabilirsiniz.
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #f59e0b;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            z-index: 10001;
+            animation: slideInRight 0.3s ease-out;
+            max-width: 400px;
+        `;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            try {
+                toast.style.animation = 'slideInRight 0.3s ease-in reverse';
+                setTimeout(() => {
+                    try {
+                        toast.remove();
+                    } catch (error) {
+                        console.error('[NotificationPermission] Error removing toast:', error);
+                    }
+                }, 300);
+            } catch (error) {
+                console.error('[NotificationPermission] Error animating toast:', error);
+            }
+        }, 5000);
     }
 
     /**
@@ -202,17 +260,15 @@ class NotificationPermissionHandler {
                 </div>
                 <h3 id="notification-dialog-title">Bildirimler</h3>
                 <p id="notification-dialog-description">
-                    Misafirlerden gelen buggy taleplerini anında almak için bildirim izni verin.
+                    Misafirlerden gelen shuttle taleplerini anında almak için bildirim izni verin.
                 </p>
                 <div class="notification-permission-actions">
                     <button class="btn-allow" 
-                            onclick="notificationPermissionHandler.handleAllow()"
                             aria-label="Bildirim izni ver ve bildirimleri aktif et"
                             type="button">
                         <i class="fas fa-check" aria-hidden="true"></i> İzin Ver
                     </button>
                     <button class="btn-later" 
-                            onclick="notificationPermissionHandler.handleLater()"
                             aria-label="Şimdi bildirim izni verme, daha sonra sor"
                             type="button">
                         Şimdi Değil
@@ -220,6 +276,48 @@ class NotificationPermissionHandler {
                 </div>
             </div>
         `;
+        
+        // Event listener'ları ekle - daha güvenli ve debug edilebilir
+        const allowBtn = dialog.querySelector('.btn-allow');
+        const laterBtn = dialog.querySelector('.btn-later');
+        
+        console.log('[NotificationPermission] Buttons found:', { allowBtn: !!allowBtn, laterBtn: !!laterBtn });
+        
+        if (allowBtn) {
+            // Multiple event types for better compatibility
+            const handleAllowClick = (e) => {
+                console.log('[NotificationPermission] Allow button clicked!', e);
+                e.preventDefault();
+                e.stopPropagation();
+                this.handleAllow();
+            };
+            
+            allowBtn.addEventListener('click', handleAllowClick, { once: true });
+            allowBtn.addEventListener('touchend', handleAllowClick, { once: true });
+            
+            // Test button accessibility
+            console.log('[NotificationPermission] Allow button style:', {
+                pointerEvents: window.getComputedStyle(allowBtn).pointerEvents,
+                display: window.getComputedStyle(allowBtn).display,
+                visibility: window.getComputedStyle(allowBtn).visibility
+            });
+        } else {
+            console.error('[NotificationPermission] Allow button not found!');
+        }
+        
+        if (laterBtn) {
+            const handleLaterClick = (e) => {
+                console.log('[NotificationPermission] Later button clicked!', e);
+                e.preventDefault();
+                e.stopPropagation();
+                this.handleLater();
+            };
+            
+            laterBtn.addEventListener('click', handleLaterClick, { once: true });
+            laterBtn.addEventListener('touchend', handleLaterClick, { once: true });
+        } else {
+            console.error('[NotificationPermission] Later button not found!');
+        }
         
         return dialog;
     }
@@ -230,30 +328,36 @@ class NotificationPermissionHandler {
     async handleAllow() {
         console.log('[NotificationPermission] User clicked Allow');
         
+        // Close dialog immediately for better UX
+        this.closeDialog();
+        
         try {
             // Browser support check
             if (!('Notification' in window)) {
                 console.error('[NotificationPermission] Notifications not supported');
-                this.closeDialog();
                 return;
             }
 
             // Check if pushNotifications is available
             if (typeof pushNotifications === 'undefined' || !pushNotifications.requestPermission) {
                 console.error('[NotificationPermission] PushNotificationManager not available');
-                this.closeDialog();
+                // Try direct browser API
+                const permission = await Notification.requestPermission();
+                console.log('[NotificationPermission] Direct permission result:', permission);
+                await this.updateSessionStatus(permission);
+                
+                if (permission === 'granted') {
+                    this.showSuccessToast('Bildirimler aktif edildi! 🔔');
+                }
                 return;
             }
 
-            // Request browser permission
+            // Request browser permission via PushNotificationManager
             const permission = await pushNotifications.requestPermission();
             console.log('[NotificationPermission] Permission result:', permission);
 
             // Update session
             await this.updateSessionStatus(permission);
-
-            // Close dialog
-            this.closeDialog();
 
             // Show success message if granted
             if (permission === 'granted') {
@@ -268,9 +372,6 @@ class NotificationPermissionHandler {
             } catch (updateError) {
                 console.error('[NotificationPermission] Error updating session after permission error:', updateError);
             }
-            
-            // Close dialog
-            this.closeDialog();
         }
     }
 

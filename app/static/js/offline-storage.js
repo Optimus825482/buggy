@@ -6,7 +6,7 @@
 class OfflineStorage {
     constructor() {
         this.dbName = 'ShuttleCallDB';
-        this.dbVersion = 4; // Synced with sw.js version
+        this.dbVersion = 6; // Synced with sw.js version
         this.db = null;
         this.init();
     }
@@ -63,8 +63,8 @@ class OfflineStorage {
                         const db = event.target.result;
 
                         // Create object stores if they don't exist
-                        if (!db.objectStoreNames.contains('pendingRequests')) {
-                            const requestStore = db.createObjectStore('pendingRequests', {
+                        if (!db.objectStoreNames.contains('PENDINGRequests')) {
+                            const requestStore = db.createObjectStore('PENDINGRequests', {
                                 keyPath: 'id',
                                 autoIncrement: true
                             });
@@ -98,7 +98,7 @@ class OfflineStorage {
     }
 
     /**
-     * Add a pending request to be synced when online
+     * Add a PENDING request to be synced when online
      */
     async addPendingRequest(requestData) {
         try {
@@ -106,8 +106,8 @@ class OfflineStorage {
                 await this.init();
             }
 
-            const transaction = this.db.transaction(['pendingRequests'], 'readwrite');
-            const store = transaction.objectStore('pendingRequests');
+            const transaction = this.db.transaction(['PENDINGRequests'], 'readwrite');
+            const store = transaction.objectStore('PENDINGRequests');
 
             const request = {
                 url: requestData.url,
@@ -128,18 +128,18 @@ class OfflineStorage {
                 };
 
                 addRequest.onerror = () => {
-                    console.error('[Storage] Failed to add pending request');
+                    console.error('[Storage] Failed to add PENDING request');
                     reject(addRequest.error);
                 };
             });
         } catch (error) {
-            console.error('[Storage] Error adding pending request:', error);
+            console.error('[Storage] Error adding PENDING request:', error);
             throw error;
         }
     }
 
     /**
-     * Get all pending requests
+     * Get all PENDING requests
      */
     async getPendingRequests() {
         try {
@@ -147,30 +147,30 @@ class OfflineStorage {
                 await this.init();
             }
 
-            const transaction = this.db.transaction(['pendingRequests'], 'readonly');
-            const store = transaction.objectStore('pendingRequests');
+            const transaction = this.db.transaction(['PENDINGRequests'], 'readonly');
+            const store = transaction.objectStore('PENDINGRequests');
 
             return new Promise((resolve, reject) => {
                 const request = store.getAll();
 
                 request.onsuccess = () => {
-                    console.log('[Storage] Retrieved pending requests:', request.result.length);
+                    console.log('[Storage] Retrieved PENDING requests:', request.result.length);
                     resolve(request.result);
                 };
 
                 request.onerror = () => {
-                    console.error('[Storage] Failed to get pending requests');
+                    console.error('[Storage] Failed to get PENDING requests');
                     reject(request.error);
                 };
             });
         } catch (error) {
-            console.error('[Storage] Error getting pending requests:', error);
+            console.error('[Storage] Error getting PENDING requests:', error);
             return [];
         }
     }
 
     /**
-     * Remove a pending request after successful sync
+     * Remove a PENDING request after successful sync
      */
     async removePendingRequest(id) {
         try {
@@ -178,8 +178,8 @@ class OfflineStorage {
                 await this.init();
             }
 
-            const transaction = this.db.transaction(['pendingRequests'], 'readwrite');
-            const store = transaction.objectStore('pendingRequests');
+            const transaction = this.db.transaction(['PENDINGRequests'], 'readwrite');
+            const store = transaction.objectStore('PENDINGRequests');
 
             return new Promise((resolve, reject) => {
                 const request = store.delete(id);
@@ -190,18 +190,18 @@ class OfflineStorage {
                 };
 
                 request.onerror = () => {
-                    console.error('[Storage] Failed to remove pending request');
+                    console.error('[Storage] Failed to remove PENDING request');
                     reject(request.error);
                 };
             });
         } catch (error) {
-            console.error('[Storage] Error removing pending request:', error);
+            console.error('[Storage] Error removing PENDING request:', error);
             return false;
         }
     }
 
     /**
-     * Update retry count for a pending request
+     * Update retry count for a PENDING request
      */
     async updateRetryCount(id, retries) {
         try {
@@ -209,8 +209,8 @@ class OfflineStorage {
                 await this.init();
             }
 
-            const transaction = this.db.transaction(['pendingRequests'], 'readwrite');
-            const store = transaction.objectStore('pendingRequests');
+            const transaction = this.db.transaction(['PENDINGRequests'], 'readwrite');
+            const store = transaction.objectStore('PENDINGRequests');
 
             return new Promise((resolve, reject) => {
                 const getRequest = store.get(id);
@@ -408,11 +408,11 @@ class OfflineStorage {
                 await this.init();
             }
 
-            const transaction = this.db.transaction(['pendingRequests', 'cachedData'], 'readwrite');
+            const transaction = this.db.transaction(['PENDINGRequests', 'cachedData'], 'readwrite');
 
             await Promise.all([
                 new Promise((resolve) => {
-                    transaction.objectStore('pendingRequests').clear().onsuccess = resolve;
+                    transaction.objectStore('PENDINGRequests').clear().onsuccess = resolve;
                 }),
                 new Promise((resolve) => {
                     transaction.objectStore('cachedData').clear().onsuccess = resolve;
@@ -436,11 +436,11 @@ class OfflineStorage {
                 await this.init();
             }
 
-            const transaction = this.db.transaction(['pendingRequests', 'cachedData'], 'readonly');
+            const transaction = this.db.transaction(['PENDINGRequests', 'cachedData'], 'readonly');
 
-            const [pendingCount, cachedCount] = await Promise.all([
+            const [PENDINGCount, cachedCount] = await Promise.all([
                 new Promise((resolve) => {
-                    transaction.objectStore('pendingRequests').count().onsuccess = (e) => {
+                    transaction.objectStore('PENDINGRequests').count().onsuccess = (e) => {
                         resolve(e.target.result);
                     };
                 }),
@@ -452,13 +452,13 @@ class OfflineStorage {
             ]);
 
             return {
-                pendingRequests: pendingCount,
+                PENDINGRequests: PENDINGCount,
                 cachedItems: cachedCount
             };
         } catch (error) {
             console.error('[Storage] Error getting stats:', error);
             return {
-                pendingRequests: 0,
+                PENDINGRequests: 0,
                 cachedItems: 0
             };
         }

@@ -168,7 +168,7 @@
             <div class="stat-content" style="position: relative; z-index: 1;">
                 <h5 class="stat-label" style="font-size: 0.875rem; color: #6B7280; margin: 0 0 0.5rem 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Bekleyen Talepler</h5>
                 <p class="stat-value" style="color: #f59e0b; font-size: 2.25rem; font-weight: 800; margin: 0; line-height: 1;">
-                    <span id="pending-requests">0</span>
+                    <span id="PENDING-requests">0</span>
                 </p>
             </div>
         </div>
@@ -408,11 +408,16 @@
     }
 
     @media (max-width: 768px) {
+        .container {
+            padding: 1rem 0.75rem !important;
+        }
+
         .grid-2 {
             grid-template-columns: 1fr !important;
         }
         .grid-4 {
             grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem;
         }
         
         /* Stack table cells on mobile */
@@ -424,11 +429,90 @@
         #buggy-status-list td:nth-child(4) {
             display: none;
         }
+
+        #buggy-status-list th:nth-child(3),
+        #buggy-status-list th:nth-child(4) {
+            display: none;
+        }
+
+        /* Stat card optimize */
+        .stat-card {
+            padding: 1rem;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+        }
+
+        /* Card optimize */
+        .card-body {
+            padding: 0.75rem;
+        }
+
+        /* List optimize */
+        #active-requests-list,
+        #buggy-status-list {
+            max-height: 300px;
+        }
     }
 
     @media (max-width: 480px) {
+        .container {
+            padding: 0.75rem 0.5rem !important;
+        }
+
         .grid-4 {
             grid-template-columns: 1fr !important;
+        }
+
+        /* Header buttons stack */
+        .d-flex.justify-between {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 0.75rem;
+        }
+
+        .d-flex.justify-between h1 {
+            font-size: 1.5rem;
+        }
+
+        /* Stat card daha kompakt */
+        .stat-card {
+            padding: 0.75rem;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+        }
+
+        /* Table daha kompakt */
+        #buggy-status-list td:nth-child(2) {
+            font-size: 0.75rem;
+        }
+
+        /* Card daha kompakt */
+        .card-body {
+            padding: 0.5rem;
         }
     }
 </style>

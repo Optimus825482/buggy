@@ -105,7 +105,7 @@ class TestGuestQRWorkflow:
         assert response.status_code == 201
         data = response.get_json()
         assert data['request']['room_number'] == '101'
-        assert data['request']['status'] == 'pending'
+        assert data['request']['status'] == 'PENDING'
     
     def test_create_request_without_room_number(self, client, setup_data):
         """Test creating request without room number (optional)"""
@@ -120,7 +120,7 @@ class TestGuestQRWorkflow:
         assert response.status_code == 201
         data = response.get_json()
         assert data['request']['room_number'] is None
-        assert data['request']['status'] == 'pending'
+        assert data['request']['status'] == 'PENDING'
     
     def test_create_request_no_available_buggies(self, client, setup_data):
         """Test creating request when no buggies available"""
@@ -166,7 +166,7 @@ class TestGuestStatusTracking:
         assert response.status_code == 200
         data = response.get_json()
         assert data['request']['id'] == request_id
-        assert data['request']['status'] == 'pending'
+        assert data['request']['status'] == 'PENDING'
     
     def test_status_page_renders(self, client, setup_data):
         """Test status tracking page renders"""
@@ -210,10 +210,10 @@ class TestGuestWorkflowIntegration:
         assert response.status_code == 201
         request_id = response.get_json()['request']['id']
         
-        # 3. Check status (pending)
+        # 3. Check status (PENDING)
         response = client.get(f'/api/requests/{request_id}')
         assert response.status_code == 200
-        assert response.get_json()['request']['status'] == 'pending'
+        assert response.get_json()['request']['status'] == 'PENDING'
         
         # 4. Driver accepts (simulate)
         with client.application.app_context():

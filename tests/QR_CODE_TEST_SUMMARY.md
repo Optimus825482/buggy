@@ -172,7 +172,7 @@ To complete the testing, perform these manual tests:
 
 ### Driver Flow
 - [ ] Login as driver
-- [ ] See pending request from QR scan
+- [ ] See PENDING request from QR scan
 - [ ] Accept request
 - [ ] Complete request
 - [ ] Verify buggy status updates

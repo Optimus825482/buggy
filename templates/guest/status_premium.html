@@ -123,27 +123,13 @@ nav,
                 <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #1BA5A8, #5BC0C3); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; flex-shrink: 0;">
                     <i class="fas fa-user-tie"></i>
                 </div>
-                <div style="flex: 1;">
-                    <div style="font-size: 14px; color: #6B7280; margin-bottom: 4px;">
-                        Sürücünüz
-                    </div>
-                    <div style="font-size: 18px; font-weight: 700; color: #111827;" id="driver-name">
-                        -
-                    </div>
-                    <div style="font-size: 13px; color: #1BA5A8; font-weight: 600; margin-top: 4px;">
-                        <span class="status-indicator status-online"></span>
-                        <span id="driver-status">Yolda</span>
-                    </div>
-                </div>
+              
             </div>
         </div>
 
         <!-- Actions -->
-        <div id="action-buttons">
-            <button class="btn-danger btn-block" onclick="cancelRequest()" style="height: 50px; border-radius: 14px; font-weight: 700;">
-                <i class="fas fa-times-circle"></i>
-                Talebi İptal Et
-            </button>
+        <div id="action-buttons" style="display: none;">
+            <!-- İptal butonu kaldırıldı - Misafirler artık talep iptal edemez -->
         </div>
 
         <!-- Completed Message -->
@@ -194,6 +180,19 @@ nav,
         <p style="font-size: 14px; font-weight: 600; color: #FFFFFF; letter-spacing: 0.5px; margin: 0;">
             MERIT INTERNATIONAL HOTELS & RESORTS © 2025 COPYRIGHT
         </p>
+        
+        <!-- Optimist Branding -->
+        <div class="optimist-branding" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(212, 175, 55, 0.2); width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; opacity: 0.85;">
+                <img src="{{ url_for('static', filename='images/opti.png') }}" 
+                     alt="Optimist Bilişim & Elektronik" 
+                     style="height: 26px; width: auto; object-fit: contain; filter: brightness(0) invert(1) opacity(0.9);">
+                <div style="text-align: left; line-height: 1.3;">
+                    <p style="margin: 0; font-size: 0.7rem; color: #D8D8D8; font-weight: 500;">Sistem Geliştirme & Teknik Destek</p>
+                    <p style="margin: 0; font-size: 0.65rem; color: #B8B8B8; font-weight: 400;">Optimist Bilişim & Elektronik</p>
+                </div>
+            </div>
+        </div>
     </div>
 </footer>
 {% endblock %}
@@ -263,7 +262,7 @@ function updateStatus(request) {
     // Update status based on request state
     const status = request.status;
 
-    if (status === 'pending') {
+    if (status === 'PENDING') {
         updateToPending();
     } else if (status === 'accepted') {
         updateToAccepted(request);
@@ -277,7 +276,7 @@ function updateStatus(request) {
 function updateToPending() {
     document.getElementById('status-icon').innerHTML = '<i class="fas fa-clock"></i>';
     document.getElementById('status-title').textContent = 'Sürücü Aranıyor...';
-    document.getElementById('status-message').textContent = 'Talebiniz yakındaki sürücülere iletildi. Lütfen bekleyin.';
+    document.getElementById('status-message').textContent = 'Talebiniz yakındaki sürücülere iletildi. 1 saat içinde yanıtlanmazsa otomatik olarak işaretlenecektir.';
 }
 
 function updateToAccepted(request) {
@@ -373,37 +372,6 @@ function connectWebSocket() {
 function startPolling() {
     // Fallback: poll every 10 seconds if WebSocket fails
     pollingInterval = setInterval(loadRequestStatus, 10000);
-}
-
-function cancelRequest() {
-    if (!confirm('Talebi iptal etmek istediğinizden emin misiniz?')) {
-        return;
-    }
-
-    Utils.showLoading('İptal ediliyor...');
-
-    fetch(`/api/requests/${requestId}/cancel`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        Utils.hideLoading();
-
-        if (data.success) {
-            Utils.showToast('Talep iptal edildi', 'success');
-            loadRequestStatus();
-        } else {
-            Utils.showToast(data.error || 'İptal edilemedi', 'error');
-        }
-    })
-    .catch(error => {
-        Utils.hideLoading();
-        Utils.showToast('Bir hata oluştu', 'error');
-        console.error('Error:', error);
-    });
 }
 
 // Cleanup on page unload

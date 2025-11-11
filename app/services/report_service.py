@@ -57,7 +57,7 @@ class ReportService:
         ).count()
 
         # Pending requests
-        pending_requests = BuggyRequest.query.filter(
+        PENDING_requests = BuggyRequest.query.filter(
             BuggyRequest.hotel_id == hotel_id,
             BuggyRequest.requested_at >= start_of_day,
             BuggyRequest.requested_at < end_of_day,
@@ -95,7 +95,7 @@ class ReportService:
             'total_requests': total_requests,
             'completed_requests': completed_requests,
             'cancelled_requests': cancelled_requests,
-            'pending_requests': pending_requests,
+            'PENDING_requests': PENDING_requests,
             'completion_rate': round((completed_requests / total_requests * 100) if total_requests > 0 else 0, 2),
             'avg_response_time_seconds': round(avg_response_time, 2),
             'avg_response_time_minutes': round(avg_response_time / 60, 2),
@@ -440,3 +440,171 @@ class ReportService:
         doc.build(elements)
         buffer.seek(0)
         return buffer.getvalue()
+
+
+    @staticmethod
+    def get_advanced_analytics(hotel_id: int, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
+        """
+        Get advanced analytics with detailed breakdowns
+        
+        Args:
+            hotel_id: Hotel ID
+            start_date: Start date for analysis
+            end_date: End date for analysis
+            
+        Returns:
+            Comprehensive analytics dictionary
+        """
+        # Get all requests in date range
+        all_requests = BuggyRequest.query.filter(
+            BuggyRequest.hotel_id == hotel_id,
+            BuggyRequest.requested_at >= start_date,
+            BuggyRequest.requested_at < end_date
+        ).all()
+        
+        # Initialize counters
+        total_requests = len(all_requests)
+        completed_count = 0
+        cancelled_count = 0
+        unanswered_count = 0
+        PENDING_count = 0
+        
+        # Breakdown by cancellation reason
+        cancelled_by_driver = 0
+        cancelled_by_guest = 0
+        cancelled_by_admin = 0
+        
+        # Response time analysis
+        response_times = []
+        completion_times = []
+        
+        # Location analysis
+        location_stats = {}
+        
+        # Hour of day analysis
+        hour_stats = {str(i): 0 for i in range(24)}
+        
+        # Day of week analysis
+        day_stats = {
+            'Monday': 0, 'Tuesday': 0, 'Wednesday': 0, 'Thursday': 0,
+            'Friday': 0, 'Saturday': 0, 'Sunday': 0
+        }
+        
+        # Process each request
+        for req in all_requests:
+            # Status counts
+            if req.status == RequestStatus.COMPLETED:
+                completed_count += 1
+                if req.response_time:
+                    response_times.append(req.response_time)
+                if req.completion_time:
+                    completion_times.append(req.completion_time)
+            elif req.status == RequestStatus.CANCELLED:
+                cancelled_count += 1
+                if req.cancelled_by == 'driver':
+                    cancelled_by_driver += 1
+                elif req.cancelled_by == 'guest':
+                    cancelled_by_guest += 1
+                elif req.cancelled_by == 'admin':
+                    cancelled_by_admin += 1
+            elif req.status == RequestStatus.UNANSWERED:
+                unanswered_count += 1
+            elif req.status == RequestStatus.PENDING:
+                PENDING_count += 1
+            
+            # Location stats
+            if req.location:
+                loc_name = req.location.name
+                if loc_name not in location_stats:
+                    location_stats[loc_name] = {
+                        'total': 0,
+                        'completed': 0,
+                        'cancelled': 0,
+                        'unanswered': 0
+                    }
+                location_stats[loc_name]['total'] += 1
+                if req.status == RequestStatus.COMPLETED:
+                    location_stats[loc_name]['completed'] += 1
+                elif req.status == RequestStatus.CANCELLED:
+                    location_stats[loc_name]['cancelled'] += 1
+                elif req.status == RequestStatus.UNANSWERED:
+                    location_stats[loc_name]['unanswered'] += 1
+            
+            # Hour of day stats
+            if req.requested_at:
+                hour = str(req.requested_at.hour)
+                hour_stats[hour] += 1
+                
+                # Day of week stats
+                day_name = req.requested_at.strftime('%A')
+                day_stats[day_name] += 1
+        
+        # Calculate averages
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+        avg_completion_time = sum(completion_times) / len(completion_times) if completion_times else 0
+        
+        # Calculate percentages
+        completion_rate = (completed_count / total_requests * 100) if total_requests > 0 else 0
+        cancellation_rate = (cancelled_count / total_requests * 100) if total_requests > 0 else 0
+        unanswered_rate = (unanswered_count / total_requests * 100) if total_requests > 0 else 0
+        
+        # Find peak hour
+        peak_hour = max(hour_stats.items(), key=lambda x: x[1])[0] if any(hour_stats.values()) else '0'
+        
+        # Find busiest day
+        busiest_day = max(day_stats.items(), key=lambda x: x[1])[0] if any(day_stats.values()) else 'Monday'
+        
+        # Sort locations by total requests
+        top_locations = sorted(
+            location_stats.items(),
+            key=lambda x: x[1]['total'],
+            reverse=True
+        )[:10]  # Top 10 locations
+        
+        return {
+            'summary': {
+                'total_requests': total_requests,
+                'completed': completed_count,
+                'cancelled': cancelled_count,
+                'unanswered': unanswered_count,
+                'PENDING': PENDING_count,
+                'completion_rate': round(completion_rate, 2),
+                'cancellation_rate': round(cancellation_rate, 2),
+                'unanswered_rate': round(unanswered_rate, 2)
+            },
+            'cancellation_breakdown': {
+                'by_driver': cancelled_by_driver,
+                'by_guest': cancelled_by_guest,
+                'by_admin': cancelled_by_admin
+            },
+            'performance': {
+                'avg_response_time_seconds': round(avg_response_time, 2),
+                'avg_response_time_minutes': round(avg_response_time / 60, 2),
+                'avg_completion_time_seconds': round(avg_completion_time, 2),
+                'avg_completion_time_minutes': round(avg_completion_time / 60, 2)
+            },
+            'peak_analysis': {
+                'peak_hour': peak_hour,
+                'busiest_day': busiest_day,
+                'hourly_distribution': hour_stats,
+                'daily_distribution': day_stats
+            },
+            'location_analysis': {
+                'top_locations': [
+                    {
+                        'name': loc[0],
+                        'total': loc[1]['total'],
+                        'completed': loc[1]['completed'],
+                        'cancelled': loc[1]['cancelled'],
+                        'unanswered': loc[1]['unanswered'],
+                        'completion_rate': round(loc[1]['completed'] / loc[1]['total'] * 100, 2) if loc[1]['total'] > 0 else 0
+                    }
+                    for loc in top_locations
+                ]
+            },
+            'unanswered_details': {
+                'total': unanswered_count,
+                'percentage': round(unanswered_rate, 2),
+                'note': 'Requests that were not answered within 1 hour'
+            }
+        }

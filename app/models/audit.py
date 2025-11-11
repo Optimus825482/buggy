@@ -44,7 +44,11 @@ class AuditTrail(db.Model, BaseModel):
     def __setattr__(self, key, value):
         """Prevent modification of audit logs after creation"""
         # Allow setting attributes during initialization
-        if not hasattr(self, 'id') or self.id is None:
+        # Check if object is in transient state (not yet added to session)
+        if not hasattr(self, '_sa_instance_state') or \
+           self._sa_instance_state.transient or \
+           not hasattr(self, 'id') or \
+           self.id is None:
             super().__setattr__(key, value)
         else:
             # Prevent modification after creation

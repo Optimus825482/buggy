@@ -363,16 +363,103 @@ def update_location(location_id):
         if 'display_order' in data:
             location.display_order = int(data['display_order'])
         
+        # Regenerate QR code if requested or if name changed
+        regenerate_qr = data.get('regenerate_qr', 'false').lower() == 'true' or 'name' in data
+        
+        if regenerate_qr:
+            # Generate new QR code data URL
+            railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN')
+            railway_static_url = os.getenv('RAILWAY_STATIC_URL')
+            
+            if railway_domain:
+                base_url = f"https://{railway_domain}"
+            elif railway_static_url:
+                base_url = railway_static_url.rstrip('/')
+            elif request.host.startswith('localhost') or request.host.startswith('127.0.0.1'):
+                base_url = "http://192.168.1.100:5000"
+            elif current_app.config.get('BASE_URL') and current_app.config.get('BASE_URL') != 'http://localhost:5000':
+                base_url = current_app.config.get('BASE_URL')
+            else:
+                base_url = request.host_url.rstrip('/')
+            
+            qr_code_data = f"{base_url}/guest/call?location={location.id}"
+            location.qr_code_data = qr_code_data
+            
+            # Generate new QR code image
+            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr.add_data(qr_code_data)
+            qr.make(fit=True)
+            
+            img = qr.make_image(fill_color="black", back_color="white")
+            buffer = io.BytesIO()
+            img.save(buffer, format='PNG')
+            img_base64 = base64.b64encode(buffer.getvalue()).decode()
+            location.qr_code_image = f"data:image/png;base64,{img_base64}"
+        
         db.session.commit()
         
         return jsonify({
             'success': True,
             'message': 'Lokasyon başarıyla güncellendi',
-            'location': location.to_dict()
+            'location': location.to_dict(),
+            'qr_regenerated': regenerate_qr
         }), 200
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f'Location update error: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
+
+@api_bp.route('/locations/<int:location_id>/regenerate-qr', methods=['POST'])
+@require_login
+def regenerate_qr_code(location_id):
+    """Regenerate QR code for a location"""
+    try:
+        user = SystemUser.query.get(session['user_id'])
+        location = Location.query.filter_by(id=location_id, hotel_id=user.hotel_id).first()
+        
+        if not location:
+            return jsonify({'error': 'Lokasyon bulunamadı'}), 404
+        
+        # Generate new QR code data URL
+        railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN')
+        railway_static_url = os.getenv('RAILWAY_STATIC_URL')
+        
+        if railway_domain:
+            base_url = f"https://{railway_domain}"
+        elif railway_static_url:
+            base_url = railway_static_url.rstrip('/')
+        elif request.host.startswith('localhost') or request.host.startswith('127.0.0.1'):
+            base_url = "http://192.168.1.100:5000"
+        elif current_app.config.get('BASE_URL') and current_app.config.get('BASE_URL') != 'http://localhost:5000':
+            base_url = current_app.config.get('BASE_URL')
+        else:
+            base_url = request.host_url.rstrip('/')
+        
+        qr_code_data = f"{base_url}/guest/call?location={location.id}"
+        location.qr_code_data = qr_code_data
+        
+        # Generate new QR code image
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(qr_code_data)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        img_base64 = base64.b64encode(buffer.getvalue()).decode()
+        location.qr_code_image = f"data:image/png;base64,{img_base64}"
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'QR kod başarıyla yenilendi',
+            'location': location.to_dict()
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'QR regeneration error: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
 
@@ -518,6 +605,8 @@ def create_buggy():
         # If driver_id provided, create association
         driver_info = None
         if driver_id:
+            print(f'🔍 Looking for driver with ID: {driver_id}, hotel_id: {user.hotel_id}')
+            
             # Verify driver exists
             driver = SystemUser.query.filter_by(
                 id=driver_id,
@@ -526,6 +615,8 @@ def create_buggy():
             ).first()
             
             if driver:
+                print(f'✅ Driver found: {driver.username} ({driver.full_name})')
+                
                 # Create buggy-driver association
                 association = BuggyDriver(
                     buggy_id=buggy.id,
@@ -535,14 +626,18 @@ def create_buggy():
                     assigned_at=datetime.utcnow()
                 )
                 db.session.add(association)
+                print(f'✅ BuggyDriver association created: buggy_id={buggy.id}, driver_id={driver_id}')
                 
                 driver_info = {
                     'id': driver.id,
                     'username': driver.username,
                     'full_name': driver.full_name
                 }
+            else:
+                print(f'❌ Driver not found with ID: {driver_id}')
         
         db.session.commit()
+        print(f'✅ Buggy created successfully: {buggy.code} (ID: {buggy.id})')
         
         response = {
             'success': True,
@@ -553,6 +648,7 @@ def create_buggy():
         if driver_info:
             response['driver'] = driver_info
             response['message'] = 'Buggy ve sürücü ataması başarıyla oluşturuldu'
+            print(f'✅ Response includes driver info: {driver_info}')
         
         return jsonify(response), 201
         
@@ -696,7 +792,7 @@ def create_request():
             phone=data.get('phone'),
             notes=data.get('notes'),
             guest_device_id=request.remote_addr,  # Use IP as guest identifier
-            status='pending',
+            status='PENDING',
             requested_at=datetime.utcnow()
         )
         
@@ -715,11 +811,24 @@ def create_request():
             'requested_at': buggy_request.requested_at.isoformat()
         }
         
-        # Send to drivers
-        socketio.emit('new_request', event_data, room=f'hotel_{location.hotel_id}_drivers')
+        # Send via SSE (Server-Sent Events) - Simple and reliable!
+        from app.routes.sse import send_to_all_drivers
+        sent_count = send_to_all_drivers(location.hotel_id, 'new_request', event_data)
+        print(f'✅ SSE: Sent new_request to {sent_count} drivers')
         
-        # Send to admins
-        socketio.emit('new_request', event_data, room='admin')
+        # Also send via WebSocket for admin panel
+        admin_room = f'hotel_{location.hotel_id}_admin'
+        socketio.emit('new_request', event_data, room=admin_room, namespace='/')
+        print(f'✅ WebSocket: Sent to admin room {admin_room}')
+        
+        # Send push notifications to available drivers (FCM)
+        try:
+            from app.services.fcm_notification_service import FCMNotificationService
+            notification_count = FCMNotificationService.notify_new_request(buggy_request)
+            print(f'✅ FCM notifications sent to {notification_count} driver(s)')
+        except Exception as e:
+            print(f'⚠️ Push notification error: {str(e)}')
+            # Don't fail the request if notification fails
         
         return jsonify({
             'success': True,
@@ -740,14 +849,21 @@ def get_requests():
         user = SystemUser.query.get(session['user_id'])
         
         # Get query parameters
-        status = request.args.get('status')
+        status_str = request.args.get('status')
         buggy_id = request.args.get('buggy_id')
         
         # Build query
         query = BuggyRequest.query.filter_by(hotel_id=user.hotel_id)
         
-        if status:
-            query = query.filter_by(status=status)
+        # Handle status filter - convert string to enum
+        if status_str:
+            try:
+                # Try to convert string to RequestStatus enum
+                status_enum = RequestStatus(status_str.lower())
+                query = query.filter_by(status=status_enum)
+            except ValueError:
+                # Invalid status value, ignore filter
+                pass
         
         if buggy_id:
             query = query.filter_by(buggy_id=buggy_id)
@@ -771,6 +887,7 @@ def get_requests():
             'requests': result
         }), 200
     except Exception as e:
+        current_app.logger.error(f'Error in get_requests: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
 
@@ -790,8 +907,9 @@ def get_request(request_id):
         # Add buggy info
         if buggy_request.buggy:
             req_dict['buggy'] = {
-                'name': buggy_request.buggy.name,
-                'plate_number': buggy_request.buggy.plate_number
+                'id': buggy_request.buggy.id,
+                'code': buggy_request.buggy.code,
+                'icon': buggy_request.buggy.icon
             }
         
         return jsonify({
@@ -819,7 +937,7 @@ def accept_request(request_id):
         if not buggy_request:
             return jsonify({'error': 'Talep bulunamadı'}), 404
         
-        if buggy_request.status != 'pending':
+        if buggy_request.status != 'PENDING':
             return jsonify({'error': 'Bu talep zaten işleme alınmış'}), 400
         
         # Update request
@@ -844,7 +962,13 @@ def accept_request(request_id):
             'accepted_at': buggy_request.accepted_at.isoformat()
         }, room=f'request_{request_id}')
         
-        # Emit to other drivers that this request is taken
+        # Emit to other drivers that this request is taken (via SSE)
+        from app.routes.sse import send_to_all_drivers
+        send_to_all_drivers(buggy_request.hotel_id, 'request_taken', {
+            'request_id': buggy_request.id
+        })
+        
+        # Also emit via WebSocket for backward compatibility
         socketio.emit('request_taken', {
             'request_id': buggy_request.id
         }, room=f'hotel_{buggy_request.hotel_id}_drivers')
@@ -952,9 +1076,18 @@ def complete_request(request_id):
 
 
 @api_bp.route('/requests/<int:request_id>/cancel', methods=['PUT', 'POST'])
+@require_login
 def cancel_request(request_id):
-    """Cancel request (Guest or Admin)"""
+    """Cancel request (Admin/System only - Guests cannot cancel)"""
     try:
+        # Sadece admin ve sistem kullanıcıları iptal edebilir
+        current_user = get_current_user()
+        if not current_user or current_user.role not in ['admin', 'system']:
+            return jsonify({
+                'error': 'Yetkisiz işlem. Misafirler talep iptal edemez.',
+                'message': 'Talebiniz 1 saat içinde yanıtlanmazsa otomatik olarak işaretlenecektir.'
+            }), 403
+        
         buggy_request = BuggyRequest.query.get(request_id)
         if not buggy_request:
             return jsonify({'error': 'Talep bulunamadı'}), 404
@@ -969,6 +1102,7 @@ def cancel_request(request_id):
         old_status = buggy_request.status
         buggy_request.status = 'cancelled'
         buggy_request.cancelled_at = datetime.utcnow()
+        buggy_request.cancelled_by = current_user.id
         
         # If was accepted, free up the buggy
         if old_status == 'accepted' and buggy_request.buggy:
@@ -1064,11 +1198,14 @@ def create_user():
             return jsonify({'error': 'Bu kullanıcı adı zaten kullanılıyor'}), 400
         
         # Create new user
+        full_name = f"{data.get('first_name', '')} {data.get('last_name', '')}".strip() or data['username']
+        print(f'🔄 Creating new user: username={data["username"]}, role={data["role"]}, full_name={full_name}')
+        
         new_user = SystemUser(
             username=data['username'],
             role=role_enum,
             hotel_id=user.hotel_id,  # Same hotel as admin
-            full_name=f"{data.get('first_name', '')} {data.get('last_name', '')}".strip() or data['username'],
+            full_name=full_name,
             email=data.get('email'),
             phone=data.get('phone'),
             is_active=True
@@ -1077,6 +1214,8 @@ def create_user():
         
         db.session.add(new_user)
         db.session.commit()
+        
+        print(f'✅ User created successfully: ID={new_user.id}, username={new_user.username}, hotel_id={new_user.hotel_id}')
         
         return jsonify({
             'success': True,
@@ -1087,7 +1226,8 @@ def create_user():
                 'role': new_user.role.value,
                 'full_name': new_user.full_name,
                 'email': new_user.email,
-                'phone': new_user.phone
+                'phone': new_user.phone,
+                'hotel_id': new_user.hotel_id
             }
         }), 201
     except Exception as e:
@@ -1098,90 +1238,20 @@ def create_user():
 # ==================== Push Notifications ====================
 @api_bp.route('/push/vapid-public-key', methods=['GET'])
 def get_vapid_public_key():
-    """Get VAPID public key for push notifications"""
-    from app.services.notification_service import NotificationService
-    
-    public_key = NotificationService.VAPID_PUBLIC_KEY
-    if not public_key:
-        return jsonify({'error': 'VAPID keys not configured'}), 500
-    
-    return jsonify({'public_key': public_key})
+    """
+    LEGACY: Get VAPID public key for push notifications
+    NOT USED - FCM kullanılıyor
+    """
+    # Eski sistem devre dışı, FCM kullanılıyor
+    return jsonify({
+        'error': 'Legacy endpoint - FCM kullanılıyor',
+        'message': 'Bu endpoint artık kullanılmıyor. FCM sistemi aktif.'
+    }), 410  # 410 Gone
 
 
-@api_bp.route('/push/subscribe', methods=['POST'])
-@require_login
-# Rate limiter removed
-def subscribe_push():
-    """Subscribe to push notifications"""
-    try:
-        data = request.get_json()
-        
-        if not data or 'subscription' not in data:
-            return jsonify({'error': 'Subscription bilgisi gerekli'}), 400
-        
-        # Get current user
-        user = SystemUser.query.get(session['user_id'])
-        if not user:
-            return jsonify({'error': 'Kullanıcı bulunamadı'}), 404
-        
-        # Store subscription info (you may want to add a push_subscription field to SystemUser model)
-        # For now, we'll store it in a JSON field or separate table
-        import json
-        user.push_subscription = json.dumps(data['subscription'])
-        db.session.commit()
-        
-        # Log push subscription
-        from app.services.audit_service import AuditService
-        AuditService.log_action(
-            action='push_notification_subscribed',
-            entity_type='notification',
-            entity_id=user.id,
-            new_values={'user_id': user.id},
-            user_id=user.id,
-            hotel_id=user.hotel_id
-        )
-        
-        return jsonify({
-            'success': True,
-            'message': 'Push bildirimleri aktif edildi'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-
-@api_bp.route('/push/unsubscribe', methods=['POST'])
-@require_login
-def unsubscribe_push():
-    """Unsubscribe from push notifications"""
-    try:
-        user = SystemUser.query.get(session['user_id'])
-        if not user:
-            return jsonify({'error': 'Kullanıcı bulunamadı'}), 404
-        
-        user.push_subscription = None
-        db.session.commit()
-        
-        # Log push unsubscription
-        from app.services.audit_service import AuditService
-        AuditService.log_action(
-            action='push_notification_unsubscribed',
-            entity_type='notification',
-            entity_id=user.id,
-            new_values={'user_id': user.id},
-            user_id=user.id,
-            hotel_id=user.hotel_id
-        )
-        
-        return jsonify({
-            'success': True,
-            'message': 'Push bildirimleri kapatıldı'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+# LEGACY ENDPOINTS - Kaldırıldı, FCM kullanılıyor
+# /push/subscribe ve /push/unsubscribe endpoint'leri artık kullanılmıyor
+# FCM için /api/fcm/register-token kullanılıyor
 
 
 @api_bp.route('/notification-permission', methods=['POST'])
@@ -1297,9 +1367,10 @@ def update_notification_permission():
 @require_login
 # Rate limiter removed
 def test_push_notification():
-    """Test push notification"""
+    """Test push notification - LEGACY"""
     try:
-        from app.services.notification_service import NotificationService
+        # Eski sistem - artık kullanılmıyor
+        return jsonify({'error': 'Legacy endpoint - FCM kullanılıyor'}), 410
         
         user = SystemUser.query.get(session['user_id'])
         if not user or not hasattr(user, 'push_subscription') or not user.push_subscription:
@@ -1708,7 +1779,7 @@ def set_driver_location():
 # Rate limiter removed
 @require_login
 def driver_accept_request(request_id):
-    """Accept a pending buggy request"""
+    """Accept a PENDING buggy request"""
     try:
         user = SystemUser.query.get(session['user_id'])
         
@@ -1760,34 +1831,40 @@ def driver_accept_request(request_id):
             hotel_id=user.hotel_id
         )
         
-        # Send notification to guest if subscribed
-        if buggy_request.guest_device_id:
-            from app.services.notification_service import NotificationService
-            import json
+        # Send notification to guest if subscribed (FCM)
+        if buggy_request.guest_fcm_token:
+            from app.services.fcm_notification_service import FCMNotificationService
             try:
-                subscription = json.loads(buggy_request.guest_device_id)
-                NotificationService.send_notification(
-                    subscription_info=subscription,
+                FCMNotificationService.send_to_token(
+                    token=buggy_request.guest_fcm_token,
                     title="Buggy Kabul Edildi",
                     body=f"Buggy'niz yola çıktı. {user.buggy.code}",
-                    data={'type': 'request_accepted', 'request_id': buggy_request.id}
+                    data={'type': 'request_accepted', 'request_id': str(buggy_request.id)},
+                    priority='high'
                 )
             except:
                 pass  # Notification failure shouldn't break the flow
         
         # Emit WebSocket events
         from app.websocket import socketio
+        
+        # Notify guest
+        guest_room = f'request_{buggy_request.id}'
         socketio.emit('request_accepted', {
             'request_id': buggy_request.id,
             'buggy': user.buggy.to_dict(),
             'driver': user.to_dict()
-        }, room=f'request_{buggy_request.id}')
+        }, room=guest_room)
+        print(f'✅ WebSocket emit: request_accepted to {guest_room}')
         
+        # Notify admin
+        admin_room = f'hotel_{user.hotel_id}_admin'
         socketio.emit('request_status_changed', {
             'request_id': buggy_request.id,
             'status': 'accepted',
             'buggy_code': user.buggy.code
-        }, room=f'hotel_{user.hotel_id}_admin')
+        }, room=admin_room)
+        print(f'✅ WebSocket emit: request_status_changed to {admin_room}')
         
         # Emit buggy status change
         socketio.emit('buggy_status_changed', {
@@ -1860,17 +1937,16 @@ def driver_complete_request(request_id):
             hotel_id=user.hotel_id
         )
         
-        # Send notification to guest if subscribed
-        if buggy_request.guest_device_id:
-            from app.services.notification_service import NotificationService
-            import json
+        # Send notification to guest if subscribed (FCM)
+        if buggy_request.guest_fcm_token:
+            from app.services.fcm_notification_service import FCMNotificationService
             try:
-                subscription = json.loads(buggy_request.guest_device_id)
-                NotificationService.send_notification(
-                    subscription_info=subscription,
+                FCMNotificationService.send_to_token(
+                    token=buggy_request.guest_fcm_token,
                     title="Buggy Geldi!",
                     body="Buggy'niz konumunuza ulaştı. İyi yolculuklar!",
-                    data={'type': 'request_completed', 'request_id': buggy_request.id}
+                    data={'type': 'request_completed', 'request_id': str(buggy_request.id)},
+                    priority='high'
                 )
             except:
                 pass
@@ -2007,7 +2083,7 @@ def get_pending_requests():
         if not user.buggy:
             return jsonify({'success': False, 'error': 'No buggy assigned'}), 400
         
-        # Query pending requests for the hotel with location eager loading
+        # Query PENDING requests for the hotel with location eager loading
         from sqlalchemy.orm import joinedload
         from app.models.request import RequestStatus
         
@@ -2019,6 +2095,8 @@ def get_pending_requests():
             )\
             .order_by(BuggyRequest.requested_at.desc())\
             .all()
+        
+        print(f'📋 Found {len(pending_requests)} pending requests for hotel {user.hotel_id}')
         
         # Serialize with location and guest info
         requests_data = [{
@@ -2048,6 +2126,8 @@ def get_pending_requests():
         except Exception as log_error:
             # Logging failure should not break the API
             print(f"Audit log failed: {log_error}")
+        
+        print(f'✅ Returning {len(requests_data)} pending requests to driver {user.username}')
         
         return jsonify({
             'success': True,
@@ -2483,3 +2563,293 @@ def health_check():
         'app_name': current_app.config.get('APP_NAME', 'Shuttle Call'),
         'timestamp': datetime.utcnow().isoformat()
     }), 200
+
+
+# ==================== User Management API (CRUD) ====================
+@api_bp.route('/users/<int:user_id>', methods=['GET'])
+@require_login
+def get_user(user_id):
+    """
+    Kullanıcı bilgilerini getir (Admin veya kendi bilgisi)
+    """
+    try:
+        current_user = SystemUser.query.get(session['user_id'])
+        
+        # Admin değilse sadece kendi bilgisini görebilir
+        if current_user.role != UserRole.ADMIN and current_user.id != user_id:
+            return jsonify({'success': False, 'error': 'Bu işlem için yetkiniz yok'}), 403
+        
+        # Kullanıcıyı getir
+        user = SystemUser.query.filter_by(id=user_id, hotel_id=current_user.hotel_id).first()
+        if not user:
+            return jsonify({'success': False, 'error': 'Kullanıcı bulunamadı'}), 404
+        
+        # Ad ve soyadı ayır
+        full_name_parts = user.full_name.split(' ', 1) if user.full_name else ['', '']
+        first_name = full_name_parts[0] if len(full_name_parts) > 0 else ''
+        last_name = full_name_parts[1] if len(full_name_parts) > 1 else ''
+        
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'role': user.role.value,
+                'full_name': user.full_name,
+                'first_name': first_name,
+                'last_name': last_name,
+                'email': user.email,
+                'phone': user.phone,
+                'is_active': user.is_active,
+                'created_at': user.created_at.isoformat() if user.created_at else None
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f'Error getting user {user_id}: {str(e)}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_bp.route('/users/<int:user_id>', methods=['PUT'])
+@require_login
+def update_user(user_id):
+    """
+    Kullanıcı bilgilerini güncelle (Admin veya kendi bilgisi)
+    """
+    try:
+        current_user = SystemUser.query.get(session['user_id'])
+        
+        # Admin değilse sadece kendi bilgisini güncelleyebilir
+        if current_user.role != UserRole.ADMIN and current_user.id != user_id:
+            return jsonify({'success': False, 'error': 'Bu işlem için yetkiniz yok'}), 403
+        
+        # Kullanıcıyı getir
+        user = SystemUser.query.filter_by(id=user_id, hotel_id=current_user.hotel_id).first()
+        if not user:
+            return jsonify({'success': False, 'error': 'Kullanıcı bulunamadı'}), 404
+        
+        data = request.get_json()
+        
+        # Güncellenebilir alanlar
+        if 'first_name' in data or 'last_name' in data:
+            first_name = data.get('first_name', '').strip()
+            last_name = data.get('last_name', '').strip()
+            user.full_name = f"{first_name} {last_name}".strip()
+        
+        if 'email' in data:
+            user.email = data['email'].strip() if data['email'] else None
+        
+        if 'phone' in data:
+            user.phone = data['phone'].strip() if data['phone'] else None
+        
+        # Şifre güncelleme (opsiyonel)
+        if 'password' in data and data['password']:
+            if len(data['password']) < 6:
+                return jsonify({'success': False, 'error': 'Şifre en az 6 karakter olmalıdır'}), 400
+            user.set_password(data['password'])
+        
+        # Admin sadece role ve is_active güncelleyebilir
+        if current_user.role == UserRole.ADMIN:
+            if 'is_active' in data:
+                user.is_active = bool(data['is_active'])
+            
+            if 'role' in data and data['role'] in ['admin', 'driver']:
+                user.role = UserRole.ADMIN if data['role'] == 'admin' else UserRole.DRIVER
+        
+        db.session.commit()
+        
+        # Audit log
+        from app.services.audit_service import AuditService
+        AuditService.log_action(
+            action='user_updated',
+            entity_type='user',
+            entity_id=user_id,
+            new_values={'updated_by': current_user.id},
+            user_id=current_user.id,
+            hotel_id=current_user.hotel_id
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': 'Kullanıcı bilgileri başarıyla güncellendi',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'full_name': user.full_name,
+                'email': user.email,
+                'phone': user.phone,
+                'is_active': user.is_active
+            }
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error updating user {user_id}: {str(e)}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@require_login
+def delete_user(user_id):
+    """
+    Kullanıcıyı sil (Sadece Admin)
+    """
+    try:
+        current_user = SystemUser.query.get(session['user_id'])
+        
+        # Sadece admin silebilir
+        if current_user.role != UserRole.ADMIN:
+            return jsonify({'success': False, 'error': 'Bu işlem için yetkiniz yok'}), 403
+        
+        # Kendini silemez
+        if current_user.id == user_id:
+            return jsonify({'success': False, 'error': 'Kendi hesabınızı silemezsiniz'}), 400
+        
+        # Kullanıcıyı getir
+        user = SystemUser.query.filter_by(id=user_id, hotel_id=current_user.hotel_id).first()
+        if not user:
+            return jsonify({'success': False, 'error': 'Kullanıcı bulunamadı'}), 404
+        
+        # Eğer sürücü ise, buggy atamalarını kaldır
+        if user.role == UserRole.DRIVER:
+            from app.models.buggy_driver import BuggyDriver
+            
+            # Tüm buggy atamalarını sil
+            BuggyDriver.query.filter_by(driver_id=user_id).delete()
+            
+            # Eğer aktif oturumu varsa, buggy'leri offline yap
+            from app.models.buggy import Buggy
+            assigned_buggies = Buggy.query.filter_by(driver_id=user_id).all()
+            for buggy in assigned_buggies:
+                buggy.driver_id = None
+                buggy.status = BuggyStatus.OFFLINE
+                buggy.current_location_id = None
+        
+        # Kullanıcıyı sil
+        username = user.username
+        full_name = user.full_name
+        db.session.delete(user)
+        db.session.commit()
+        
+        # Audit log
+        from app.services.audit_service import AuditService
+        AuditService.log_action(
+            action='user_deleted',
+            entity_type='user',
+            entity_id=user_id,
+            old_values={'username': username, 'full_name': full_name},
+            user_id=current_user.id,
+            hotel_id=current_user.hotel_id
+        )
+        
+        # WebSocket ile bildir
+        from app import socketio
+        socketio.emit('user_deleted', {
+            'user_id': user_id,
+            'username': username
+        }, room=f'hotel_{current_user.hotel_id}_admin')
+        
+        return jsonify({
+            'success': True,
+            'message': f'Kullanıcı "{full_name or username}" başarıyla silindi'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error deleting user {user_id}: {str(e)}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ==================== FCM Push Notifications ====================
+@api_bp.route('/fcm/register-token', methods=['POST'])
+@require_login
+def register_fcm_token():
+    """
+    FCM token kaydet (Sürücü/Admin)
+    
+    Request Body:
+        {
+            "token": "fcm_device_token_here"
+        }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'token' not in data:
+            return APIResponse.error('Token gereklidir', 400)
+        
+        token = data['token']
+        user_id = session.get('user_id')
+        
+        if not user_id:
+            return APIResponse.error('Kullanıcı oturumu bulunamadı', 401)
+        
+        # Token'ı kaydet
+        from app.services.fcm_notification_service import FCMNotificationService
+        success = FCMNotificationService.register_token(user_id, token)
+        
+        if success:
+            return APIResponse.success(
+                message='FCM token başarıyla kaydedildi',
+                data={'user_id': user_id}
+            )
+        else:
+            return APIResponse.error('Token kaydedilemedi', 500)
+            
+    except Exception as e:
+        current_app.logger.error(f"FCM token kayıt hatası: {str(e)}")
+        return APIResponse.error(f'Token kayıt hatası: {str(e)}', 500)
+
+
+@api_bp.route('/fcm/test-notification', methods=['POST'])
+@require_login
+def test_fcm_notification():
+    """
+    Test FCM bildirimi gönder (Development/Test için)
+    
+    Request Body:
+        {
+            "title": "Test Başlık",
+            "body": "Test Mesaj"
+        }
+    """
+    try:
+        data = request.get_json()
+        user_id = session.get('user_id')
+        
+        if not user_id:
+            return APIResponse.error('Kullanıcı oturumu bulunamadı', 401)
+        
+        # Kullanıcının token'ını al
+        user = SystemUser.query.get(user_id)
+        if not user or not user.fcm_token:
+            return APIResponse.error('FCM token bulunamadı. Önce token kaydedin.', 400)
+        
+        # Test bildirimi gönder
+        from app.services.fcm_notification_service import FCMNotificationService
+        
+        title = data.get('title', '🧪 Test Bildirimi')
+        body = data.get('body', 'Bu bir test bildirimidir.')
+        
+        success = FCMNotificationService.send_to_token(
+            token=user.fcm_token,
+            title=title,
+            body=body,
+            data={
+                'type': 'test',
+                'timestamp': datetime.utcnow().isoformat()
+            },
+            priority='high'
+        )
+        
+        if success:
+            return APIResponse.success(
+                message='Test bildirimi gönderildi',
+                data={'user_id': user_id, 'username': user.username}
+            )
+        else:
+            return APIResponse.error('Bildirim gönderilemedi', 500)
+            
+    except Exception as e:
+        current_app.logger.error(f"Test bildirim hatası: {str(e)}")
+        return APIResponse.error(f'Test bildirim hatası: {str(e)}', 500)

@@ -2,7 +2,7 @@
 
 // Status badge mapping
 const statusBadges = {
-    'pending': '<span class="badge badge-warning">Bekliyor</span>',
+    'PENDING': '<span class="badge badge-warning">Bekliyor</span>',
     'assigned': '<span class="badge badge-info">Atandı</span>',
     'in_progress': '<span class="badge badge-primary">Yolda</span>',
     'completed': '<span class="badge badge-success">Tamamlandı</span>',
@@ -35,9 +35,9 @@ async function loadActiveRequests() {
             requests = data.data.requests;
         }
         
-        // Filter active requests (pending or accepted)
+        // Filter active requests (PENDING or accepted)
         const activeRequests = requests.filter(req => 
-            req.status === 'pending' || req.status === 'accepted'
+            req.status === 'PENDING' || req.status === 'accepted'
         );
         
         console.log('Active requests:', activeRequests);
@@ -159,13 +159,18 @@ function initWebSocket() {
         socket = io();
         
         socket.on('connect', () => {
-            console.log('WebSocket connected');
+            console.log('✅ Admin WebSocket connected - SID:', socket.id);
             // Join hotel admin room
             const hotelId = document.body.dataset.hotelId || 1;
+            console.log('📡 Admin joining hotel room:', hotelId);
             socket.emit('join_hotel', { 
                 hotel_id: parseInt(hotelId),
                 role: 'admin'
             });
+        });
+        
+        socket.on('joined_hotel', (data) => {
+            console.log('✅ Admin successfully joined hotel room:', data);
         });
         
         socket.on('disconnect', () => {
@@ -174,7 +179,9 @@ function initWebSocket() {
         
         // Listen for new requests
         socket.on('new_request', (data) => {
-            console.log('New request received:', data);
+            console.log('🎉 ADMIN - NEW REQUEST RECEIVED:', data);
+            console.log('   Request ID:', data.request_id);
+            console.log('   Location:', data.location?.name);
             
             // Show browser notification
             showNotification('Yeni Shuttle Talebi!', {

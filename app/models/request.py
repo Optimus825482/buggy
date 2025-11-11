@@ -11,10 +11,11 @@ import enum
 
 class RequestStatus(enum.Enum):
     """Request status enumeration"""
-    PENDING = 'pending'
-    ACCEPTED = 'accepted'
-    COMPLETED = 'completed'
-    CANCELLED = 'cancelled'
+    PENDING = 'PENDING'
+    ACCEPTED = 'ACCEPTED'
+    COMPLETED = 'COMPLETED'
+    CANCELLED = 'CANCELLED'
+    UNANSWERED = 'UNANSWERED'  # Timeout after 1 hour
 
 
 class BuggyRequest(db.Model, BaseModel):
@@ -46,6 +47,7 @@ class BuggyRequest(db.Model, BaseModel):
     accepted_at = Column(DateTime)
     completed_at = Column(DateTime)
     cancelled_at = Column(DateTime)
+    timeout_at = Column(DateTime)  # When request was marked as unanswered
     
     # Performance Metrics
     response_time = Column(Integer)  # Seconds from request to acceptance
@@ -77,6 +79,7 @@ class BuggyRequest(db.Model, BaseModel):
             'accepted_at': self.accepted_at.isoformat() if self.accepted_at else None,
             'completed_at': self.completed_at.isoformat() if self.completed_at else None,
             'cancelled_at': self.cancelled_at.isoformat() if self.cancelled_at else None,
+            'timeout_at': self.timeout_at.isoformat() if self.timeout_at else None,
             'response_time': self.response_time,
             'completion_time': self.completion_time,
             'location': self.location.to_dict() if self.location else None,

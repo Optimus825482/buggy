@@ -9,7 +9,10 @@ driver_bp = Blueprint('driver', __name__)
 
 
 def driver_required(fn):
-    """Decorator to require driver role"""
+    """
+    ✅ PERFORMANS OPTİMİZE: Cache'den user al
+    Decorator to require driver role
+    """
     @wraps(fn)
     def wrapper(*args, **kwargs):
         # Check session first
@@ -17,8 +20,12 @@ def driver_required(fn):
             flash('Lütfen giriş yapın', 'warning')
             return redirect(url_for('auth.login'))
         
-        user = SystemUser.query.get(session['user_id'])
+        # ✅ Cache'den user al (DB sorgusu yerine)
+        from app.utils.decorators import get_current_user_cached
+        user = get_current_user_cached()
+        
         if not user:
+            session.clear()
             flash('Kullanıcı bulunamadı', 'danger')
             return redirect(url_for('auth.login'))
         
@@ -51,7 +58,9 @@ def select_location():
 @driver_required
 def dashboard():
     """Driver dashboard"""
-    user = SystemUser.query.get(session['user_id'])
+    # ✅ Cache'den user al
+    from app.utils.decorators import get_current_user_cached
+    user = get_current_user_cached()
     
     # CRITICAL: Ensure driver session is non-permanent
     # This forces session to expire when browser closes

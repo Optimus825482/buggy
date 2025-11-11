@@ -224,7 +224,7 @@ const DB_SCHEMA = {
         status: { unique: false }
       }
     },
-    pendingActions: {
+    PENDINGActions: {
       keyPath: 'id',
       autoIncrement: true,
       indexes: {
@@ -928,26 +928,26 @@ setInterval(pruneOldNotifications, 3600000); // Every hour
 
 ```javascript
 // Batch API calls
-const pendingLogs = [];
+const PENDINGLogs = [];
 const LOG_BATCH_SIZE = 10;
 const LOG_BATCH_INTERVAL = 5000; // 5 seconds
 
 async function logDelivery(notificationData) {
-  pendingLogs.push({
+  PENDINGLogs.push({
     notification_id: notificationData.id,
     status: 'delivered',
     timestamp: Date.now()
   });
   
-  if (pendingLogs.length >= LOG_BATCH_SIZE) {
+  if (PENDINGLogs.length >= LOG_BATCH_SIZE) {
     await flushLogs();
   }
 }
 
 async function flushLogs() {
-  if (pendingLogs.length === 0) return;
+  if (PENDINGLogs.length === 0) return;
   
-  const batch = pendingLogs.splice(0, LOG_BATCH_SIZE);
+  const batch = PENDINGLogs.splice(0, LOG_BATCH_SIZE);
   
   try {
     await fetch('/api/notifications/log-batch', {
@@ -957,7 +957,7 @@ async function flushLogs() {
     });
   } catch (error) {
     // Re-queue on failure
-    pendingLogs.unshift(...batch);
+    PENDINGLogs.unshift(...batch);
   }
 }
 

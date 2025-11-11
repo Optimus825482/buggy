@@ -17,11 +17,18 @@ const DriverDashboard = {
     async init() {
         console.log('Driver dashboard initializing...');
         
-        // Get data from session
-        this.hotelId = parseInt(document.body.dataset.hotelId) || 1;
-        this.userId = parseInt(document.body.dataset.userId) || 0;
-        this.buggyId = parseInt(document.body.dataset.buggyId) || 0;
-        const needsLocationSetup = document.body.dataset.needsLocationSetup === 'true';
+        // Get data from dashboard container or body
+        const container = document.querySelector('.driver-dashboard') || document.body;
+        this.hotelId = parseInt(container.dataset.hotelId) || 1;
+        this.userId = parseInt(container.dataset.userId) || 0;
+        this.buggyId = parseInt(container.dataset.buggyId) || 0;
+        const needsLocationSetup = container.dataset.needsLocationSetup === 'true';
+        
+        console.log('📊 Driver data:', {
+            hotelId: this.hotelId,
+            userId: this.userId,
+            buggyId: this.buggyId
+        });
         
         // Check if driver has buggy assigned
         if (!this.buggyId || this.buggyId === '0') {
@@ -32,11 +39,17 @@ const DriverDashboard = {
         // Location setup is now handled by separate page (select_location.html)
         // No need for modal anymore
         
-        // Initialize Socket.IO if available (even without buggy for status updates)
-        if (typeof io !== 'undefined') {
+        // Initialize real-time connection (SSE or WebSocket)
+        if (typeof sseClient !== 'undefined') {
+            console.log('✅ Using SSE for real-time notifications');
+            this.useSSE = true;
+            this.initSSE();
+        } else if (typeof io !== 'undefined') {
+            console.log('⚠️ SSE not available, using WebSocket');
+            this.useSSE = false;
             this.initSocket();
         } else {
-            console.warn('Socket.IO not available');
+            console.error('❌ No real-time connection available (SSE or WebSocket)');
         }
         
         // Load initial data (even if no buggy, show empty state)
@@ -44,6 +57,9 @@ const DriverDashboard = {
         
         // Setup event listeners
         this.setupEventListeners();
+        
+        // FCM sistemi kullanılıyor, eski push notification devre dışı
+        // this.requestPushNotificationPermission();
         
         console.log('✅ Driver dashboard initialized', {
             buggyId: this.buggyId,
@@ -337,6 +353,35 @@ const DriverDashboard = {
     },
 
     /**
+     * Initialize SSE connection
+     */
+    initSSE() {
+        // Connect to SSE stream
+        sseClient.connect('/sse/stream');
+        
+        // Listen to new requests
+        sseClient.on('new_request', (data) => {
+            console.log('🎉 [SSE] NEW REQUEST RECEIVED:', data);
+            this.handleNewRequest(data);
+        });
+        
+        // Listen to request taken
+        sseClient.on('request_taken', (data) => {
+            console.log('[SSE] Request taken:', data);
+            this.removeRequest(data.request_id);
+        });
+        
+        // Connection status
+        sseClient.on('connected', () => {
+            console.log('✅ [SSE] Connected successfully');
+        });
+        
+        sseClient.on('error', (error) => {
+            console.error('❌ [SSE] Connection error:', error);
+        });
+    },
+
+    /**
      * Initialize WebSocket connection
      */
     initSocket() {
@@ -345,17 +390,26 @@ const DriverDashboard = {
             return;
         }
         
-        // Connect to Socket.IO server
-        this.socket = io({
-            transports: ['polling', 'websocket'],
-            reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionAttempts: 5
-        });
+        // Use common Socket helper for consistency with admin panel
+        if (typeof BuggyCall !== 'undefined' && BuggyCall.Socket) {
+            console.log('✅ Using BuggyCall.Socket helper');
+            this.socket = BuggyCall.Socket.init();
+            this.socket.connect();
+        } else {
+            // Fallback to direct io()
+            console.log('⚠️ Using fallback io() connection');
+            this.socket = io({
+                transports: ['polling', 'websocket'],
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 5
+            });
+        }
         
         // Join hotel drivers room and user-specific room
         this.socket.on('connect', () => {
-            console.log('Socket connected');
+            console.log('✅ Socket connected - SID:', this.socket.id);
+            console.log('📡 Joining hotel room:', this.hotelId, 'as driver');
             this.socket.emit('join_hotel', {
                 hotel_id: this.hotelId,
                 role: 'driver'
@@ -366,9 +420,16 @@ const DriverDashboard = {
             });
         });
         
+        this.socket.on('joined_hotel', (data) => {
+            console.log('✅ Successfully joined hotel room:', data);
+        });
+        
         // Listen to new requests
         this.socket.on('new_request', (data) => {
-            console.log('New request received:', data);
+            console.log('🎉 NEW REQUEST RECEIVED:', data);
+            console.log('   Request ID:', data.request_id);
+            console.log('   Location:', data.location?.name);
+            console.log('   Guest:', data.guest_name);
             this.handleNewRequest(data);
         });
         
@@ -455,7 +516,7 @@ const DriverDashboard = {
      */
     async loadDriverData() {
         try {
-            // Load pending requests
+            // Load PENDING requests
             await this.loadPendingRequests();
             
             // Load current request if any
@@ -473,19 +534,38 @@ const DriverDashboard = {
      */
     async loadPendingRequests() {
         try {
+            // Check if driver has buggy assigned
+            if (!this.buggyId || this.buggyId === 0) {
+                console.log('No buggy assigned - skipping pending requests load');
+                this.pendingRequests = [];
+                this.renderPendingRequests();
+                this.updatePendingCount();
+                return;
+            }
+            
+            console.log('🔄 Fetching pending requests from /api/driver/pending-requests');
             const response = await fetch('/api/driver/pending-requests');
             const data = await response.json();
             
+            console.log('📥 Pending requests response:', data);
+            
             if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Talepler yüklenemedi');
+                console.warn('❌ Failed to load pending requests:', data.error);
+                this.pendingRequests = [];
+                this.renderPendingRequests();
+                this.updatePendingCount();
+                return;
             }
             
             this.pendingRequests = data.requests || [];
-            console.log('Pending requests loaded:', this.pendingRequests);
+            console.log('✅ Pending requests loaded:', this.pendingRequests.length, 'requests');
             this.renderPendingRequests();
             this.updatePendingCount();
         } catch (error) {
-            console.error('Error loading pending requests:', error);
+            console.error('❌ Error loading pending requests:', error);
+            this.pendingRequests = [];
+            this.renderPendingRequests();
+            this.updatePendingCount();
         }
     },
 
@@ -494,17 +574,31 @@ const DriverDashboard = {
      */
     async loadCurrentRequest() {
         try {
+            // Check if driver has buggy assigned
+            if (!this.buggyId || this.buggyId === 0) {
+                console.log('No buggy assigned - skipping current request load');
+                this.currentRequest = null;
+                this.renderCurrentRequest();
+                return;
+            }
+            
             const response = await fetch('/api/driver/active-request');
             const data = await response.json();
             
             if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Aktif talep yüklenemedi');
+                console.warn('Failed to load current request:', data.error);
+                this.currentRequest = null;
+                this.renderCurrentRequest();
+                return;
             }
             
             this.currentRequest = data.request;
+            console.log('Current request loaded:', this.currentRequest);
             this.renderCurrentRequest();
         } catch (error) {
             console.error('Error loading current request:', error);
+            this.currentRequest = null;
+            this.renderCurrentRequest();
         }
     },
 
@@ -687,7 +781,7 @@ const DriverDashboard = {
     },
 
     /**
-     * Update pending count
+     * Update PENDING count
      */
     updatePendingCount() {
         const el = document.getElementById('pending-request-count');
@@ -1017,8 +1111,54 @@ const DriverDashboard = {
         // Play notification sound
         this.playNotificationSound();
         
+        // Show browser push notification
+        this.showPushNotification(data);
+        
         // Show themed notification
         this.showNewRequestNotification(data);
+    },
+
+    /**
+     * Show browser push notification for new request
+     */
+    async showPushNotification(data) {
+        try {
+            // Check if pushNotifications is available
+            if (typeof pushNotifications === 'undefined') {
+                console.warn('[DriverDashboard] pushNotifications not available');
+                return;
+            }
+
+            const locationName = data.location?.name || 'Bilinmeyen Lokasyon';
+            const guestInfo = data.guest_name || 'Misafir';
+            const roomInfo = data.room_number ? ` - Oda ${data.room_number}` : '';
+            
+            // Show notification
+            await pushNotifications.showNotification('🚗 Yeni Shuttle Talebi!', {
+                body: `${locationName}\n${guestInfo}${roomInfo}`,
+                icon: '/static/icons/Icon-192.png',
+                badge: '/static/icons/Icon-96.png',
+                tag: `request-${data.request_id}`,
+                requireInteraction: true, // Keep notification visible
+                vibrate: [200, 100, 200, 100, 200], // Vibration pattern
+                data: {
+                    type: 'new_request',
+                    requestId: data.request_id,
+                    url: '/driver/dashboard'
+                },
+                actions: [
+                    {
+                        action: 'view',
+                        title: '👀 Görüntüle',
+                        icon: '/static/icons/Icon-96.png'
+                    }
+                ]
+            });
+            
+            console.log('✅ Push notification sent for request:', data.request_id);
+        } catch (error) {
+            console.error('❌ Error showing push notification:', error);
+        }
     },
 
     /**
@@ -1187,6 +1327,44 @@ const DriverDashboard = {
     },
 
     /**
+     * Request push notification permission
+     * Uses notification-permission.js handler for consistent UX
+     */
+    async requestPushNotificationPermission() {
+        // Check if push notifications are supported
+        if (!('Notification' in window)) {
+            console.warn('[Push] Notifications not supported');
+            return;
+        }
+
+        // Check current permission
+        if (Notification.permission === 'granted') {
+            console.log('[Push] Permission already granted');
+            // Subscribe to push notifications
+            await this.subscribeToPushNotifications();
+            return;
+        }
+
+        // notification-permission.js handler will show dialog automatically
+        // based on permission status (default/denied)
+        console.log('[Push] Notification permission handler will manage permission request');
+    },
+
+    /**
+     * Subscribe to push notifications
+     */
+    async subscribeToPushNotifications() {
+        if (typeof pushNotifications !== 'undefined') {
+            try {
+                await pushNotifications.subscribe();
+                console.log('[Push] Subscribed successfully');
+            } catch (error) {
+                console.error('[Push] Subscription error:', error);
+            }
+        }
+    },
+
+    /**
      * Play notification sound
      */
     playNotificationSound() {
@@ -1247,12 +1425,78 @@ const DriverDashboard = {
     },
 
     /**
-     * Remove request
+     * Remove request (taken by another driver)
      */
     removeRequest(requestId) {
+        // Find the request before removing
+        const request = this.pendingRequests.find(r => r.id === requestId);
+        
+        // Remove from list
         this.pendingRequests = this.pendingRequests.filter(r => r.id !== requestId);
         this.renderPendingRequests();
         this.updatePendingCount();
+        
+        // Show notification that request was taken
+        if (request) {
+            this.showRequestTakenNotification(request);
+        }
+    },
+
+    /**
+     * Show notification when request is taken by another driver
+     */
+    showRequestTakenNotification(request) {
+        const locationName = request.location?.name || 'Bilinmeyen Lokasyon';
+        
+        // Create toast notification
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            z-index: 10001;
+            animation: slideInRight 0.3s ease-out;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        `;
+        
+        toast.innerHTML = `
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            ">
+                <i class="fas fa-info-circle" style="font-size: 1.25rem;"></i>
+            </div>
+            <div>
+                <strong style="display: block; margin-bottom: 4px;">Talep Alındı</strong>
+                <span style="font-size: 0.875rem; opacity: 0.9;">
+                    ${locationName} talebi başka bir sürücü tarafından kabul edildi.
+                </span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Auto remove after 4 seconds
+        setTimeout(() => {
+            toast.style.animation = 'slideInRight 0.3s ease-in reverse';
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 4000);
     },
 
     /**

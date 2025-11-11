@@ -2,12 +2,12 @@
 
 ## Introduction
 
-The BuggyCall driver dashboard currently has missing API endpoints that prevent drivers from viewing pending requests and their active request. The frontend JavaScript calls `/api/driver/pending-requests` and `/api/driver/active-request` endpoints which return 404 errors, breaking the driver workflow.
+The BuggyCall driver dashboard currently has missing API endpoints that prevent drivers from viewing PENDING requests and their active request. The frontend JavaScript calls `/api/driver/PENDING-requests` and `/api/driver/active-request` endpoints which return 404 errors, breaking the driver workflow.
 
 ## Glossary
 
 - **Driver Dashboard**: The web interface used by buggy drivers to view and manage requests
-- **Pending Request**: A buggy request with status "pending" that has not been accepted by any driver
+- **Pending Request**: A buggy request with status "PENDING" that has not been accepted by any driver
 - **Active Request**: A buggy request that has been accepted by the current driver and is in "accepted" status
 - **Driver API**: REST API endpoints specifically for driver operations
 
@@ -15,19 +15,19 @@ The BuggyCall driver dashboard currently has missing API endpoints that prevent 
 
 ### Requirement 1
 
-**User Story:** As a driver, I want to view all pending buggy requests for my hotel, so that I can choose which request to accept.
+**User Story:** As a driver, I want to view all PENDING buggy requests for my hotel, so that I can choose which request to accept.
 
 #### Acceptance Criteria
 
-1. WHEN a driver accesses the pending requests endpoint, THE Driver API SHALL return all requests with status "pending" for the driver's hotel
+1. WHEN a driver accesses the PENDING requests endpoint, THE Driver API SHALL return all requests with status "PENDING" for the driver's hotel
 
-2. THE Driver API SHALL include location information (name, coordinates) for each pending request
+2. THE Driver API SHALL include location information (name, coordinates) for each PENDING request
 
-3. THE Driver API SHALL include guest information (name, room number, phone) for each pending request
+3. THE Driver API SHALL include guest information (name, room number, phone) for each PENDING request
 
-4. THE Driver API SHALL order pending requests by requested_at timestamp in descending order (newest first)
+4. THE Driver API SHALL order PENDING requests by requested_at timestamp in descending order (newest first)
 
-5. THE Driver API SHALL return an empty array when no pending requests exist
+5. THE Driver API SHALL return an empty array when no PENDING requests exist
 
 ### Requirement 2
 
@@ -67,7 +67,7 @@ The BuggyCall driver dashboard currently has missing API endpoints that prevent 
 
 #### Acceptance Criteria
 
-1. THE Driver API SHALL log when drivers fetch pending requests (for debugging purposes)
+1. THE Driver API SHALL log when drivers fetch PENDING requests (for debugging purposes)
 
 2. THE Driver API SHALL log when drivers fetch their active request
 

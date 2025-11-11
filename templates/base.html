@@ -52,6 +52,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/professional.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive-fix.css') }}">
     {% block extra_css %}{% endblock %}
 
     <title>{% block title %}Shuttle Call{% endblock %} - {{ app_name }}</title>
@@ -101,7 +102,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="footer no-print" style="background: #1A2B4A; color: #D8D8D8; padding: 2rem 0; text-align: center; border-top: 2px solid #D4AF37; margin-top: 3rem;">
+    <footer class="footer no-print" style="background: #1A2B4A; color: #D8D8D8; padding: 2rem 0 1rem; text-align: center; border-top: 2px solid #D4AF37; margin-top: 3rem;">
         {% block footer %}
         <div class="container">
             <div class="footer-content" style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
@@ -109,6 +110,19 @@
                      alt="Merit International Hotels & Resorts" 
                      style="height: 60px; width: auto; object-fit: contain;">
                 <p class="footer-copyright" style="font-size: 0.875rem; font-weight: 600; letter-spacing: 0.5px; margin: 0; color: #D8D8D8;">MERIT INTERNATIONAL HOTELS & RESORTS © 2025 COPYRIGHT</p>
+                
+                <!-- Optimist Branding -->
+                <div class="footer-branding" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(212, 175, 55, 0.2); width: 100%; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; opacity: 0.85;">
+                        <img src="{{ url_for('static', filename='images/opti.png') }}" 
+                             alt="Optimist Bilişim & Elektronik" 
+                             style="height: 28px; width: auto; object-fit: contain; filter: brightness(0) invert(1) opacity(0.9);">
+                        <div style="text-align: left; line-height: 1.3;">
+                            <p style="margin: 0; font-size: 0.7rem; color: #B8B8B8; font-weight: 500;">Sistem Geliştirme & Teknik Destek</p>
+                            <p style="margin: 0; font-size: 0.65rem; color: #999; font-weight: 400;">Optimist Bilişim & Elektronik</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         {% endblock %}
@@ -274,6 +288,64 @@
     <script src="{{ url_for('static', filename='js/common.js') }}"></script>
     <!-- Modal System -->
     <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
+
+    <!-- System Info Modal -->
+    <script>
+        async function showSystemInfo() {
+            const modalContent = `
+                <div style="text-align: center; padding: 1rem;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1.5rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px;">
+                        <img src="{{ url_for('static', filename='images/opti.png') }}" 
+                             alt="Optimist Bilişim & Elektronik" 
+                             style="height: 50px; width: auto; object-fit: contain;">
+                        <div style="text-align: left;">
+                            <h3 style="margin: 0; font-size: 1.25rem; color: #1A2B4A; font-weight: 700;">Optimist Bilişim & Elektronik</h3>
+                            <p style="margin: 0.25rem 0 0; font-size: 0.875rem; color: #6c757d;">Teknoloji Çözümleri</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #e9ecef; margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #1BA5A8 0%, #158B8E 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem;">
+                                <i class="fas fa-code"></i>
+                            </div>
+                            <div style="text-align: left; flex: 1;">
+                                <p style="margin: 0; font-size: 0.875rem; color: #6c757d; font-weight: 600;">Sistem Geliştirme</p>
+                                <p style="margin: 0; font-size: 1rem; color: #1A2B4A; font-weight: 700;">Shuttle Call Management System</p>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #D4AF37 0%, #B49527 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem;">
+                                <i class="fas fa-tools"></i>
+                            </div>
+                            <div style="text-align: left; flex: 1;">
+                                <p style="margin: 0; font-size: 0.875rem; color: #6c757d; font-weight: 600;">Teknik Destek & Bakım</p>
+                                <p style="margin: 0; font-size: 1rem; color: #1A2B4A; font-weight: 700;">7/24 Profesyonel Hizmet</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="padding: 1rem; background: linear-gradient(135deg, #1A2B4A 0%, #2A3B5A 100%); border-radius: 12px; color: white;">
+                        <p style="margin: 0; font-size: 0.875rem; opacity: 0.9;">
+                            <i class="fas fa-shield-alt"></i> Güvenli, Hızlı ve Güvenilir Teknoloji
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            if (typeof BuggyModal !== 'undefined') {
+                await BuggyModal.custom(modalContent, {
+                    title: '<i class="fas fa-info-circle"></i> Sistem Bilgisi',
+                    confirmText: 'Tamam',
+                    cancelText: null,
+                    size: 'medium'
+                });
+            } else {
+                alert('Optimist Bilişim & Elektronik\n\nSistem Geliştirme & Teknik Destek\nShuttle Call Management System');
+            }
+        }
+    </script>
 
     <!-- Mobile Menu Toggle -->
     <script>

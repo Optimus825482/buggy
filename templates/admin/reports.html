@@ -394,7 +394,7 @@
             total: requests.length,
             completed: completed.length,
             cancelled: cancelled.length,
-            pending: requests.filter( r => r.status === 'pending' ).length
+            PENDING: requests.filter( r => r.status === 'PENDING' ).length
         };
     }
 
@@ -409,7 +409,7 @@
         statusChart.data.datasets[0].data = [
             reportData.stats.completed,
             reportData.stats.cancelled,
-            reportData.stats.pending
+            reportData.stats.PENDING
         ];
         statusChart.update();
 
@@ -473,7 +473,7 @@
 
     function getStatusText( status ) {
         const map = {
-            'pending': 'Bekliyor',
+            'PENDING': 'Bekliyor',
             'accepted': 'Kabul Edildi',
             'completed': 'Tamamlandı',
             'cancelled': 'İptal'

@@ -50,11 +50,11 @@ class TestCompleteGuestJourney:
         request_id = data.get('id') or data.get('request', {}).get('id')
         assert request_id is not None
         
-        # Verify request is pending
+        # Verify request is PENDING
         response = client.get(f'/api/requests/{request_id}')
         assert response.status_code == 200
         request_data = json.loads(response.data)
-        assert request_data.get('status') == 'pending'
+        assert request_data.get('status') == 'PENDING'
         
         # Step 3: Driver logs in and accepts request
         with client:
@@ -114,12 +114,12 @@ class TestCompleteDriverJourney:
         Test complete driver shift:
         1. Driver logs in
         2. Driver goes online
-        3. Driver sees pending requests
+        3. Driver sees PENDING requests
         4. Driver accepts request
         5. Driver completes request
         6. Driver goes offline
         """
-        # Create a pending request first
+        # Create a PENDING request first
         with app.app_context():
             location = Location.query.first()
             hotel = Hotel.query.first()
@@ -155,8 +155,8 @@ class TestCompleteDriverJourney:
                 )
                 assert response.status_code in [200, 404]
             
-            # Step 3: Driver sees pending requests
-            response = client.get('/api/requests/pending')
+            # Step 3: Driver sees PENDING requests
+            response = client.get('/api/requests/PENDING')
             assert response.status_code == 200
             
             # Step 4: Driver accepts request
@@ -180,7 +180,7 @@ class TestCompleteDriverJourney:
         """
         Test driver handling multiple requests sequentially
         """
-        # Create multiple pending requests
+        # Create multiple PENDING requests
         request_ids = []
         with app.app_context():
             location = Location.query.first()
@@ -330,7 +330,7 @@ class TestEdgeCaseScenarios:
         Test two drivers trying to accept same request
         (Only one should succeed)
         """
-        # Create a pending request
+        # Create a PENDING request
         with app.app_context():
             location = Location.query.first()
             hotel = Hotel.query.first()

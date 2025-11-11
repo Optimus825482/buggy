@@ -19,16 +19,36 @@ THRESHOLDS = {
     'bulk_operations': 50,  # 50+ items in single operation
 }
 
+# ✅ PERFORMANS: Sadece kritik endpoint'lerde monitoring yap
+MONITORED_ENDPOINTS = {
+    'auth.login',
+    'auth.change_password',
+    'api.create_request',
+    'api.delete_request',
+    'admin.delete_user',
+    'admin.delete_buggy',
+    'admin.delete_location',
+    'system_admin.reset_database',
+    'system_reset.reset_system'
+}
+
 
 def detect_suspicious_activity(app):
     """Register suspicious activity detection middleware"""
     
     @app.before_request
     def check_suspicious_activity():
-        """Check for suspicious activity patterns"""
+        """
+        ✅ PERFORMANS OPTİMİZE: Sadece kritik endpoint'lerde kontrol et
+        Check for suspicious activity patterns
+        """
         # Skip for static files and health checks
         if request.endpoint in ['static', 'health_check', None] or \
            request.path.startswith('/static/'):
+            return None
+        
+        # ✅ Sadece kritik endpoint'lerde monitoring yap
+        if request.endpoint not in MONITORED_ENDPOINTS:
             return None
         
         user_id = session.get('user_id')

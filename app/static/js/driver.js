@@ -9,7 +9,7 @@ const Driver = {
     userId: null,
     socket: null,
     currentRequest: null,
-    pendingRequests: [],
+    PENDINGRequests: [],
 
     /**
      * Initialize driver panel
@@ -90,7 +90,7 @@ const Driver = {
         try {
             BuggyCall.Utils.showLoading();
             
-            // Load pending requests
+            // Load PENDING requests
             await this.loadPendingRequests();
             
             // Load current request if any
@@ -156,15 +156,15 @@ const Driver = {
     },
 
     /**
-     * Load pending requests
+     * Load PENDING requests
      */
     async loadPendingRequests() {
         try {
-            const response = await BuggyCall.API.get('/requests?status=pending');
-            this.pendingRequests = response.requests || [];
+            const response = await BuggyCall.API.get('/requests?status=PENDING');
+            this.PENDINGRequests = response.requests || [];
             this.renderPendingRequests();
         } catch (error) {
-            console.error('Error loading pending requests:', error);
+            console.error('Error loading PENDING requests:', error);
         }
     },
 
@@ -224,8 +224,8 @@ const Driver = {
         // Show toast notification
         BuggyCall.Utils.showToast(`Yeni talep: ${data.location.name}`, 'warning');
         
-        // Add to pending requests
-        this.pendingRequests.unshift(data);
+        // Add to PENDING requests
+        this.PENDINGRequests.unshift(data);
         this.renderPendingRequests();
         
         // Update counter
@@ -433,10 +433,10 @@ const Driver = {
     },
 
     /**
-     * Remove request from pending list
+     * Remove request from PENDING list
      */
     removeRequest(requestId) {
-        this.pendingRequests = this.pendingRequests.filter(r => r.request_id !== requestId && r.id !== requestId);
+        this.PENDINGRequests = this.PENDINGRequests.filter(r => r.request_id !== requestId && r.id !== requestId);
         this.renderPendingRequests();
         this.updateRequestCounter();
     },
@@ -473,18 +473,18 @@ const Driver = {
     },
 
     /**
-     * Render pending requests
+     * Render PENDING requests
      */
     renderPendingRequests() {
-        const container = document.getElementById('pending-requests');
+        const container = document.getElementById('PENDING-requests');
         if (!container) return;
         
-        if (this.pendingRequests.length === 0) {
+        if (this.PENDINGRequests.length === 0) {
             container.innerHTML = '<div class="empty-state">Bekleyen talep yok</div>';
             return;
         }
         
-        container.innerHTML = this.pendingRequests.map(req => `
+        container.innerHTML = this.PENDINGRequests.map(req => `
             <div class="card request-card mb-2 hover-shadow" data-id="${req.request_id || req.id}">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
@@ -578,9 +578,9 @@ const Driver = {
      * Update request counter
      */
     updateRequestCounter() {
-        const counter = document.getElementById('pending-request-count');
+        const counter = document.getElementById('PENDING-request-count');
         if (counter) {
-            counter.textContent = this.pendingRequests.length;
+            counter.textContent = this.PENDINGRequests.length;
         }
     },
 

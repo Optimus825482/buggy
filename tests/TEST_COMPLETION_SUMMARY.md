@@ -185,7 +185,7 @@ python tests/run_tests.py --summary
 - Oturum inactive olur
 
 #### 4. test_guest_status_tracking_real_time
-- Guest talep oluşturur (status: pending)
+- Guest talep oluşturur (status: PENDING)
 - Driver kabul eder (status: accepted)
 - Buggy ve driver bilgileri görünür
 - Driver tamamlar (status: completed)

@@ -225,7 +225,7 @@ def get_dashboard_stats():
         ).count()
 
         # Pending requests count
-        pending_requests = BuggyRequest.query.filter_by(
+        PENDING_requests = BuggyRequest.query.filter_by(
             hotel_id=hotel_id,
             status=RequestStatus.PENDING
         ).count()
@@ -258,7 +258,7 @@ def get_dashboard_stats():
             'success': True,
             'stats': {
                 'active_buggies': active_buggies,
-                'pending_requests': pending_requests,
+                'PENDING_requests': PENDING_requests,
                 'today_completed': today_completed,
                 'avg_response_time_minutes': avg_response_time
             }
@@ -413,6 +413,77 @@ def export_pdf(report_type):
             as_attachment=True,
             download_name=filename
         )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+# ==================== Advanced Analytics ====================
+@reports_bp.route('/advanced-analytics', methods=['GET'])
+@api_login_required
+def get_advanced_analytics():
+    """
+    Get advanced analytics including:
+    - Unanswered requests (timeout after 1 hour)
+    - Cancelled requests breakdown
+    - Completed requests analysis
+    - Response time trends
+    - Peak hours analysis
+    """
+    try:
+        user = SystemUser.query.get(session['user_id'])
+        
+        # Get date range from query params
+        days = request.args.get('days', 30, type=int)
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+        
+        if start_date_str and end_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        else:
+            end_date = datetime.utcnow()
+            start_date = end_date - timedelta(days=days)
+        
+        # Get comprehensive analytics
+        analytics = ReportService.get_advanced_analytics(
+            hotel_id=user.hotel_id,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        return jsonify({
+            'success': True,
+            'analytics': analytics,
+            'period': {
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
+                'days': (end_date - start_date).days
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ==================== Timeout Statistics ====================
+@reports_bp.route('/timeout-statistics', methods=['GET'])
+@api_login_required
+def get_timeout_statistics():
+    """Get detailed statistics about timed out (unanswered) requests"""
+    try:
+        from app.tasks.timeout_checker import get_timeout_statistics
+        
+        user = SystemUser.query.get(session['user_id'])
+        days = request.args.get('days', 30, type=int)
+        
+        stats = get_timeout_statistics(hotel_id=user.hotel_id, days=days)
+        
+        return jsonify({
+            'success': True,
+            'statistics': stats
+        }), 200
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -89,14 +89,17 @@ class Config:
     RATELIMIT_DEFAULT = "100 per hour"
     
     # Session Configuration
-    SESSION_TYPE = 'filesystem'
+    # Redis session için öncelikli, yoksa memory-based
+    SESSION_TYPE = 'redis' if os.getenv('REDIS_URL') else 'filesystem'
+    SESSION_REDIS = None  # Will be set in __init__.py if Redis available
     SESSION_PERMANENT = False  # Default: session expires on browser close
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)  # Only for admin sessions
     SESSION_COOKIE_SECURE = not DEBUG
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     SESSION_COOKIE_NAME = 'buggycall_session'  # Custom cookie name
-    SESSION_REFRESH_EACH_REQUEST = True  # Refresh session on each request
+    SESSION_REFRESH_EACH_REQUEST = False  # ✅ PERFORMANS: Sadece değişiklikte yaz
+    SESSION_USE_SIGNER = True  # Güvenlik için session imzalama
     
     # Security Headers
     SECURITY_HEADERS = {

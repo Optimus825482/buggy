@@ -199,9 +199,9 @@ def get_background_jobs_status():
         
         # Add additional stats
         if status['status'] == 'running':
-            # Count pending retries
+            # Count PENDING retries
             one_day_ago = datetime.utcnow() - timedelta(hours=24)
-            pending_retries = NotificationLog.query.filter(
+            PENDING_retries = NotificationLog.query.filter(
                 NotificationLog.status == 'failed',
                 NotificationLog.sent_at >= one_day_ago,
                 NotificationLog.retry_count < 3
@@ -220,7 +220,7 @@ def get_background_jobs_status():
             ).count()
             
             status['stats'] = {
-                'pending_retries': pending_retries,
+                'PENDING_retries': PENDING_retries,
                 'permanently_failed': permanently_failed,
                 'old_logs_to_cleanup': old_logs
             }

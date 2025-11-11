@@ -225,7 +225,7 @@ class NetworkManager {
         // Trigger Service Worker sync
         await this.triggerSync();
 
-        // Sync pending requests (legacy support)
+        // Sync PENDING requests (legacy support)
         await this.syncPendingRequests();
 
         // Show notification
@@ -267,7 +267,7 @@ class NetworkManager {
     }
 
     /**
-     * Sync pending requests when connection is restored
+     * Sync PENDING requests when connection is restored
      */
     async syncPendingRequests() {
         if (this.syncInProgress) {
@@ -280,25 +280,25 @@ class NetworkManager {
         try {
             console.log('[Network] Starting background sync...');
 
-            // Get pending requests from IndexedDB
+            // Get PENDING requests from IndexedDB
             if (typeof offlineStorage === 'undefined') {
                 console.warn('[Network] Offline storage not available');
                 return;
             }
 
-            const pendingRequests = await offlineStorage.getPendingRequests();
+            const PENDINGRequests = await offlineStorage.getPendingRequests();
 
-            if (pendingRequests.length === 0) {
-                console.log('[Network] No pending requests to sync');
+            if (PENDINGRequests.length === 0) {
+                console.log('[Network] No PENDING requests to sync');
                 return;
             }
 
-            console.log(`[Network] Syncing ${pendingRequests.length} pending requests`);
+            console.log(`[Network] Syncing ${PENDINGRequests.length} PENDING requests`);
 
             let successCount = 0;
             let failCount = 0;
 
-            for (const req of pendingRequests) {
+            for (const req of PENDINGRequests) {
                 try {
                     // Reconstruct the request
                     const response = await fetch(req.url, {
@@ -308,7 +308,7 @@ class NetworkManager {
                     });
 
                     if (response.ok) {
-                        // Remove from pending if successful
+                        // Remove from PENDING if successful
                         await offlineStorage.removePendingRequest(req.id);
                         successCount++;
                         console.log('[Network] Synced request:', req.url);

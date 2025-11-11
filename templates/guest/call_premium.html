@@ -527,6 +527,29 @@ body {
     }
 }
 
+/* ==================== OPTIMIST BRANDING ==================== */
+.optimist-branding img {
+    transition: opacity 0.3s ease;
+}
+
+.optimist-branding:hover img {
+    opacity: 1 !important;
+}
+
+@media (max-width: 480px) {
+    .optimist-branding img {
+        height: 20px !important;
+    }
+    
+    .optimist-branding p {
+        font-size: 0.6rem !important;
+    }
+    
+    .optimist-branding p:last-child {
+        font-size: 0.55rem !important;
+    }
+}
+
 /* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 768px) {
     .guest-call-container {
@@ -647,6 +670,19 @@ body {
                  alt="Merit International Hotels & Resorts" 
                  style="height: 50px; width: auto; object-fit: contain;">
             <p class="hotel-name">MERIT INTERNATIONAL HOTELS & RESORTS © 2025 COPYRIGHT</p>
+            
+            <!-- Optimist Branding -->
+            <div class="optimist-branding" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(26, 43, 74, 0.1); width: 100%; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; opacity: 0.75;">
+                    <img src="{{ url_for('static', filename='images/opti.png') }}" 
+                         alt="Optimist Bilişim & Elektronik" 
+                         style="height: 24px; width: auto; object-fit: contain; filter: brightness(0) opacity(0.7);">
+                    <div style="text-align: left; line-height: 1.3;">
+                        <p style="margin: 0; font-size: 0.65rem; color: #6B7280; font-weight: 500;">Sistem Geliştirme & Teknik Destek</p>
+                        <p style="margin: 0; font-size: 0.6rem; color: #9CA3AF; font-weight: 400;">Optimist Bilişim & Elektronik</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </footer>
 </div>

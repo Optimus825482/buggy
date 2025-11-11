@@ -292,9 +292,9 @@ class TestIntegration:
         })
         request_id = guest_response.get_json()['request']['id']
         
-        # Check initial status (pending)
+        # Check initial status (PENDING)
         status1 = client.get(f'/api/requests/{request_id}')
-        assert status1.get_json()['request']['status'] == 'pending'
+        assert status1.get_json()['request']['status'] == 'PENDING'
         
         # Driver accepts
         client.post('/auth/login', json={

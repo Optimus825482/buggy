@@ -150,7 +150,7 @@ const Utils = {
      */
     getBadgeClass(status) {
         const statusMap = {
-            'pending': 'badge-pending',
+            'PENDING': 'badge-PENDING',
             'accepted': 'badge-accepted',
             'completed': 'badge-completed',
             'cancelled': 'badge-cancelled',
@@ -587,7 +587,7 @@ function handleNetworkStatusChange(online) {
     if (online) {
         showToast('İnternet bağlantısı geri geldi', 'success');
         
-        // Trigger any pending syncs
+        // Trigger any PENDING syncs
         if (window.NetworkManager) {
             window.NetworkManager.handleOnline();
         }

@@ -294,64 +294,77 @@
         capsLockWarning.style.display = 'none';
     } );
 
-    loginForm.addEventListener( 'submit', async ( e ) => {
+    loginForm.addEventListener( 'submit', function( e ) {
         e.preventDefault();
 
-        const formData = ShuttleCall.Form.getData( loginForm );
-        ShuttleCall.Utils.showLoading();
+        const formData = {
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value
+        };
+        
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        
+        fetch( '/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify( formData )
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Login response:', data);
 
-        try {
-            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-            const response = await fetch( '/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken
-                },
-                body: JSON.stringify( formData )
-            } );
-
-            const data = await response.json();
-
-            if ( response.ok && data.success ) {
+            if ( data.success ) {
+                console.log('✅ Login successful!', data);
+                
                 // Store tokens
-                if (data.access_token) {
-                    localStorage.setItem( 'access_token', data.access_token );
-                }
-                if (data.refresh_token) {
-                    localStorage.setItem( 'refresh_token', data.refresh_token );
-                }
-                if (data.user) {
-                    localStorage.setItem( 'user', JSON.stringify( data.user ) );
+                try {
+                    if (data.access_token) {
+                        localStorage.setItem( 'access_token', data.access_token );
+                    }
+                    if (data.refresh_token) {
+                        localStorage.setItem( 'refresh_token', data.refresh_token );
+                    }
+                    if (data.user) {
+                        localStorage.setItem( 'user', JSON.stringify( data.user ) );
+                    }
+                } catch (e) {
+                    console.error('LocalStorage error:', e);
                 }
 
-                // Show success message
-                ShuttleCall.Utils.showToast( data.message || 'Giriş başarılı!', 'success' );
-
-                // Redirect based on role
+                // Determine redirect URL
+                let redirectUrl = '/';
                 if ( data.user && data.user.role === 'admin' ) {
-                    window.location.href = '/admin/dashboard';
+                    redirectUrl = '/admin/dashboard';
                 } else if ( data.user && data.user.role === 'driver' ) {
-                    window.location.href = '/driver/dashboard';
-                } else {
-                    // Fallback redirect
-                    window.location.href = '/';
+                    redirectUrl = '/driver/dashboard';
                 }
+                
+                console.log('🔄 Redirecting to:', redirectUrl);
+                
+                // Unregister service worker temporarily for navigation
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                        for(let registration of registrations) {
+                            // Don't unregister, just let it update
+                            registration.update();
+                        }
+                    });
+                }
+                
+                // Force immediate redirect
+                window.location.href = redirectUrl;
             } else {
-                await ShuttleCall.Utils.showError( 
-                    data.error || data.message || 'Kullanıcı adı veya şifre hatalı', 
-                    'Giriş Başarısız' 
-                );
+                console.error('❌ Login failed:', data);
+                alert(data.error || data.message || 'Kullanıcı adı veya şifre hatalı');
             }
-        } catch ( error ) {
+        })
+        .catch(error => {
             console.error( 'Login error:', error );
-            await ShuttleCall.Utils.showError( 
-                'Sunucuya bağlanılamadı. Lütfen internet bağlantınızı kontrol edin.', 
-                'Bağlantı Hatası' 
-            );
-        } finally {
-            ShuttleCall.Utils.hideLoading();
-        }
+            alert('Sunucuya bağlanılamadı. Lütfen internet bağlantınızı kontrol edin.');
+        });
     } );
 </script>
 {% endblock %}

@@ -133,7 +133,7 @@ def upgrade():
         sa.Column('guest_room', sa.String(length=50), nullable=True),
         sa.Column('guest_phone', sa.String(length=50), nullable=True),
         sa.Column('notes', sa.Text(), nullable=True),
-        sa.Column('status', sa.Enum('pending', 'accepted', 'completed', 'cancelled', name='requeststatus'), nullable=False, server_default='pending'),
+        sa.Column('status', sa.Enum('PENDING', 'accepted', 'completed', 'cancelled', name='requeststatus'), nullable=False, server_default='PENDING'),
         sa.Column('priority', sa.Integer(), nullable=False, server_default='0'),
         sa.Column('requested_at', sa.DateTime(), nullable=False),
         sa.Column('accepted_at', sa.DateTime(), nullable=True),

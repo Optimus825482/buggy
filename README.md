@@ -236,7 +236,7 @@ pytest tests/test_api.py -v
 - `GET /api/requests` - Talepleri listele
 - `PUT /api/requests/:id/accept` - Talebi kabul et (Driver)
 - `PUT /api/requests/:id/complete` - Talebi tamamla (Driver)
-- `PUT /api/requests/:id/cancel` - Talebi iptal et
+- `PUT /api/requests/:id/cancel` - Talebi iptal et (Admin/System only - Misafirler iptal edemez)
 
 ### Health
 - `GET /health` - Sistem sağlık kontrolü

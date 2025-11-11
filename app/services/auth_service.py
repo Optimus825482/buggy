@@ -158,17 +158,53 @@ class AuthService:
     
     @staticmethod
     def logout():
-        """Logout current user and set buggy offline if driver"""
+        """
+        ✅ PERFORMANS OPTİMİZE: Hızlı logout - ağır işlemler async
+        Kullanıcı anında çıkış yapar, cleanup background'da olur
+        """
         user_id = session.get('user_id')
         hotel_id = session.get('hotel_id')
         
         print(f'[LOGOUT] Starting logout for user_id={user_id}, hotel_id={hotel_id}')
         
+        # ✅ Session'ı hemen temizle (kullanıcı beklemez)
+        session.clear()
+        
+        # ✅ User cache'ini temizle
+        if user_id:
+            try:
+                from app.utils.decorators import invalidate_user_cache
+                invalidate_user_cache(user_id)
+            except:
+                pass
+        
+        # ✅ Ağır işlemleri background'da yap
         if user_id and hotel_id:
-            # If driver, deactivate and set buggy to offline
-            user = SystemUser.query.get(user_id)
-            if user and user.role == UserRole.DRIVER:
-                print(f'[LOGOUT] User is driver: {user.username}')
+            from threading import Thread
+            Thread(target=AuthService._cleanup_driver_session, 
+                   args=(user_id, hotel_id), 
+                   daemon=True).start()
+        
+        print(f'[LOGOUT] Session cleared, cleanup started in background')
+    
+    @staticmethod
+    def _cleanup_driver_session(user_id, hotel_id):
+        """
+        Background'da driver cleanup işlemleri
+        Bu fonksiyon async çalışır, kullanıcı beklemez
+        """
+        try:
+            from app import create_app
+            app = create_app()
+            
+            with app.app_context():
+                user = SystemUser.query.get(user_id)
+                if not user or user.role != UserRole.DRIVER:
+                    print(f'[LOGOUT_CLEANUP] User {user_id} is not a driver, skipping')
+                    return
+                
+                print(f'[LOGOUT_CLEANUP] Processing driver cleanup: {user.username}')
+                
                 from app.models.buggy import Buggy, BuggyStatus
                 from app.models.buggy_driver import BuggyDriver
                 
@@ -178,12 +214,12 @@ class AuthService:
                     is_active=True
                 ).all()
                 
-                print(f'[LOGOUT] Found {len(active_associations)} active buggy associations')
+                print(f'[LOGOUT_CLEANUP] Found {len(active_associations)} active buggy associations')
                 
                 for assoc in active_associations:
                     # Deactivate driver
                     assoc.is_active = False
-                    print(f'[LOGOUT] Deactivated association for buggy_id={assoc.buggy_id}')
+                    print(f'[LOGOUT_CLEANUP] Deactivated association for buggy_id={assoc.buggy_id}')
                     
                     # Set buggy to offline and clear location
                     buggy = Buggy.query.get(assoc.buggy_id)
@@ -191,7 +227,7 @@ class AuthService:
                         old_status = buggy.status
                         buggy.status = BuggyStatus.OFFLINE
                         buggy.current_location_id = None  # Clear location on logout
-                        print(f'[LOGOUT] Set buggy {buggy.code} status from {old_status} to OFFLINE and cleared location')
+                        print(f'[LOGOUT_CLEANUP] Set buggy {buggy.code} status from {old_status} to OFFLINE')
                         
                         # Emit WebSocket event for driver logout
                         try:
@@ -200,32 +236,38 @@ class AuthService:
                                 'buggy_id': buggy.id,
                                 'buggy_code': buggy.code,
                                 'buggy_icon': buggy.icon,
-                                'driver_id': None,  # Clear driver on logout
-                                'driver_name': None,  # Clear driver name on logout
-                                'location_name': None,  # Clear location on logout
+                                'driver_id': None,
+                                'driver_name': None,
+                                'location_name': None,
                                 'status': 'offline',
                                 'reason': 'driver_logout'
                             }, room=f'hotel_{hotel_id}_admin')
-                            print(f'[LOGOUT] Emitted buggy_status_changed event to hotel_{hotel_id}_admin')
+                            print(f'[LOGOUT_CLEANUP] Emitted buggy_status_changed event')
                         except Exception as e:
-                            print(f'[LOGOUT] Error emitting buggy_status_changed: {e}')
+                            print(f'[LOGOUT_CLEANUP] Error emitting buggy_status_changed: {e}')
                         
-                        # Emit buggy status update for real-time dashboard
+                        # Emit buggy status update
                         try:
                             from app.services.buggy_service import BuggyService
                             BuggyService.emit_buggy_status_update(buggy.id, hotel_id)
-                            print(f'[LOGOUT] Emitted buggy status update')
                         except Exception as e:
-                            print(f'[LOGOUT] Error emitting buggy status: {e}')
+                            print(f'[LOGOUT_CLEANUP] Error emitting buggy status: {e}')
                 
                 db.session.commit()
-                print(f'[LOGOUT] Database changes committed')
-            
-            # Log logout
-            AuditService.log_logout(user_id, hotel_id)
-        
-        # Clear session
-        session.clear()
+                print(f'[LOGOUT_CLEANUP] Database changes committed')
+                
+                # Log logout
+                AuditService.log_logout(user_id, hotel_id)
+                print(f'[LOGOUT_CLEANUP] Cleanup completed for user {user_id}')
+                
+        except Exception as e:
+            print(f'[LOGOUT_CLEANUP] Error in cleanup: {str(e)}')
+            import traceback
+            traceback.print_exc()
+            try:
+                db.session.rollback()
+            except:
+                pass
     
     @staticmethod
     def change_password(user_id, current_password, new_password):
@@ -253,6 +295,13 @@ class AuthService:
         old_hash = user.password_hash
         user.set_password(new_password)
         db.session.commit()
+        
+        # ✅ Cache'i temizle (şifre değişti)
+        try:
+            from app.utils.decorators import invalidate_user_cache
+            invalidate_user_cache(user_id)
+        except:
+            pass
         
         # Log password change
         AuditService.log_action(
@@ -350,6 +399,13 @@ class AuthService:
                 setattr(user, field, kwargs[field])
         
         db.session.commit()
+        
+        # ✅ Cache'i temizle (user güncellendi)
+        try:
+            from app.utils.decorators import invalidate_user_cache
+            invalidate_user_cache(user_id)
+        except:
+            pass
         
         # Log update
         AuditService.log_update(

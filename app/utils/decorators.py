@@ -1,10 +1,131 @@
 """
-Buggy Call - Utility Decorators
+Buggy Call - Custom Decorators
+Performans optimize edilmiş decorator'lar
 """
 from functools import wraps
-from flask import session, jsonify, request
+from flask import session, redirect, url_for, flash, request, jsonify
 from marshmallow import ValidationError
+from app import cache
+from app.models.user import SystemUser, UserRole
 
+
+def get_current_user_cached():
+    """
+    Cache'lenmiş user bilgisi al
+    
+    Returns:
+        SystemUser veya None
+    """
+    user_id = session.get('user_id')
+    if not user_id:
+        return None
+    
+    # Cache'den kontrol et (60 saniye)
+    cache_key = f'user_{user_id}'
+    user = cache.get(cache_key)
+    
+    if not user:
+        # Cache'de yoksa DB'den çek
+        user = SystemUser.query.get(user_id)
+        if user:
+            # Cache'e kaydet
+            cache.set(cache_key, user, timeout=60)
+    
+    return user
+
+
+def invalidate_user_cache(user_id):
+    """
+    User cache'ini temizle (user güncellendiğinde kullan)
+    
+    Args:
+        user_id: User ID
+    """
+    cache_key = f'user_{user_id}'
+    cache.delete(cache_key)
+
+
+def login_required(fn):
+    """Giriş yapmış kullanıcı gerektirir"""
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if 'user_id' not in session:
+            if request.is_json:
+                return jsonify({'error': 'Giriş yapmanız gerekiyor'}), 401
+            flash('Lütfen giriş yapın', 'warning')
+            return redirect(url_for('auth.login'))
+        
+        user = get_current_user_cached()
+        if not user:
+            session.clear()
+            if request.is_json:
+                return jsonify({'error': 'Kullanıcı bulunamadı'}), 401
+            flash('Kullanıcı bulunamadı', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+def admin_required(fn):
+    """Admin rolü gerektirir"""
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if 'user_id' not in session:
+            if request.is_json:
+                return jsonify({'error': 'Giriş yapmanız gerekiyor'}), 401
+            flash('Lütfen giriş yapın', 'warning')
+            return redirect(url_for('auth.login'))
+        
+        user = get_current_user_cached()  # ✅ Cache'den al
+        if not user:
+            session.clear()
+            if request.is_json:
+                return jsonify({'error': 'Kullanıcı bulunamadı'}), 401
+            flash('Kullanıcı bulunamadı', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        if user.role != UserRole.ADMIN:
+            if request.is_json:
+                return jsonify({'error': 'Bu işlem için yetkiniz yok'}), 403
+            flash('Bu sayfaya erişim yetkiniz yok', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+def driver_required(fn):
+    """Driver rolü gerektirir"""
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if 'user_id' not in session:
+            if request.is_json:
+                return jsonify({'error': 'Giriş yapmanız gerekiyor'}), 401
+            flash('Lütfen giriş yapın', 'warning')
+            return redirect(url_for('auth.login'))
+        
+        user = get_current_user_cached()  # ✅ Cache'den al
+        if not user:
+            session.clear()
+            if request.is_json:
+                return jsonify({'error': 'Kullanıcı bulunamadı'}), 401
+            flash('Kullanıcı bulunamadı', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        if user.role != UserRole.DRIVER:
+            if request.is_json:
+                return jsonify({'error': 'Bu işlem için yetkiniz yok'}), 403
+            flash('Bu sayfaya erişim yetkiniz yok', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+# ============================================================================
+# ESKİ DECORATOR'LAR (Geriye Uyumluluk İçin)
+# ============================================================================
 
 def require_role(*roles):
     """
@@ -30,7 +151,6 @@ def require_role(*roles):
                 return jsonify({'error': 'Forbidden - Insufficient permissions'}), 403
             
             return f(*args, **kwargs)
-        
         return decorated_function
     return decorator
 
@@ -49,7 +169,6 @@ def require_login(f):
         if 'user_id' not in session:
             return jsonify({'error': 'Unauthorized - Login required'}), 401
         return f(*args, **kwargs)
-    
     return decorated_function
 
 
@@ -60,7 +179,7 @@ def validate_schema(schema_class, location='json'):
     Args:
         schema_class: Marshmallow schema class to use for validation
         location: Where to get data from ('json', 'form', 'args')
-    
+        
     Usage:
         @validate_schema(LocationCreateSchema)
         def create_location():
@@ -93,7 +212,6 @@ def validate_schema(schema_class, location='json'):
                 }), 400
             
             return f(*args, **kwargs)
-        
         return decorated_function
     return decorator
 
@@ -126,5 +244,4 @@ def handle_errors(f):
             # Log the error
             print(f"Unexpected error: {str(e)}")
             return jsonify({'error': 'Internal server error'}), 500
-    
     return decorated_function

@@ -36,7 +36,7 @@
             border-left: 4px solid #dc3545;
         }
 
-        .test-pending {
+        .test-PENDING {
             background: #fff3cd;
             border-left: 4px solid #ffc107;
         }
@@ -163,7 +163,7 @@
 
                     for ( const test of tests ) {
                         const resultDiv = document.createElement( 'div' );
-                        resultDiv.className = 'test-result test-pending';
+                        resultDiv.className = 'test-result test-PENDING';
                         resultDiv.innerHTML = `⏳ Running: ${test.name}`;
                         sectionDiv.appendChild( resultDiv );
 
@@ -313,9 +313,9 @@
 
         // Driver.js Tests
         runner.describe( 'Driver.js - Request Management', () => {
-            runner.test( 'Driver should be able to fetch pending requests', async () => {
-                const response = await BuggyCall.API.get( '/api/requests/pending' );
-                assert( response.ok, 'Failed to fetch pending requests' );
+            runner.test( 'Driver should be able to fetch PENDING requests', async () => {
+                const response = await BuggyCall.API.get( '/api/requests/PENDING' );
+                assert( response.ok, 'Failed to fetch PENDING requests' );
             } );
 
             runner.test( 'Elapsed time calculation should work', () => {
@@ -390,7 +390,7 @@
                 const requests = [
                     { status: 'completed', created_at: '2024-01-01T10:00:00Z' },
                     { status: 'completed', created_at: '2024-01-01T11:00:00Z' },
-                    { status: 'pending', created_at: '2024-01-01T12:00:00Z' }
+                    { status: 'PENDING', created_at: '2024-01-01T12:00:00Z' }
                 ];
 
                 const completed = requests.filter( r => r.status === 'completed' );
@@ -427,23 +427,23 @@
         runner.describe( 'Utility Functions', () => {
             runner.test( 'Status badge color mapping should be correct', () => {
                 const statusColors = {
-                    'pending': 'warning',
+                    'PENDING': 'warning',
                     'accepted': 'info',
                     'completed': 'success',
                     'cancelled': 'danger'
                 };
-                assertEqual( statusColors['pending'], 'warning', 'Pending color incorrect' );
+                assertEqual( statusColors['PENDING'], 'warning', 'Pending color incorrect' );
                 assertEqual( statusColors['completed'], 'success', 'Completed color incorrect' );
             } );
 
             runner.test( 'Status display names should be mapped', () => {
                 const statusNames = {
-                    'pending': 'Bekliyor',
+                    'PENDING': 'Bekliyor',
                     'accepted': 'Kabul Edildi',
                     'completed': 'Tamamlandı',
                     'cancelled': 'İptal Edildi'
                 };
-                assertEqual( statusNames['pending'], 'Bekliyor', 'Turkish translation incorrect' );
+                assertEqual( statusNames['PENDING'], 'Bekliyor', 'Turkish translation incorrect' );
             } );
 
             runner.test( 'Request validation should work', () => {

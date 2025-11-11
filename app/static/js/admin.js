@@ -101,7 +101,7 @@ const Admin = {
         this.socket.on('connect', () => {
             console.log('✅ WebSocket connected');
             this.updateConnectionStatus('connected');
-            BuggyCall.Utils.showToast('Bağlantı kuruldu', 'success');
+            // Toast kaldırıldı - sadece indicator gösterir
             
             // Join hotel room
             this.socket.emit('join_hotel', {
@@ -113,7 +113,7 @@ const Admin = {
         this.socket.on('disconnect', () => {
             console.log('❌ WebSocket disconnected');
             this.updateConnectionStatus('disconnected');
-            BuggyCall.Utils.showToast('Bağlantı koptu', 'error');
+            // Toast sadece uzun süre bağlantı koparsa gösterilsin
         });
         
         this.socket.on('reconnecting', () => {
@@ -124,7 +124,7 @@ const Admin = {
         this.socket.on('reconnect', () => {
             console.log('✅ WebSocket reconnected');
             this.updateConnectionStatus('connected');
-            BuggyCall.Utils.showToast('Yeniden bağlandı', 'success');
+            // Yeniden bağlanma toast'ı kaldırıldı
         });
         
         // Listen to real-time events
@@ -145,7 +145,8 @@ const Admin = {
         });
         
         this.socket.on('buggy_status_changed', (data) => {
-            console.log('Buggy status changed:', data);
+            console.log('🔔 [ADMIN] Buggy status changed event received:', data);
+            console.log('🔔 [ADMIN] Buggy ID:', data.buggy_id, 'Status:', data.status, 'Reason:', data.reason);
             this.updateBuggyStatus(data);
         });
         
@@ -211,8 +212,8 @@ const Admin = {
             b.status === 'available' || b.status === 'busy'
         ).length;
         
-        // Count pending requests
-        const pendingRequests = this.requests.filter(r => r.status === 'pending').length;
+        // Count PENDING requests
+        const PENDINGRequests = this.requests.filter(r => r.status === 'PENDING').length;
         
         // Count completed today
         const today = new Date().toISOString().split('T')[0];
@@ -231,8 +232,8 @@ const Admin = {
         const activeBuggiesEl = document.getElementById('active-buggies');
         if (activeBuggiesEl) activeBuggiesEl.textContent = activeBuggies;
         
-        const pendingRequestsEl = document.getElementById('pending-requests');
-        if (pendingRequestsEl) pendingRequestsEl.textContent = pendingRequests;
+        const PENDINGRequestsEl = document.getElementById('PENDING-requests');
+        if (PENDINGRequestsEl) PENDINGRequestsEl.textContent = PENDINGRequests;
         
         const completedTodayEl = document.getElementById('completed-today');
         if (completedTodayEl) completedTodayEl.textContent = completedToday;
@@ -252,9 +253,9 @@ const Admin = {
         const container = document.getElementById('active-requests-list');
         if (!container) return;
         
-        // Get active requests (pending and accepted)
+        // Get active requests (PENDING and accepted)
         const activeRequests = this.requests.filter(r => 
-            r.status === 'pending' || r.status === 'accepted'
+            r.status === 'PENDING' || r.status === 'accepted'
         ).slice(0, 10); // Show max 10
         
         if (activeRequests.length === 0) {
@@ -538,14 +539,14 @@ const Admin = {
             }
             
             // Group by status
-            const pending = requests.filter(r => r.status === 'pending');
+            const PENDING = requests.filter(r => r.status === 'PENDING');
             const accepted = requests.filter(r => r.status === 'accepted');
             const completed = requests.filter(r => r.status === 'completed');
             
             container.innerHTML = `
                 <div class="requests-section">
-                    <h6 class="text-warning"><i class="fas fa-clock"></i> Bekleyen (${pending.length})</h6>
-                    ${this.renderRequests(pending)}
+                    <h6 class="text-warning"><i class="fas fa-clock"></i> Bekleyen (${PENDING.length})</h6>
+                    ${this.renderRequests(PENDING)}
                 </div>
                 <div class="requests-section mt-3">
                     <h6 class="text-info"><i class="fas fa-check-circle"></i> Kabul Edildi (${accepted.length})</h6>
@@ -1016,7 +1017,7 @@ const Admin = {
             if (!document.hidden) {
                 // Page came to foreground - refresh data
                 console.log('👁️ [ADMIN] Page visible, refreshing data...');
-                this.loadAllData();
+                this.loadDashboardData();
             }
         });
         
@@ -1034,8 +1035,8 @@ const Admin = {
             // Clear throttle map
             this.updateThrottle.clear();
             
-            // Clear pending updates
-            pendingUpdates = [];
+            // Clear PENDING updates
+            PENDINGUpdates = [];
         });
         
         // Pagehide handler (for mobile browsers)
@@ -1047,7 +1048,7 @@ const Admin = {
             }
             
             this.updateThrottle.clear();
-            pendingUpdates = [];
+            PENDINGUpdates = [];
         });
     },
 
@@ -1056,7 +1057,7 @@ const Admin = {
      */
     getStatusText(status) {
         const statusMap = {
-            'pending': 'Bekliyor',
+            'PENDING': 'Bekliyor',
             'accepted': 'Kabul Edildi',
             'completed': 'Tamamlandı',
             'cancelled': 'İptal Edildi',

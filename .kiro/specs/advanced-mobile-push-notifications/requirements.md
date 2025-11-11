@@ -129,7 +129,7 @@ Bu özellik, BuggyCall uygulamasının push bildirim sistemini mobil ve tablet c
 2. WHEN the app is in background, THE System SHALL minimize CPU usage to less than 5%
 3. WHEN processing notifications, THE System SHALL complete all operations within 500 milliseconds
 4. THE System SHALL not use Wake Lock API unless explicitly required for active requests
-5. WHEN no notifications are pending, THE System SHALL allow the device to enter sleep mode
+5. WHEN no notifications are PENDING, THE System SHALL allow the device to enter sleep mode
 
 ### Requirement 10
 

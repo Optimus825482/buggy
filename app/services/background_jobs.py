@@ -9,7 +9,8 @@ from datetime import datetime, timedelta
 from app import db
 from app.models.notification_log import NotificationLog
 from app.models.user import SystemUser
-from app.services.notification_service import NotificationService
+# FCM servisi kullanılacak (eski notification_service kaldırıldı)
+# from app.services.notification_service import NotificationService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -71,6 +72,15 @@ class BackgroundJobsService:
             replace_existing=True
         )
         
+        # Job 4: Check and timeout unanswered requests every 10 minutes
+        BackgroundJobsService.scheduler.add_job(
+            func=BackgroundJobsService.check_request_timeouts,
+            trigger=IntervalTrigger(minutes=10),
+            id='check_request_timeouts',
+            name='Check Request Timeouts (1 hour)',
+            replace_existing=True
+        )
+        
         logger.info("All background jobs added to scheduler")
     
     @staticmethod
@@ -126,24 +136,30 @@ class BackgroundJobsService:
                         db.session.commit()
                         continue
                     
-                    if not user.push_subscription:
-                        logger.warning(f"User {log.user_id} has no push subscription")
+                    if not user.fcm_token:
+                        logger.warning(f"User {log.user_id} has no FCM token")
                         log.status = 'permanently_failed'
-                        log.error_message = 'No push subscription'
+                        log.error_message = 'No FCM token'
                         db.session.commit()
                         continue
                     
-                    # Retry sending notification
+                    # Retry sending notification (FCM)
                     logger.info(f"Retrying notification {log.id} (attempt {log.retry_count + 1}/3)")
                     
-                    success = NotificationService.send_notification_v2(
-                        subscription_info=user.push_subscription,
-                        title=log.title,
-                        body=log.body,
-                        notification_type=log.notification_type,
-                        priority=log.priority,
-                        data={'user_id': user.id, 'retry': True}
-                    )
+                    # FCM ile retry
+                    from app.services.fcm_notification_service import FCMNotificationService
+                    
+                    if user.fcm_token:
+                        success = FCMNotificationService.send_to_token(
+                            token=user.fcm_token,
+                            title=log.title,
+                            body=log.body,
+                            data={'user_id': user.id, 'retry': True, 'type': log.notification_type},
+                            priority=log.priority
+                        )
+                    else:
+                        logger.warning(f"User {log.user_id} has no FCM token")
+                        success = False
                     
                     # Update log based on result
                     log.retry_count += 1
@@ -255,6 +271,32 @@ class BackgroundJobsService:
         except Exception as e:
             logger.error(f"Error in cleanup_old_logs job: {str(e)}")
             db.session.rollback()
+    
+    @staticmethod
+    def check_request_timeouts():
+        """
+        Check for PENDING requests older than 1 hour and mark as unanswered
+        
+        Logic:
+        - Find PENDING requests older than 1 hour
+        - Mark as UNANSWERED status
+        - Record timeout timestamp
+        - Calculate response time
+        """
+        try:
+            logger.info("Starting check_request_timeouts job")
+            
+            from app.tasks.timeout_checker import check_and_timeout_requests
+            
+            timeout_count = check_and_timeout_requests()
+            
+            if timeout_count > 0:
+                logger.info(f"✅ Timeout check completed: {timeout_count} request(s) marked as unanswered")
+            else:
+                logger.info("No requests timed out")
+            
+        except Exception as e:
+            logger.error(f"Error in check_request_timeouts job: {str(e)}")
     
     @staticmethod
     def shutdown_scheduler():

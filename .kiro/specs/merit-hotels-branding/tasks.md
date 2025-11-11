@@ -49,7 +49,7 @@
   - badge-available: Lüks yeşil gradient
   - badge-busy: Royal gold gradient
   - badge-offline: Gri tonlar
-  - badge-pending, accepted, completed, cancelled renklerini güncelle
+  - badge-PENDING, accepted, completed, cancelled renklerini güncelle
   - Status indicator renklerini yeni palete uyarla
   - _Requirements: 2.3_
 

@@ -30,7 +30,7 @@ const STATIC_ASSETS = [
 
 // API endpoints to cache with network-first strategy
 const API_ENDPOINTS = [
-  '/api/driver/pending-requests',
+  '/api/driver/PENDING-requests',
   '/api/driver/active-requests',
   '/api/locations',
   '/api/buggies'
@@ -244,7 +244,7 @@ self.addEventListener('sync', (event) => {
 
 async function syncBuggyRequests() {
   try {
-    // Get pending requests from IndexedDB
+    // Get PENDING requests from IndexedDB
     const requests = await getPendingRequests();
 
     for (const req of requests) {
@@ -255,7 +255,7 @@ async function syncBuggyRequests() {
           body: req.body
         });
 
-        // Remove from pending if successful
+        // Remove from PENDING if successful
         await removePendingRequest(req.id);
       } catch (error) {
         console.error('[SW] Failed to sync request:', error);
@@ -398,7 +398,7 @@ self.addEventListener('message', (event) => {
 // IndexedDB Helper Functions
 const DB_NAME = 'ShuttleCallDB';
 const DB_VERSION = 3; // Incremented for DB name change
-const STORE_NAME = 'pendingRequests';
+const STORE_NAME = 'PENDINGRequests';
 
 async function openDB() {
   return new Promise((resolve, reject) => {
@@ -433,7 +433,7 @@ async function getPendingRequests() {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('[SW] Error getting pending requests:', error);
+    console.error('[SW] Error getting PENDING requests:', error);
     return [];
   }
 }
@@ -450,7 +450,7 @@ async function removePendingRequest(id) {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('[SW] Error removing pending request:', error);
+    console.error('[SW] Error removing PENDING request:', error);
     return false;
   }
 }
@@ -475,7 +475,7 @@ async function addPendingRequest(requestData) {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('[SW] Error adding pending request:', error);
+    console.error('[SW] Error adding PENDING request:', error);
     return null;
   }
 }

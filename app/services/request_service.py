@@ -88,10 +88,34 @@ class RequestService:
             hotel_id=location.hotel_id
         )
         
-        # Notify drivers via WebSocket
+        # Notify drivers via WebSocket (gerçek zamanlı)
         socketio.emit('new_request', {
             'request': request_obj.to_dict()
         }, room=f'hotel_{location.hotel_id}_drivers')
+        
+        # Notify drivers via FCM (push notification)
+        try:
+            from app.services.fcm_notification_service import FCMNotificationService
+            import logging
+            logger = logging.getLogger(__name__)
+            
+            logger.info(f"🔔 FCM bildirimi gönderiliyor - Request ID: {request_obj.id}")
+            notified_count = FCMNotificationService.notify_new_request(request_obj)
+            
+            if notified_count > 0:
+                logger.info(f"✅ FCM: {notified_count} sürücüye bildirim gönderildi")
+                print(f"✅ FCM: {notified_count} sürücüye bildirim gönderildi")
+            else:
+                logger.warning(f"⚠️ FCM: Hiçbir sürücüye bildirim gönderilemedi")
+                print(f"⚠️ FCM: Hiçbir sürücüye bildirim gönderilemedi")
+        except Exception as e:
+            import traceback
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"❌ FCM bildirim hatası: {str(e)}")
+            logger.error(traceback.format_exc())
+            print(f"❌ FCM bildirim hatası: {str(e)}")
+            print(traceback.format_exc())
         
         return request_obj
     
@@ -118,7 +142,7 @@ class RequestService:
         if not request_obj:
             raise ResourceNotFoundException('Request', request_id)
         
-        # Check if request is still pending
+        # Check if request is still PENDING
         if request_obj.status != RequestStatus.PENDING:
             raise BusinessLogicException('Bu talep zaten işleme alınmış')
         
@@ -177,6 +201,13 @@ class RequestService:
         socketio.emit('request_status_changed', {
             'request': request_obj.to_dict()
         }, room=f'hotel_{request_obj.hotel_id}_admin')
+        
+        # Notify guest via FCM (push notification)
+        try:
+            from app.services.fcm_notification_service import FCMNotificationService
+            FCMNotificationService.notify_request_accepted(request_obj)
+        except Exception as e:
+            print(f"⚠️ FCM bildirim hatası: {str(e)}")
         
         return request_obj
     
@@ -255,7 +286,7 @@ class RequestService:
             hotel_id=request_obj.hotel_id
         )
         
-        # Notify guest
+        # Notify guest via WebSocket
         socketio.emit('request_completed', {
             'request': request_obj.to_dict()
         }, room=f'request_{request_id}')
@@ -264,6 +295,13 @@ class RequestService:
         socketio.emit('request_status_changed', {
             'request': request_obj.to_dict()
         }, room=f'hotel_{request_obj.hotel_id}_admin')
+        
+        # Notify guest via FCM (push notification)
+        try:
+            from app.services.fcm_notification_service import FCMNotificationService
+            FCMNotificationService.notify_request_completed(request_obj)
+        except Exception as e:
+            print(f"⚠️ FCM bildirim hatası: {str(e)}")
         
         # Emit buggy status and location change
         if request_obj.buggy:
@@ -413,15 +451,15 @@ class RequestService:
         return request_obj
     
     @staticmethod
-    def get_pending_requests(hotel_id):
+    def get_PENDING_requests(hotel_id):
         """
-        Get all pending requests for a hotel
+        Get all PENDING requests for a hotel
         
         Args:
             hotel_id: Hotel ID
         
         Returns:
-            List of pending requests
+            List of PENDING requests
         """
         return BuggyRequest.query.filter_by(
             hotel_id=hotel_id,

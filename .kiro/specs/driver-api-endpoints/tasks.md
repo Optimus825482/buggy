@@ -1,11 +1,11 @@
 # Implementation Plan
 
-- [x] 1. Implement pending requests endpoint
+- [x] 1. Implement PENDING requests endpoint
 
 
-  - Add `GET /api/driver/pending-requests` endpoint to `app/routes/api.py`
+  - Add `GET /api/driver/PENDING-requests` endpoint to `app/routes/api.py`
   - Apply `@login_required` and `@role_required(UserRole.DRIVER)` decorators
-  - Query pending requests filtered by hotel_id and status=PENDING
+  - Query PENDING requests filtered by hotel_id and status=PENDING
   - Order results by requested_at descending
   - Include location and guest information in response
   - Handle case where driver has no assigned buggy
@@ -33,7 +33,7 @@
 
 
 
-  - Log when drivers fetch pending requests
+  - Log when drivers fetch PENDING requests
   - Log when drivers fetch active request
   - Include driver_id, hotel_id, and timestamp in logs
   - Handle logging failures gracefully
@@ -57,7 +57,7 @@
   - _Requirements: Performance optimization_
 
 - [ ]* 6. Write unit tests
-  - Test pending requests endpoint with multiple scenarios
+  - Test PENDING requests endpoint with multiple scenarios
   - Test active request endpoint with and without active request
   - Test authentication and authorization
   - Test error handling (no buggy assigned, wrong role)

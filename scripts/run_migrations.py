@@ -57,7 +57,7 @@ def check_migration_status(app):
             else:
                 print("⚠️  Database needs migration")
             
-            # List pending migrations
+            # List PENDING migrations
             if current_rev != head_rev:
                 print("\nPending migrations:")
                 for rev in script.iterate_revisions(head_rev, current_rev):

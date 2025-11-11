@@ -793,6 +793,12 @@ const Guest = {
     updateStatus(status, data) {
         BuggyCall.Utils.showToast(this.getStatusMessage(status), 'info');
         
+        // Play notification sound for accepted status
+        if (status === 'accepted') {
+            this.playAcceptedNotificationSound();
+            this.showAcceptedNotification(data);
+        }
+        
         // Update progress indicator
         this.updateStatusUI({ status, ...data });
         
@@ -801,6 +807,63 @@ const Guest = {
             if (this.statusPollInterval) {
                 clearInterval(this.statusPollInterval);
             }
+        }
+    },
+
+    /**
+     * Play notification sound when request is accepted
+     */
+    playAcceptedNotificationSound() {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Play success melody (C-E-G chord)
+            const frequencies = [523.25, 659.25, 783.99]; // C, E, G
+            
+            frequencies.forEach((freq, index) => {
+                setTimeout(() => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = freq;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.4);
+                }, index * 150);
+            });
+            
+            // Vibrate if supported
+            if (window.navigator && window.navigator.vibrate) {
+                window.navigator.vibrate([200, 100, 200, 100, 200]);
+            }
+        } catch (error) {
+            console.error('Error playing notification sound:', error);
+        }
+    },
+
+    /**
+     * Show accepted notification
+     */
+    showAcceptedNotification(data) {
+        const shuttleCode = data.buggy?.code || 'Shuttle';
+        const driverName = data.driver?.full_name || data.driver?.name || '';
+        
+        // Show browser notification if permitted
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('🎉 Shuttle Kabul Edildi!', {
+                body: `${shuttleCode} size doğru geliyor${driverName ? `\nSürücü: ${driverName}` : ''}`,
+                icon: '/static/icons/icon-192x192.png',
+                badge: '/static/icons/icon-96x96.png',
+                vibrate: [200, 100, 200, 100, 200]
+            });
         }
     },
 
@@ -825,7 +888,7 @@ const Guest = {
         
         if (progressBar) {
             const progressMap = {
-                'pending': 33,
+                'PENDING': 33,
                 'accepted': 66,
                 'completed': 100,
                 'cancelled': 0
@@ -876,7 +939,7 @@ const Guest = {
      */
     getStatusMessage(status) {
         const messages = {
-            'pending': 'Talebiniz alındı, sürücü bekleniyor...',
+            'PENDING': 'Talebiniz alındı, sürücü bekleniyor...',
             'accepted': 'Shuttle yolda! Sürücü konumunuza geliyor.',
             'completed': 'Shuttle ulaştı! İyi günler dileriz.',
             'cancelled': 'Talebiniz iptal edildi.'
@@ -889,7 +952,7 @@ const Guest = {
      */
     getStatusText(status) {
         const statusMap = {
-            'pending': 'Bekliyor',
+            'PENDING': 'Bekliyor',
             'accepted': 'Kabul Edildi',
             'completed': 'Tamamlandı',
             'cancelled': 'İptal Edildi'

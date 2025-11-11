@@ -22,7 +22,7 @@ BuggyCall uygulaması artık gelişmiş mobil push bildirim sistemi ile donatıl
 - Notification grouping
 
 ### 2. Offline Queue Manager ✅ IMPLEMENTED
-- ✅ IndexedDB storage (notifications, pendingActions, deliveryLog stores)
+- ✅ IndexedDB storage (notifications, PENDINGActions, deliveryLog stores)
 - ✅ Background sync event handler
 - ✅ Automatic retry with exponential backoff (max 3 retries)
 - ✅ Network status monitoring (online/offline detection)
@@ -300,7 +300,7 @@ Service Worker'da 4 ayrı store kullanılıyor:
 }
 ```
 
-#### 2. pendingActions Store
+#### 2. PENDINGActions Store
 ```javascript
 {
   keyPath: 'id',

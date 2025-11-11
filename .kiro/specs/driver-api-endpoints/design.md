@@ -2,12 +2,12 @@
 
 ## Overview
 
-The driver dashboard requires two critical API endpoints to function properly: one for fetching pending requests and another for fetching the driver's active request. These endpoints will enable drivers to view available requests and track their current assignment.
+The driver dashboard requires two critical API endpoints to function properly: one for fetching PENDING requests and another for fetching the driver's active request. These endpoints will enable drivers to view available requests and track their current assignment.
 
 ## Architecture
 
 ### Current State
-- Frontend JavaScript calls `/api/driver/pending-requests` and `/api/driver/active-request`
+- Frontend JavaScript calls `/api/driver/PENDING-requests` and `/api/driver/active-request`
 - Both endpoints return 404 errors
 - Driver dashboard is non-functional
 
@@ -21,24 +21,24 @@ The driver dashboard requires two critical API endpoints to function properly: o
 
 ### 1. Pending Requests Endpoint
 
-**Endpoint:** `GET /api/driver/pending-requests`
+**Endpoint:** `GET /api/driver/PENDING-requests`
 
 **File:** `app/routes/api.py`
 
 **Implementation:**
 ```python
-@api_bp.route('/driver/pending-requests', methods=['GET'])
+@api_bp.route('/driver/PENDING-requests', methods=['GET'])
 @login_required
 @role_required(UserRole.DRIVER)
-def get_pending_requests():
-    """Get all pending requests for driver's hotel"""
+def get_PENDING_requests():
+    """Get all PENDING requests for driver's hotel"""
     user = SystemUser.query.get(session['user_id'])
     
     if not user.buggy:
         return jsonify({'success': False, 'error': 'No buggy assigned'}), 400
     
-    # Query pending requests for the hotel
-    pending_requests = BuggyRequest.query.filter_by(
+    # Query PENDING requests for the hotel
+    PENDING_requests = BuggyRequest.query.filter_by(
         hotel_id=user.hotel_id,
         status=RequestStatus.PENDING
     ).order_by(BuggyRequest.requested_at.desc()).all()
@@ -55,7 +55,7 @@ def get_pending_requests():
         } if req.location else None,
         'requested_at': req.requested_at.isoformat(),
         'notes': req.notes
-    } for req in pending_requests]
+    } for req in PENDING_requests]
     
     return jsonify({
         'success': True,
@@ -218,7 +218,7 @@ No schema changes required. Using existing models:
 ## Performance Considerations
 
 ### Database Optimization
-- Add index on `(hotel_id, status)` for pending requests query
+- Add index on `(hotel_id, status)` for PENDING requests query
 - Add index on `(buggy_id, status)` for active request query
 - Use eager loading for location relationship: `.options(joinedload(BuggyRequest.location))`
 
@@ -229,8 +229,8 @@ No schema changes required. Using existing models:
 
 ### Query Optimization
 ```python
-# Optimized pending requests query
-pending_requests = BuggyRequest.query\
+# Optimized PENDING requests query
+PENDING_requests = BuggyRequest.query\
     .options(joinedload(BuggyRequest.location))\
     .filter_by(hotel_id=user.hotel_id, status=RequestStatus.PENDING)\
     .order_by(BuggyRequest.requested_at.desc())\
@@ -242,26 +242,26 @@ pending_requests = BuggyRequest.query\
 ### Log Format
 ```python
 create_audit_log(
-    action='driver_fetched_pending_requests',
+    action='driver_fetched_PENDING_requests',
     entity_type='request',
     entity_id=None,
     user_id=user.id,
     hotel_id=user.hotel_id,
-    details={'count': len(pending_requests)}
+    details={'count': len(PENDING_requests)}
 )
 ```
 
 ### Logged Events
-1. `driver_fetched_pending_requests` - When driver views pending list
+1. `driver_fetched_PENDING_requests` - When driver views PENDING list
 2. `driver_fetched_active_request` - When driver checks active request
 3. Include timestamp, driver_id, hotel_id, and result count
 
 ## Testing Strategy
 
 ### Unit Tests
-1. Test pending requests endpoint with various scenarios:
-   - Multiple pending requests
-   - No pending requests
+1. Test PENDING requests endpoint with various scenarios:
+   - Multiple PENDING requests
+   - No PENDING requests
    - Driver without buggy
    - Non-driver user
 2. Test active request endpoint:
@@ -272,13 +272,13 @@ create_audit_log(
 ### Integration Tests
 1. End-to-end driver workflow:
    - Login as driver
-   - Fetch pending requests
+   - Fetch PENDING requests
    - Accept a request
    - Fetch active request
    - Complete request
 
 ### Manual Testing
-1. Driver dashboard: Verify pending requests display
+1. Driver dashboard: Verify PENDING requests display
 2. Driver dashboard: Verify active request display
 3. Test with multiple drivers simultaneously
 4. Test rate limiting behavior

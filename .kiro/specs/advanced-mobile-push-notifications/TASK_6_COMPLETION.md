@@ -4,7 +4,7 @@
 
 ### 1. IndexedDB Schema Güncellemesi
 - ✅ `notifications` store (id, timestamp, type, priority, status indexes)
-- ✅ `pendingActions` store (id, timestamp, retries indexes)
+- ✅ `PENDINGActions` store (id, timestamp, retries indexes)
 - ✅ `deliveryLog` store (id, notificationId, status, timestamp indexes)
 - ✅ `badgeCount` store (id keyPath)
 
@@ -62,7 +62,7 @@ DB_VERSION: 2
 
 Stores:
 - notifications (auto-increment, 4 index)
-- pendingActions (auto-increment, 2 index)
+- PENDINGActions (auto-increment, 2 index)
 - deliveryLog (auto-increment, 3 index)
 - badgeCount (single record)
 ```

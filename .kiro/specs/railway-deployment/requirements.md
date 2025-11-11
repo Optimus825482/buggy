@@ -35,7 +35,7 @@ Bu doküman, Buggy Call sisteminin Railway platformuna MySQL veritabanı ile bir
 #### Acceptance Criteria
 
 1. WHEN the application starts for the first time, THE Buggy Call System SHALL create all required database tables
-2. THE Buggy Call System SHALL run all pending Alembic migrations automatically
+2. THE Buggy Call System SHALL run all PENDING Alembic migrations automatically
 3. THE Buggy Call System SHALL create initial data including default hotel, admin user, and sample locations
 4. IF database tables already exist, THEN THE Buggy Call System SHALL skip table creation
 5. THE Buggy Call System SHALL log all database initialization steps

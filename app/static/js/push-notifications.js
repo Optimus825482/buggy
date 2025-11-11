@@ -154,10 +154,10 @@ class PushNotificationManager {
      */
     async fetchPublicKey() {
         try {
-            const response = await fetch('/api/push/public-key');
+            const response = await fetch('/api/push/vapid-public-key');
             const data = await response.json();
-            this.publicKey = data.publicKey;
-            console.log('[Push] Public key fetched');
+            this.publicKey = data.public_key;
+            console.log('[Push] Public key fetched:', this.publicKey);
         } catch (error) {
             console.error('[Push] Error fetching public key:', error);
             // Use a default key for development (should be replaced with actual key)
@@ -175,13 +175,15 @@ class PushNotificationManager {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(subscription)
+                body: JSON.stringify({ subscription: subscription })
             });
 
             if (response.ok) {
-                console.log('[Push] Subscription sent to server');
+                const data = await response.json();
+                console.log('[Push] Subscription sent to server:', data);
             } else {
-                console.error('[Push] Failed to send subscription to server');
+                const error = await response.json();
+                console.error('[Push] Failed to send subscription to server:', error);
             }
         } catch (error) {
             console.error('[Push] Error sending subscription:', error);

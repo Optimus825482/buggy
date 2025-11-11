@@ -661,9 +661,19 @@ a:hover {
     text-align: left;
 }
 
+.table th {
+    color: var(--text-white);
+    font-weight: 600;
+}
+
+.table td {
+    color: var(--text-primary);
+}
+
 .table tbody tr {
     border-bottom: 1px solid var(--border-light);
     transition: background-color var(--transition-fast);
+    background-color: var(--bg-white);
 }
 
 .table tbody tr:hover {
@@ -1314,13 +1324,13 @@ a:hover {
 }
 
 /* Pending - Gold */
-.badge-pending {
+.badge-PENDING {
     background: linear-gradient(135deg, #D4AF37 0%, #E4BF47 100%);
     color: #1A2B4A;
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
 }
 
-.badge-pending:hover {
+.badge-PENDING:hover {
     box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5);
     transform: translateY(-1px);
 }

@@ -55,7 +55,7 @@
 
 
 
-  - IndexedDB schema'sını güncelle (notifications, pendingActions, deliveryLog stores)
+  - IndexedDB schema'sını güncelle (notifications, PENDINGActions, deliveryLog stores)
   - queueNotification() fonksiyonunu implement et
   - Background sync event handler ekle
   - syncQueuedNotifications() fonksiyonunu implement et

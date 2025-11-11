@@ -91,3 +91,4 @@ docker-compose.override.yml
 .env.coolify
 coolify.log
 COOLIFY_ENV_READY.txt
+firebase-service-account.json

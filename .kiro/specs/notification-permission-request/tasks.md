@@ -79,7 +79,7 @@
 
 - [x] 2.3 PushNotificationManager ile entegrasyon
 
-  - notification-permission.js içinde pushNotifications global instance'ını kullan
+  - notification-permission.js içinde global instance'ını kullan
   - handleAllow() içinde pushNotifications.requestPermission() çağır
   - Permission sonucunu handle et
   - _Requirements: 1.3, 2.3_

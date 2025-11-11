@@ -16,12 +16,11 @@
     justify-content: center;
     opacity: 0;
     transition: opacity 0.3s ease;
-    pointer-events: none;
+    pointer-events: all; /* Her zaman tıklanabilir olmalı */
 }
 
 .notification-permission-dialog.show {
     opacity: 1;
-    pointer-events: all;
 }
 
 /* Overlay */
@@ -34,6 +33,8 @@
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
+    z-index: 1; /* Content'in altında */
+    pointer-events: none; /* Overlay tıklanamaz, sadece görsel */
 }
 
 /* Dialog Content */
@@ -48,6 +49,8 @@
     text-align: center;
     transform: scale(0.9);
     transition: transform 0.3s ease;
+    z-index: 2; /* Overlay'in üstünde */
+    pointer-events: all; /* İçerik tıklanabilir */
 }
 
 .notification-permission-dialog.show .notification-permission-content {
@@ -114,6 +117,11 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    pointer-events: all; /* Butonlar her zaman tıklanabilir */
+    position: relative; /* Z-index için */
+    z-index: 1; /* Overlay'in üstünde */
+    user-select: none; /* Text seçimini engelle */
+    -webkit-tap-highlight-color: transparent; /* Mobile tap highlight'ı kaldır */
 }
 
 .btn-allow {

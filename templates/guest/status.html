@@ -76,6 +76,18 @@
         height: 150px;
         margin: 2rem auto;
     }
+
+    /* Pulse animation for accepted status */
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+        }
+        50% {
+            transform: scale(1.05);
+            box-shadow: 0 12px 32px rgba(16, 185, 129, 0.5);
+        }
+    }
 </style>
 {% endblock %}
 
@@ -89,26 +101,126 @@
 
         <div class="card-body text-center">
             <!-- Pending Status -->
-            <div id="status-pending" class="status-view">
+            <div id="status-PENDING" class="status-view">
                 <div class="spinner"></div>
                 <h3>Shuttle çağrılıyor...</h3>
                 <p class="text-muted">Lütfen bekleyin, size en yakın shuttle yönlendirilecek</p>
+                <div class="alert alert-info mt-3" style="font-size: 0.9rem;">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Bilgi:</strong> Talebiniz 1 saat içinde yanıtlanmazsa otomatik olarak "Yanıtlanmadı" olarak işaretlenecektir.
+                </div>
             </div>
 
             <!-- Accepted Status -->
             <div id="status-accepted" class="status-view d-none">
-                <i class="fas fa-check-circle status-icon" style="color: var(--success-color);"></i>
-                <h3>Shuttle Yolda!</h3>
-                <p class="text-muted">Shuttle'iniz size doğru geliyor</p>
-                <div id="shuttle-info" class="alert alert-info mt-3"></div>
+                <div style="text-align: center; padding: 2rem 1rem;">
+                    <!-- Animated Icon -->
+                    <div style="
+                        width: 120px;
+                        height: 120px;
+                        margin: 0 auto 1.5rem;
+                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+                        animation: pulse 2s infinite;
+                    ">
+                        <i class="fas fa-shuttle-van" style="font-size: 3rem; color: white;"></i>
+                    </div>
+                    
+                    <h2 style="
+                        font-size: 1.75rem;
+                        font-weight: 700;
+                        color: #10b981;
+                        margin-bottom: 1rem;
+                    ">
+                        🎉 Shuttle Yolda!
+                    </h2>
+                    
+                    <div id="shuttle-info" style="
+                        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                        border: 2px solid #10b981;
+                        border-radius: 16px;
+                        padding: 1.5rem;
+                        margin: 1.5rem 0;
+                        text-align: left;
+                    ">
+                        <p style="
+                            font-size: 1.125rem;
+                            color: #065f46;
+                            line-height: 1.6;
+                            margin: 0;
+                        ">
+                            <strong>Talebiniz kabul edildi!</strong><br>
+                            <span id="shuttle-code" style="font-size: 1.5rem; font-weight: 700;"></span> 
+                            shuttle'ı size doğru geliyor.<br><br>
+                            Shuttle'ınız mümkün olan en kısa sürede sizi istediğiniz noktaya ulaştıracaktır.
+                        </p>
+                    </div>
+                    
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 0.5rem;
+                        color: #6b7280;
+                        font-size: 0.875rem;
+                        margin-top: 1rem;
+                    ">
+                        <i class="fas fa-clock"></i>
+                        <span>Lütfen bekleyin...</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Completed Status -->
             <div id="status-completed" class="status-view d-none">
-                <i class="fas fa-star status-icon" style="color: var(--accent-color);"></i>
-                <h3>Teşekkürler!</h3>
-                <p class="text-muted">Shuttle'iniz geldi. İyi günler!</p>
-                <div id="timing-info" class="alert alert-success mt-3"></div>
+                <div style="text-align: center; padding: 2rem 1rem;">
+                    <!-- Success Icon -->
+                    <div style="
+                        width: 120px;
+                        height: 120px;
+                        margin: 0 auto 1.5rem;
+                        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+                    ">
+                        <i class="fas fa-check-circle" style="font-size: 3.5rem; color: white;"></i>
+                    </div>
+                    
+                    <h2 style="
+                        font-size: 1.75rem;
+                        font-weight: 700;
+                        color: #d97706;
+                        margin-bottom: 1rem;
+                    ">
+                        ✨ Shuttle'ınız Geldi!
+                    </h2>
+                    
+                    <p style="
+                        font-size: 1.125rem;
+                        color: #6b7280;
+                        line-height: 1.6;
+                        margin: 1rem 0;
+                    ">
+                        Hizmetimizi kullandığınız için teşekkür ederiz.<br>
+                        İyi günler dileriz! 🌟
+                    </p>
+                    
+                    <div id="timing-info" style="
+                        background: #fef3c7;
+                        border: 2px solid #f59e0b;
+                        border-radius: 12px;
+                        padding: 1rem;
+                        margin-top: 1.5rem;
+                        display: inline-block;
+                    "></div>
+                </div>
             </div>
 
             <!-- Cancelled Status -->
@@ -123,9 +235,6 @@
         </div>
 
         <div class="card-footer text-center">
-            <button id="cancel-btn" class="btn btn-danger" onclick="cancelRequest()">
-                <i class="fas fa-times"></i> İptal Et
-            </button>
             <button id="new-request-btn" class="btn btn-primary d-none" onclick="newRequest()">
                 <i class="fas fa-plus"></i> Yeni Talep
             </button>
@@ -253,12 +362,11 @@
 
         // Update specific info
         if ( status === 'accepted' && data.buggy ) {
-            const shuttleInfo = document.getElementById( 'shuttle-info' );
-            if ( shuttleInfo ) {
-                shuttleInfo.innerHTML = `
-                    <strong><i class="fas fa-shuttle-van"></i> Shuttle:</strong> ${data.buggy.code || 'N/A'}<br>
-                    ${data.driver ? `<strong><i class="fas fa-user"></i> Sürücü:</strong> ${data.driver.full_name || 'N/A'}` : ''}
-                `;
+            const shuttleCode = document.getElementById( 'shuttle-code' );
+            if ( shuttleCode ) {
+                const icon = data.buggy.icon || '🚗';
+                const code = data.buggy.code || 'Shuttle';
+                shuttleCode.innerHTML = `${icon} ${code}`;
             }
         }
 
@@ -273,11 +381,9 @@
         }
 
         // Update buttons
-        const cancelBtn = document.getElementById( 'cancel-btn' );
         const newRequestBtn = document.getElementById( 'new-request-btn' );
 
         if ( ['completed', 'cancelled'].includes( status ) ) {
-            if ( cancelBtn ) cancelBtn.classList.add( 'd-none' );
             if ( newRequestBtn ) newRequestBtn.classList.remove( 'd-none' );
             // Stop polling
             if ( pollInterval ) {
@@ -299,36 +405,13 @@
         }
     }
 
-    async function cancelRequest() {
-        if ( !confirm( 'Talebi iptal etmek istediğinize emin misiniz?' ) ) {
-            return;
-        }
-
-        try {
-            const response = await fetch( `/api/requests/${requestId}/cancel`, {
-                method: 'POST'
-            } );
-            const data = await response.json();
-
-            if ( data.success ) {
-                ShuttleCall.Utils.showToast( 'Talep iptal edildi', 'success' );
-                updateStatus( 'cancelled', {} );
-            } else {
-                ShuttleCall.Utils.showToast( data.error || 'İptal edilemedi', 'danger' );
-            }
-        } catch ( error ) {
-            console.error( 'Error cancelling request:', error );
-            ShuttleCall.Utils.showToast( 'Bir hata oluştu', 'danger' );
-        }
-    }
-
     function newRequest() {
         window.location.href = '/guest/call';
     }
 
     function getBadgeClass( status ) {
         const map = {
-            'pending': 'badge-warning',
+            'PENDING': 'badge-warning',
             'accepted': 'badge-info',
             'completed': 'badge-success',
             'cancelled': 'badge-danger'
@@ -338,7 +421,7 @@
 
     function getStatusText( status ) {
         const map = {
-            'pending': 'Bekliyor',
+            'PENDING': 'Bekliyor',
             'accepted': 'Kabul Edildi',
             'completed': 'Tamamlandı',
             'cancelled': 'İptal Edildi'

@@ -219,7 +219,7 @@ def sample_request(db_session, sample_hotel, sample_location):
         guest_name="Test Guest",
         room_number="101",
         guest_count=2,
-        status="pending"
+        status="PENDING"
     )
     db_session.add(request)
     db_session.commit()

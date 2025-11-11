@@ -11,7 +11,7 @@ const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const DB_NAME = 'ShuttleCallDB';
 const DB_VERSION = 3; // Incremented for DB name change
 const STORE_NOTIFICATIONS = 'notifications';
-const STORE_PENDING_ACTIONS = 'pendingActions';
+const STORE_PENDING_ACTIONS = 'PENDINGActions';
 const STORE_DELIVERY_LOG = 'deliveryLog';
 const STORE_BADGE_COUNT = 'badgeCount';
 
@@ -23,7 +23,7 @@ const SYNC_THROTTLE = 60000; // 1 minute
 
 // Global state
 let badgeCount = 0;
-let pendingLogs = [];
+let PENDINGLogs = [];
 let lastSyncTime = 0;
 
 // Static assets to cache
@@ -509,9 +509,9 @@ async function logNotificationDelivery(data, status, errorMessage = null) {
     error_message: errorMessage
   };
   
-  pendingLogs.push(logEntry);
+  PENDINGLogs.push(logEntry);
   
-  if (pendingLogs.length >= LOG_BATCH_SIZE) {
+  if (PENDINGLogs.length >= LOG_BATCH_SIZE) {
     await flushLogs();
   }
 }
@@ -523,17 +523,17 @@ async function logNotificationClick(notificationId) {
     timestamp: Date.now()
   };
   
-  pendingLogs.push(logEntry);
+  PENDINGLogs.push(logEntry);
   
-  if (pendingLogs.length >= LOG_BATCH_SIZE) {
+  if (PENDINGLogs.length >= LOG_BATCH_SIZE) {
     await flushLogs();
   }
 }
 
 async function flushLogs() {
-  if (pendingLogs.length === 0) return;
+  if (PENDINGLogs.length === 0) return;
   
-  const batch = pendingLogs.splice(0, LOG_BATCH_SIZE);
+  const batch = PENDINGLogs.splice(0, LOG_BATCH_SIZE);
   
   try {
     await fetch('/api/notifications/log-batch', {
@@ -545,7 +545,7 @@ async function flushLogs() {
     console.log(`[SW] Flushed ${batch.length} log entries`);
   } catch (error) {
     // Re-queue on failure
-    pendingLogs.unshift(...batch);
+    PENDINGLogs.unshift(...batch);
     console.error('[SW] Error flushing logs:', error);
   }
 }
