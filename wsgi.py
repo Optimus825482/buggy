@@ -1,10 +1,11 @@
 """
 Shuttle Call - WSGI Entry Point for Production
-Handles Railway deployment - migrations run via start command
+Handles Coolify deployment with Firebase credentials
 """
 import os
 import logging
 import sys
+import json
 
 # Configure logging for startup
 logging.basicConfig(
@@ -17,6 +18,22 @@ logger = logging.getLogger(__name__)
 logger.info("="*60)
 logger.info("🚀 Shuttle Call - Starting Application")
 logger.info("="*60)
+
+# Firebase Service Account JSON'u environment'tan yükle
+if os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON'):
+    try:
+        logger.info("⏳ Loading Firebase credentials from environment...")
+        service_account = json.loads(os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON'))
+        
+        # JSON dosyasını oluştur
+        with open('firebase-service-account.json', 'w') as f:
+            json.dump(service_account, f, indent=2)
+        
+        logger.info("✅ Firebase credentials loaded successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to load Firebase credentials: {str(e)}")
+else:
+    logger.warning("⚠️ FIREBASE_SERVICE_ACCOUNT_JSON not found in environment")
 
 try:
     from app import create_app, socketio
