@@ -2451,3 +2451,35 @@ def transfer_driver():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# HEALTH CHECK ENDPOINT (Coolify/Docker için)
+# ============================================================================
+
+@api_bp.route('/health', methods=['GET'])
+def health_check():
+    """
+    Health check endpoint for Coolify/Docker
+    Veritabanı bağlantısını ve uygulama durumunu kontrol eder
+    """
+    try:
+        # Database bağlantısını test et
+        db.session.execute(db.text('SELECT 1'))
+        db_status = 'connected'
+    except Exception as e:
+        current_app.logger.error(f'Health check database error: {str(e)}')
+        db_status = 'disconnected'
+        return jsonify({
+            'status': 'unhealthy',
+            'database': db_status,
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 503
+    
+    return jsonify({
+        'status': 'healthy',
+        'database': db_status,
+        'app_name': current_app.config.get('APP_NAME', 'Shuttle Call'),
+        'timestamp': datetime.utcnow().isoformat()
+    }), 200

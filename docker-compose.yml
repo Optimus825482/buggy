@@ -1,0 +1,115 @@
+# Shuttle Call - Docker Compose (Local Test için)
+# Coolify'da bu dosya kullanılmaz, sadece local test için
+
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: shuttlecall_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: shuttlecall
+      MYSQL_USER: shuttlecall_user
+      MYSQL_PASSWORD: shuttlecall_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (Optional)
+  redis:
+    image: redis:7-alpine
+    container_name: shuttlecall_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Shuttle Call App
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shuttlecall_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      # Flask
+      FLASK_APP: run.py
+      FLASK_ENV: production
+      SECRET_KEY: local-test-secret-key-change-in-production
+      DEBUG: "False"
+      
+      # Database
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: shuttlecall
+      DB_USER: shuttlecall_user
+      DB_PASSWORD: shuttlecall_pass
+      
+      # JWT
+      JWT_SECRET_KEY: local-test-jwt-secret-key
+      JWT_ACCESS_TOKEN_EXPIRES: 3600
+      JWT_REFRESH_TOKEN_EXPIRES: 2592000
+      
+      # CORS
+      CORS_ORIGINS: http://localhost:5000
+      
+      # Redis
+      REDIS_URL: redis://redis:6379/0
+      SOCKETIO_MESSAGE_QUEUE: redis://redis:6379/0
+      RATELIMIT_STORAGE_URL: redis://redis:6379/1
+      
+      # VAPID (Test keys - production'da değiştir)
+      VAPID_PUBLIC_KEY: test-public-key
+      VAPID_PRIVATE_KEY: test-private-key
+      VAPID_CLAIMS_EMAIL: mailto:admin@localhost
+      
+      # App
+      APP_NAME: Shuttle Call
+      APP_TIMEZONE: Asia/Nicosia
+      BASE_URL: http://localhost:5000
+      UPLOAD_FOLDER: app/static/uploads
+      MAX_CONTENT_LENGTH: 16777216
+      LOG_LEVEL: INFO
+      LOG_FILE: logs/shuttlecall.log
+      PORT: 5000
+      
+      # İlk kurulum için true, sonra false
+      RESET_DB: "true"
+    
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    volumes:
+      - ./logs:/app/logs
+      - ./app/static/uploads:/app/app/static/uploads
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mysql_data:
+  redis_data:

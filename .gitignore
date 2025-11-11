@@ -82,3 +82,11 @@ migrations/versions/*.pyc
 
 #Openspec
 openspec/
+
+# Docker
+docker-compose.override.yml
+.dockerignore.local
+
+# Coolify
+.env.coolify
+coolify.log

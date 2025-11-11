@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Flask
+instance/
+.webassets-cache
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Logs
+logs/*.log
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Documentation
+*.md
+!README.md
+
+# Railway specific
+.railway/
+railway.json
+railway_start.sh
+.railwayignore
+
+# Coolify specific (keep these)
+# Dockerfile
+# coolify_start.sh
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads (will be in volume)
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+
+# Migrations (keep these)
+# migrations/
+
+# Scripts (keep these for startup)
+# scripts/
+
+# Cache
+.cache/
+*.cache
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Other
+.claude/
+.kiro/
+.mcp.json
+buggy.png
+*.png
+!logo.png
