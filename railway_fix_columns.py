@@ -38,8 +38,14 @@ def fix_columns():
         # Create engine
         engine = create_engine(database_url, echo=False)
         
-        # Check existing columns
+        # Check if table exists
         inspector = inspect(engine)
+        if 'system_users' not in inspector.get_table_names():
+            print("⚠️  system_users table doesn't exist yet")
+            print("✅ Skipping column fix (will be created by migration)")
+            return True
+        
+        # Check existing columns
         existing_columns = [col['name'] for col in inspector.get_columns('system_users')]
         
         print(f"📋 Existing columns: {', '.join(existing_columns)}")
