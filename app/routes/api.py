@@ -42,33 +42,62 @@ def allowed_file(filename):
 
 def save_location_image(file):
     """Save uploaded location image and return the file path"""
-    if not file or file.filename == '':
-        return None
+    import logging
+    logger = logging.getLogger(__name__)
     
-    if not allowed_file(file.filename):
-        raise ValueError('Geçersiz dosya formatı. Sadece PNG, JPG, JPEG, GIF, WEBP desteklenir.')
-    
-    # Check file size
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-    
-    if file_size > MAX_FILE_SIZE:
-        raise ValueError('Dosya boyutu 5MB\'dan büyük olamaz.')
-    
-    # Generate unique filename
-    ext = file.filename.rsplit('.', 1)[1].lower()
-    filename = f"{uuid.uuid4().hex}.{ext}"
-    
-    # Ensure upload directory exists
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    
-    # Save file
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(filepath)
-    
-    # Return relative path for database
-    return f"/static/uploads/locations/{filename}"
+    try:
+        if not file or file.filename == '':
+            logger.warning("No file provided")
+            return None
+        
+        logger.info(f"Attempting to save file: {file.filename}")
+        
+        if not allowed_file(file.filename):
+            logger.error(f"Invalid file format: {file.filename}")
+            raise ValueError('Geçersiz dosya formatı. Sadece PNG, JPG, JPEG, GIF, WEBP desteklenir.')
+        
+        # Check file size
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        
+        logger.info(f"File size: {file_size} bytes")
+        
+        if file_size > MAX_FILE_SIZE:
+            logger.error(f"File too large: {file_size} bytes")
+            raise ValueError('Dosya boyutu 5MB\'dan büyük olamaz.')
+        
+        # Generate unique filename
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        
+        logger.info(f"Generated filename: {filename}")
+        
+        # Ensure upload directory exists
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        logger.info(f"Upload folder: {UPLOAD_FOLDER}")
+        
+        # Save file
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        logger.info(f"Saving to: {filepath}")
+        
+        file.save(filepath)
+        
+        # Verify file was saved
+        if os.path.exists(filepath):
+            logger.info(f"✅ File saved successfully: {filepath}")
+        else:
+            logger.error(f"❌ File not found after save: {filepath}")
+            raise ValueError('Dosya kaydedilemedi')
+        
+        # Return relative path for database
+        relative_path = f"/static/uploads/locations/{filename}"
+        logger.info(f"Returning relative path: {relative_path}")
+        return relative_path
+        
+    except Exception as e:
+        logger.error(f"Error saving location image: {str(e)}")
+        raise
 
 def delete_location_image(image_path):
     """Delete location image file"""
@@ -313,6 +342,7 @@ def update_location(location_id):
             # FormData request
             data = request.form.to_dict()
             image_file = request.files.get('location_image')
+            current_app.logger.info(f"IMAGE FILE: {image_file}")
         elif 'application/json' in content_type:
             # JSON request
             data = request.get_json() or {}
@@ -329,25 +359,33 @@ def update_location(location_id):
             location.description = data['description']
         
         # Handle image update
-        if image_file:
+        if image_file and image_file.filename:
             # Delete old image if exists and is a file path
+            current_app.logger.info(f"Old image path: {location.location_image}")
+            current_app.logger.info(f"New image file: {image_file.filename}")
             if location.location_image and location.location_image.startswith('/static/uploads/'):
                 delete_location_image(location.location_image)
             
             # Save new image
             try:
-                location.location_image = save_location_image(image_file)
+                new_image_path = save_location_image(image_file)
+                if new_image_path:
+                    location.location_image = new_image_path
+                    import logging
+                    logging.info(f"✅ Image updated for location {location_id}: {new_image_path}")
             except ValueError as e:
                 return jsonify({'error': str(e)}), 400
         elif 'location_image' in data:
-            if data['location_image'] is None or data['location_image'] == '' or data['location_image'] == 'null':
+            # Sadece açıkça boş string gönderilirse sil
+            if data['location_image'] == '' or data['location_image'] == 'null' or data['location_image'] == 'undefined':
                 # Remove image
                 if location.location_image and location.location_image.startswith('/static/uploads/'):
                     delete_location_image(location.location_image)
                 location.location_image = None
-            else:
+            elif data['location_image'] and data['location_image'].startswith('data:image'):
                 # Backward compatibility: base64 image
                 location.location_image = data['location_image']
+            # Eğer location_image field'ı var ama değeri None/boş değilse → mevcut görseli koru (hiçbir şey yapma)
         
         if 'latitude' in data:
             location.latitude = float(data['latitude']) if data['latitude'] else None
@@ -582,20 +620,20 @@ def download_qr_svg(location_id):
 def get_buggies():
     """Get all buggies"""
     try:
+        from sqlalchemy.orm import joinedload
+        
         user = SystemUser.query.get(session['user_id'])
-        buggies = Buggy.query.filter_by(hotel_id=user.hotel_id).all()
+        
+        # Eager loading ile tüm ilişkileri tek sorguda çek (N+1 problemi çözümü)
+        buggies = Buggy.query.filter_by(hotel_id=user.hotel_id)\
+            .options(
+                joinedload(Buggy.current_location),
+                joinedload(Buggy.driver_associations)
+            ).all()
         
         result = []
         for buggy in buggies:
             buggy_dict = buggy.to_dict()
-            # to_dict() already includes driver_name and driver_id from get_active_driver methods
-            # Just add current_location_name for backward compatibility
-            if buggy.current_location_id:
-                location = Location.query.get(buggy.current_location_id)
-                buggy_dict['current_location_name'] = location.name if location else None
-            else:
-                buggy_dict['current_location_name'] = None
-            
             result.append(buggy_dict)
         
         return jsonify({
@@ -888,14 +926,21 @@ def create_request():
 def get_requests():
     """Get all requests (Admin/Driver)"""
     try:
+        from sqlalchemy.orm import joinedload
+        
         user = SystemUser.query.get(session['user_id'])
         
         # Get query parameters
         status_str = request.args.get('status')
         buggy_id = request.args.get('buggy_id')
         
-        # Build query
-        query = BuggyRequest.query.filter_by(hotel_id=user.hotel_id)
+        # Build query with eager loading (N+1 problemi çözümü)
+        query = BuggyRequest.query.filter_by(hotel_id=user.hotel_id)\
+            .options(
+                joinedload(BuggyRequest.location),
+                joinedload(BuggyRequest.buggy).joinedload(Buggy.current_location),
+                joinedload(BuggyRequest.buggy).joinedload(Buggy.driver_associations)
+            )
         
         # Handle status filter - convert string to enum
         if status_str:
@@ -1451,10 +1496,16 @@ def get_buggy_locations():
     """Get all buggies with their current locations (Admin only)"""
     try:
         from app.utils.helpers import RequestContext
+        from sqlalchemy.orm import joinedload
+        
         hotel_id = RequestContext.get_current_hotel_id()
         
-        # Get all buggies with their locations
-        buggies = Buggy.query.filter_by(hotel_id=hotel_id).all()
+        # Eager loading ile tüm ilişkileri tek sorguda çek (N+1 problemi çözümü)
+        buggies = Buggy.query.filter_by(hotel_id=hotel_id)\
+            .options(
+                joinedload(Buggy.current_location),
+                joinedload(Buggy.driver_associations)
+            ).all()
         
         result = []
         for buggy in buggies:

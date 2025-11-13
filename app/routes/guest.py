@@ -18,7 +18,7 @@ def call():
 @guest_bp.route('/status/<int:request_id>')
 def status(request_id):
     """Track request status"""
-    return render_template('guest/status.html', request_id=request_id)
+    return render_template('guest/status_premium.html', request_id=request_id)
 
 
 @guest_bp.route('/test-qr')

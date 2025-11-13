@@ -304,8 +304,8 @@
 
             // Add file to FormData
             formData.append('location_image', file);
-        }
-
+            }
+            console.log("FORM DATA", location_image)
         try {
             console.log( 'Sending location data with FormData' );
             
@@ -958,6 +958,12 @@
                         onClick: () => BuggyModal.closeModal(modal)
                     },
                     {
+                        text: '🔄 QR Yenile',
+                        class: 'btn-warning',
+                        icon: 'fas fa-qrcode',
+                        onClick: () => regenerateQRCodeFromEdit(id, modal)
+                    },
+                    {
                         text: 'Güncelle',
                         class: 'btn-primary',
                         icon: 'fas fa-save',
@@ -969,6 +975,49 @@
         } catch ( error ) {
             console.error( 'Error editing location:', error );
             BuggyCall.Utils.showToast( 'Lokasyon bilgileri yüklenirken hata oluştu: ' + error.message, 'danger' );
+        }
+    }
+
+    async function regenerateQRCodeFromEdit(id, modal) {
+        const confirmed = await BuggyModal.confirm(
+            'QR kodu yenilemek istediğinize emin misiniz? Eski QR kodlar geçersiz olacaktır.',
+            'QR Kodu Yenile',
+            'Evet, Yenile',
+            'İptal'
+        );
+        
+        if (!confirmed) return;
+        
+        try {
+            BuggyCall.Utils.showLoading('QR kod yenileniyor...');
+            
+            const response = await fetch(`/api/locations/${id}/regenerate-qr`, {
+                method: 'POST',
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'QR kod yenilenemedi');
+            }
+            
+            const result = await response.json();
+            const location = result.location;
+            
+            BuggyCall.Utils.hideLoading();
+            BuggyModal.closeModal(modal);
+            BuggyCall.Utils.showToast('QR kod başarıyla yenilendi!', 'success');
+            
+            // Show new QR code
+            setTimeout(() => {
+                showQRCode(location.id, location.name, location.qr_code_data);
+            }, 500);
+            
+            loadLocationsPage();
+        } catch (error) {
+            BuggyCall.Utils.hideLoading();
+            console.error('QR regeneration error:', error);
+            BuggyCall.Utils.showToast('QR kod yenilenemedi: ' + (error.message || 'Bilinmeyen hata'), 'danger');
         }
     }
 
@@ -1069,90 +1118,6 @@
                 console.error('Update error:', error);
                 BuggyCall.Utils.showToast( 'Lokasyon güncellenemedi: ' + ( error.message || 'Bilinmeyen hata' ), 'danger' );
             }
-        }
-    }
-
-    async function editLocation(locationId) {
-        try {
-            // Load location data
-            const response = await BuggyCall.API.get(`/locations/${locationId}`);
-            const location = response.data.location;
-            
-            const modal = BuggyModal.showCustomModal({
-                title: 'Lokasyonu Düzenle',
-                type: 'info',
-                size: 'medium',
-                customContent: `
-                    <form id="edit-location-form">
-                        <input type="hidden" name="location_id" value="${location.id}">
-                        
-                        <div class="form-group">
-                            <label>Lokasyon Adı *</label>
-                            <input type="text" name="name" class="form-control" required value="${escapeHtml(location.name)}">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Açıklama</label>
-                            <textarea name="description" class="form-control" rows="3">${escapeHtml(location.description || '')}</textarea>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Lokasyon Görseli</label>
-                            <input type="file" id="edit-location-image-input" class="form-control" accept="image/*" onchange="previewEditLocationImage(event)">
-                            <small class="text-muted">Yeni görsel yüklemek için seçin (opsiyonel)</small>
-                            
-                            ${location.location_image ? `
-                                <div id="current-image-preview" style="margin-top: 1rem;">
-                                    <p><strong>Mevcut Görsel:</strong></p>
-                                    <img src="${location.location_image}" style="max-width: 100%; max-height: 150px; border-radius: 8px; border: 2px solid #ddd;">
-                                    <button type="button" class="btn btn-sm btn-danger" onclick="removeCurrentImage()" style="margin-top: 0.5rem;">
-                                        <i class="fas fa-trash"></i> Görseli Kaldır
-                                    </button>
-                                </div>
-                            ` : ''}
-                            
-                            <div id="edit-image-preview" style="margin-top: 1rem; display: none;">
-                                <p><strong>Yeni Görsel:</strong></p>
-                                <img id="edit-preview-img" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 2px solid #ddd;">
-                            </div>
-                        </div>
-                        
-                        <div class="form-group" style="background: #FEF3C7; padding: 1rem; border-radius: 8px; border-left: 4px solid #F59E0B;">
-                            <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: #92400E;">
-                                <input type="checkbox" name="regenerate_qr" id="regenerate-qr-checkbox" style="width: 18px; height: 18px; cursor: pointer;">
-                                <span>🔄 QR Kodu Yenile (Kaydet ile birlikte)</span>
-                            </label>
-                            <small style="display: block; margin-top: 0.5rem; color: #92400E;">
-                                <i class="fas fa-info-circle"></i> 
-                                <strong>Not:</strong> Lokasyon adı değiştiğinde QR kod otomatik yenilenir. 
-                                Sadece QR'ı yenilemek için alttaki sarı butonu kullanın.
-                            </small>
-                        </div>
-                    </form>
-                `,
-                buttons: [
-                    {
-                        text: 'İptal',
-                        class: 'btn-secondary',
-                        onClick: () => BuggyModal.closeModal(modal)
-                    },
-                    {
-                        text: '🔄 QR Kodu Yenile',
-                        class: 'btn-warning',
-                        icon: 'fas fa-sync-alt',
-                        onClick: () => regenerateQRCode(locationId, modal)
-                    },
-                    {
-                        text: 'Kaydet',
-                        class: 'btn-primary',
-                        icon: 'fas fa-save',
-                        onClick: () => updateLocation(locationId, modal)
-                    }
-                ]
-            });
-        } catch (error) {
-            console.error('Error loading location:', error);
-            BuggyCall.Utils.showToast('Lokasyon yüklenemedi', 'danger');
         }
     }
 

@@ -4,58 +4,356 @@
 
 {% block extra_css %}
 <style>
+/* ==================== MODERN STATUS PAGE ==================== */
+:root {
+    --primary-navy: #1A2B4A;
+    --royal-gold: #D4AF37;
+    --success-green: #27AE60;
+    --bg-white: #FFFFFF;
+    --bg-light: #F8F9FA;
+    --text-dark: #1A2B4A;
+    --text-muted: #6B7280;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
 body {
-  background: linear-gradient(180deg, #5BC0C3 0%, #4AAFB2 100%);
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
+    background: var(--bg-white);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
 }
 
-/* Hide all headers and navigation (keep footer visible) */
-.header, 
-.navbar,
-header,
-nav,
-.mobile-menu-toggle,
-.connection-indicator {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  height: 0 !important;
-  overflow: hidden !important;
+/* Hide base template elements */
+.header, .navbar, header, nav, .mobile-menu-toggle, .connection-indicator {
+    display: none !important;
 }
 
-/* Main content full width */
 .main-content {
-  padding: 0 !important;
-  margin: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
-.guest-container {
-  padding: 20px;
-  max-width: 540px;
-  margin: 0 auto;
+/* Container */
+.status-container {
+    max-width: 540px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Status Card */
+.status-card {
+    background: var(--bg-white);
+    border-radius: 20px;
+    padding: 32px 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.status-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, var(--primary-navy), #2A3B5A);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 36px;
+}
+
+.status-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 12px;
+}
+
+.status-message {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 32px;
+}
+
+/* Timeline Steps */
+.timeline {
+    margin: 32px 0;
+}
+
+.timeline-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.timeline-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 40px;
+    width: 2px;
+    height: calc(100% + 8px);
+    background: #E5E7EB;
+}
+
+.timeline-step.completed::after {
+    background: var(--royal-gold);
+}
+
+.timeline-dot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #E5E7EB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 1;
+}
+
+.timeline-step.completed .timeline-dot {
+    background: linear-gradient(135deg, var(--royal-gold), #E4BF47);
+    color: white;
+}
+
+.timeline-content {
+    flex: 1;
+    text-align: left;
+    padding-top: 8px;
+}
+
+.timeline-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+}
+
+.timeline-time {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* Info Grid */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 24px 0;
+}
+
+.info-box {
+    background: var(--bg-light);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+
+.info-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.info-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+/* Driver Info */
+.driver-info {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(228, 191, 71, 0.05));
+    border-radius: 16px;
+    padding: 20px;
+    margin: 24px 0;
+    display: none;
+}
+
+.driver-info.show {
+    display: block;
+}
+
+.driver-details {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.driver-avatar {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, var(--primary-navy), #2A3B5A);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+}
+
+.driver-text h4 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0 0 4px 0;
+}
+
+.driver-text p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Completed Message */
+.completed-box {
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(46, 204, 113, 0.05));
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    margin: 24px 0;
+    display: none;
+}
+
+.completed-box.show {
+    display: block;
+}
+
+/* Notification Banner */
+.notification-banner {
+    background: linear-gradient(135deg, var(--primary-navy), #2A3B5A);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.notification-banner.show {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.notification-banner button {
+    background: var(--royal-gold);
+    color: var(--primary-navy);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* Footer */
+.status-footer {
+    margin-top: auto;
+    padding: 24px 0;
+    text-align: center;
+}
+
+.footer-logo {
+    height: 40px;
+    margin-bottom: 12px;
+}
+
+.footer-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 8px 0;
+}
+
+.optimist-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #E5E7EB;
+}
+
+.optimist-brand img {
+    height: 20px;
+    opacity: 0.6;
+}
+
+.optimist-brand span {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* Button */
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-navy), #2A3B5A);
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    width: 100%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="guest-container">
+<div class="status-container">
+    <!-- Notification Permission Banner -->
+    <div id="notification-banner" class="notification-banner">
+        <i class="fas fa-bell"></i>
+        <div style="flex: 1;">
+            <strong>Bildirim İzni</strong>
+            <p style="margin: 0; font-size: 13px; opacity: 0.9;">Shuttle geldiğinde bildirim almak ister misiniz?</p>
+        </div>
+        <button onclick="requestNotificationPermission()">İzin Ver</button>
+    </div>
+
     <!-- Status Card -->
-    <div class="request-status-card">
-        <div class="status-icon-wrapper">
-            <div class="status-icon" id="status-icon">
-                <i class="fas fa-clock"></i>
-            </div>
+    <div class="status-card">
+        <div class="status-icon" id="status-icon">
+            <i class="fas fa-clock"></i>
         </div>
 
-        <h2 class="status-title" id="status-title">Talep Alındı</h2>
+        <h1 class="status-title" id="status-title">Talebiniz Alındı</h1>
         <p class="status-message" id="status-message">
             Talebiniz başarıyla oluşturuldu. Yakındaki sürücüler bilgilendirildi.
         </p>
 
-        <!-- Request Details -->
-        <div class="status-timeline">
+        <!-- Info Grid -->
+        <div class="info-grid">
+            <div class="info-box">
+                <div class="info-label">Lokasyon</div>
+                <div class="info-value" id="location-name">-</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Oda No</div>
+                <div class="info-value" id="room-number">-</div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline">
             <div class="timeline-step completed" id="step-requested">
                 <div class="timeline-dot">
                     <i class="fas fa-check"></i>
@@ -71,18 +369,18 @@ nav,
                     <i class="fas fa-user-check"></i>
                 </div>
                 <div class="timeline-content">
-                    <div class="timeline-label">Sürücü Kabul Etti</div>
+                    <div class="timeline-label">İşleme Alındı</div>
                     <div class="timeline-time" id="time-accepted">Bekleniyor...</div>
                 </div>
             </div>
 
-            <div class="timeline-step" id="step-arriving">
+            <div class="timeline-step" id="step-onway">
                 <div class="timeline-dot">
-                    <i class="fas fa-truck-pickup"></i>
+                    <i class="fas fa-shuttle-van"></i>
                 </div>
                 <div class="timeline-content">
-                    <div class="timeline-label">Yolda</div>
-                    <div class="timeline-time" id="time-arriving">-</div>
+                    <div class="timeline-label">Shuttle Yolda</div>
+                    <div class="timeline-time" id="time-onway">-</div>
                 </div>
             </div>
 
@@ -97,146 +395,83 @@ nav,
             </div>
         </div>
 
-        <!-- Location & Room Info -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
-            <div style="background: #F9FAFB; border-radius: 12px; padding: 16px; text-align: center;">
-                <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    Lokasyon
+        <!-- Driver Info -->
+        <div class="driver-info" id="driver-info">
+            <div class="driver-details">
+                <div class="driver-avatar">
+                    <i class="fas fa-shuttle-van"></i>
                 </div>
-                <div style="font-size: 16px; font-weight: 700; color: #111827;" id="location-name">
-                    -
-                </div>
-            </div>
-            <div style="background: #F9FAFB; border-radius: 12px; padding: 16px; text-align: center;">
-                <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    Oda No
-                </div>
-                <div style="font-size: 16px; font-weight: 700; color: #111827;" id="room-number-display">
-                    -
+                <div class="driver-text">
+                    <h4 id="driver-name">Shuttle</h4>
+                    <p>Talebiniz <span id="buggy-code">-</span> plakalı shuttle tarafından işleme alınmıştır. En kısa sürede sizinle olacaktır.</p>
                 </div>
             </div>
-        </div>
-
-        <!-- Driver Info (shown when accepted) -->
-        <div id="driver-info" style="display: none; background: linear-gradient(135deg, rgba(27, 165, 168, 0.1), rgba(91, 192, 195, 0.05)); border-radius: 16px; padding: 20px; margin-bottom: 24px;">
-            <div style="display: flex; align-items: center; gap: 16px;">
-                <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #1BA5A8, #5BC0C3); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; flex-shrink: 0;">
-                    <i class="fas fa-user-tie"></i>
-                </div>
-              
-            </div>
-        </div>
-
-        <!-- Actions -->
-        <div id="action-buttons" style="display: none;">
-            <!-- İptal butonu kaldırıldı - Misafirler artık talep iptal edemez -->
         </div>
 
         <!-- Completed Message -->
-        <div id="completed-message" style="display: none;">
-            <div style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(46, 204, 113, 0.05)); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px;">
-                <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #27AE60, #2ECC71); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; margin: 0 auto 16px;">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <h3 style="font-size: 20px; font-weight: 700; color: #27AE60; margin-bottom: 8px;">
-                    Talebiniz Tamamlandı!
-                </h3>
-                <p style="font-size: 14px; color: #6B7280;">
-                    İyi yolculuklar dileriz
-                </p>
+        <div class="completed-box" id="completed-box">
+            <div style="font-size: 48px; color: var(--success-green); margin-bottom: 16px;">
+                <i class="fas fa-check-circle"></i>
             </div>
-            <button onclick="window.location.href='/guest/call'" class="btn-primary btn-block" style="height: 50px; border-radius: 14px; font-weight: 700;">
+            <h3 style="font-size: 20px; font-weight: 700; color: var(--success-green); margin-bottom: 8px;">
+                Talebiniz Tamamlandı!
+            </h3>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">
+                İyi yolculuklar dileriz
+            </p>
+            <button class="btn-primary" onclick="window.location.href='/guest/call'">
                 <i class="fas fa-plus-circle"></i>
                 Yeni Talep Oluştur
             </button>
         </div>
     </div>
 
-    <!-- Help Section -->
-    <div class="glass-card" style="padding: 20px; margin-top: 24px; text-align: center;">
-        <h4 style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 8px;">
-            Yardıma mı ihtiyacınız var?
-        </h4>
-        <p style="font-size: 13px; color: #6B7280; margin-bottom: 16px;">
-            Herhangi bir sorun yaşıyorsanız resepsiyon ile iletişime geçebilirsiniz
-        </p>
-        <div style="display: flex; gap: 12px; justify-content: center;">
-            <a href="tel:+90" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-phone"></i> Ara
-            </a>
-            <a href="#" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-envelope"></i> Mesaj
-            </a>
+    <!-- Footer -->
+    <div class="status-footer">
+        <img src="{{ url_for('static', filename='images/Merit_International.png') }}" 
+             alt="Merit International" class="footer-logo">
+        <p class="footer-text">MERIT INTERNATIONAL HOTELS & RESORTS © 2025</p>
+        
+        <div class="optimist-brand">
+            <img src="{{ url_for('static', filename='images/opti.png') }}" alt="Optimist">
+            <span>Optimist Bilişim & Elektronik</span>
         </div>
     </div>
 </div>
-
-<!-- Footer Section -->
-<footer style="background: #1A2B4A; border-top: 2px solid #D4AF37; padding: 2rem 0; text-align: center; margin-top: 2rem;">
-    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-        <img src="{{ url_for('static', filename='images/Merit_International.png') }}" 
-             alt="Merit International Hotels & Resorts" 
-             style="height: 50px; width: auto; object-fit: contain;">
-        <p style="font-size: 14px; font-weight: 600; color: #FFFFFF; letter-spacing: 0.5px; margin: 0;">
-            MERIT INTERNATIONAL HOTELS & RESORTS © 2025 COPYRIGHT
-        </p>
-        
-        <!-- Optimist Branding -->
-        <div class="optimist-branding" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(212, 175, 55, 0.2); width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-            <div style="display: flex; align-items: center; gap: 0.75rem; opacity: 0.85;">
-                <img src="{{ url_for('static', filename='images/opti.png') }}" 
-                     alt="Optimist Bilişim & Elektronik" 
-                     style="height: 26px; width: auto; object-fit: contain; filter: brightness(0) invert(1) opacity(0.9);">
-                <div style="text-align: left; line-height: 1.3;">
-                    <p style="margin: 0; font-size: 0.7rem; color: #D8D8D8; font-weight: 500;">Sistem Geliştirme & Teknik Destek</p>
-                    <p style="margin: 0; font-size: 0.65rem; color: #B8B8B8; font-weight: 400;">Optimist Bilişim & Elektronik</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</footer>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/common.js') }}"></script>
 <script>
 const requestId = {{ request_id }};
 let socket;
-let pollingInterval;
 
+// Check notification permission on load
 document.addEventListener('DOMContentLoaded', function() {
-    // Force remove header and footer
-    const elementsToRemove = [
-        '.header',
-        'header',
-        '.footer', 
-        'footer',
-        '.navbar',
-        'nav',
-        '.mobile-menu-toggle',
-        '.connection-indicator'
-    ];
-    
-    elementsToRemove.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(el => {
-            if (el) {
-                el.remove();
-            }
-        });
-    });
-    
-    // Remove padding from main content
-    const mainContent = document.querySelector('.main-content');
-    if (mainContent) {
-        mainContent.style.padding = '0';
-        mainContent.style.margin = '0';
-    }
-    
     loadRequestStatus();
     connectWebSocket();
-    startPolling();
+    checkNotificationPermission();
+    setInterval(loadRequestStatus, 10000); // Poll every 10 seconds
 });
+
+function checkNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        document.getElementById('notification-banner').classList.add('show');
+    }
+}
+
+function requestNotificationPermission() {
+    if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+            document.getElementById('notification-banner').classList.remove('show');
+            if (permission === 'granted') {
+                new Notification('Bildirimler Aktif', {
+                    body: 'Shuttle geldiğinde bildirim alacaksınız',
+                    icon: '/static/icons/Icon-192.png'
+                });
+            }
+        });
+    }
+}
 
 function loadRequestStatus() {
     fetch(`/api/requests/${requestId}`)
@@ -246,63 +481,59 @@ function loadRequestStatus() {
                 updateStatus(data.request);
             }
         })
-        .catch(error => console.error('Error loading request:', error));
+        .catch(error => console.error('Error:', error));
 }
 
 function updateStatus(request) {
-    // Update location and room
+    // Update info
     document.getElementById('location-name').textContent = request.location_name || '-';
-    document.getElementById('room-number-display').textContent = request.room_number || 'Belirtilmedi';
+    document.getElementById('room-number').textContent = request.room_number || 'Yok';
 
-    // Update timeline
+    // Update times
     if (request.requested_at) {
-        document.getElementById('time-requested').textContent = new Date(request.requested_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
+        document.getElementById('time-requested').textContent = 
+            new Date(request.requested_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
     }
 
-    // Update status based on request state
     const status = request.status;
 
     if (status === 'PENDING') {
         updateToPending();
-    } else if (status === 'accepted') {
+    } else if (status === 'ACCEPTED' || status === 'accepted') {
         updateToAccepted(request);
-    } else if (status === 'completed') {
+    } else if (status === 'COMPLETED' || status === 'completed') {
         updateToCompleted(request);
-    } else if (status === 'cancelled') {
-        updateToCancelled();
     }
 }
 
 function updateToPending() {
-    document.getElementById('status-icon').innerHTML = '<i class="fas fa-clock"></i>';
     document.getElementById('status-title').textContent = 'Sürücü Aranıyor...';
-    document.getElementById('status-message').textContent = 'Talebiniz yakındaki sürücülere iletildi. 1 saat içinde yanıtlanmazsa otomatik olarak işaretlenecektir.';
+    document.getElementById('status-message').textContent = 
+        'Talebiniz yakındaki sürücülere iletildi. En kısa sürede yanıtlanacaktır.';
 }
 
 function updateToAccepted(request) {
-    // Mark accepted step as completed
-    const acceptedStep = document.getElementById('step-accepted');
-    acceptedStep.classList.add('completed');
+    // Mark steps as completed
+    document.getElementById('step-accepted').classList.add('completed');
+    document.getElementById('step-onway').classList.add('completed');
 
     if (request.accepted_at) {
-        document.getElementById('time-accepted').textContent = new Date(request.accepted_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
+        document.getElementById('time-accepted').textContent = 
+            new Date(request.accepted_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
+        document.getElementById('time-onway').textContent = 'Şimdi';
     }
 
-    // Update icon and message
-    document.getElementById('status-icon').innerHTML = '<i class="fas fa-truck-pickup"></i>';
+    // Update status
+    document.getElementById('status-icon').innerHTML = '<i class="fas fa-shuttle-van"></i>';
     document.getElementById('status-title').textContent = 'Shuttle Yolda!';
-    document.getElementById('status-message').textContent = 'Sürücünüz yola çıktı. Yakında yanınızda olacak.';
+    document.getElementById('status-message').textContent = 
+        'Shuttle yola çıktı. Yakında yanınızda olacak.';
 
     // Show driver info
     if (request.buggy_code) {
-        document.getElementById('driver-name').textContent = request.buggy_code;
-        document.getElementById('driver-info').style.display = 'block';
+        document.getElementById('buggy-code').textContent = request.buggy_code;
+        document.getElementById('driver-info').classList.add('show');
     }
-
-    // Mark arriving step
-    const arrivingStep = document.getElementById('step-arriving');
-    arrivingStep.classList.add('completed');
-    document.getElementById('time-arriving').textContent = 'Şimdi';
 }
 
 function updateToCompleted(request) {
@@ -312,76 +543,49 @@ function updateToCompleted(request) {
     });
 
     if (request.completed_at) {
-        document.getElementById('time-arrived').textContent = new Date(request.completed_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
+        document.getElementById('time-arrived').textContent = 
+            new Date(request.completed_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
     }
 
-    // Update icon and message
+    // Update status
     document.getElementById('status-icon').innerHTML = '<i class="fas fa-check-circle"></i>';
     document.getElementById('status-icon').style.background = 'linear-gradient(135deg, #27AE60, #2ECC71)';
-
-    // Hide action buttons, show completed message
-    document.getElementById('action-buttons').style.display = 'none';
-    document.getElementById('completed-message').style.display = 'block';
-}
-
-function updateToCancelled() {
-    document.getElementById('status-icon').innerHTML = '<i class="fas fa-times-circle"></i>';
-    document.getElementById('status-icon').style.background = 'linear-gradient(135deg, #E74C3C, #C0392B)';
-    document.getElementById('status-title').textContent = 'Talep İptal Edildi';
-    document.getElementById('status-message').textContent = 'Talebiniz iptal edildi.';
-
-    document.getElementById('action-buttons').innerHTML = `
-        <button onclick="window.location.href='/guest/call'" class="btn-primary btn-block" style="height: 50px; border-radius: 14px; font-weight: 700;">
-            <i class="fas fa-plus-circle"></i>
-            Yeni Talep Oluştur
-        </button>
-    `;
+    
+    // Show completed message
+    document.getElementById('completed-box').classList.add('show');
 }
 
 function connectWebSocket() {
     if (typeof io === 'undefined') return;
 
     socket = io();
-
     socket.on('connect', function() {
-        console.log('WebSocket connected');
         socket.emit('join_request', {request_id: requestId});
     });
 
     socket.on('request_accepted', function(data) {
         if (data.request_id === requestId) {
             loadRequestStatus();
-            Utils.showToast('Sürücü kabul etti!', 'success');
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Shuttle Kabul Edildi!', {
+                    body: 'Shuttle yola çıktı',
+                    icon: '/static/icons/Icon-192.png'
+                });
+            }
         }
     });
 
     socket.on('request_completed', function(data) {
         if (data.request_id === requestId) {
             loadRequestStatus();
-            Utils.showToast('Talep tamamlandı!', 'success');
-        }
-    });
-
-    socket.on('request_cancelled', function(data) {
-        if (data.request_id === requestId) {
-            loadRequestStatus();
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Shuttle Geldi!', {
+                    body: 'İyi yolculuklar',
+                    icon: '/static/icons/Icon-192.png'
+                });
+            }
         }
     });
 }
-
-function startPolling() {
-    // Fallback: poll every 10 seconds if WebSocket fails
-    pollingInterval = setInterval(loadRequestStatus, 10000);
-}
-
-// Cleanup on page unload
-window.addEventListener('beforeunload', function() {
-    if (pollingInterval) {
-        clearInterval(pollingInterval);
-    }
-    if (socket) {
-        socket.disconnect();
-    }
-});
 </script>
 {% endblock %}

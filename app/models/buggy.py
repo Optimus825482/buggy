@@ -52,110 +52,82 @@ class Buggy(db.Model, BaseModel):
     
     def get_active_driver(self):
         """Get currently active (logged in) driver ID - only if buggy is active"""
-        from app.models.buggy_driver import BuggyDriver
-        
-        # Only return driver if buggy is AVAILABLE or BUSY (not OFFLINE)
-        if self.status == BuggyStatus.OFFLINE:
-            return None
-        
-        # Get active (logged in) driver
-        active_assoc = BuggyDriver.query.filter_by(
-            buggy_id=self.id,
-            is_active=True
-        ).first()
-        
-        # Double check: if association exists but buggy is offline, return None
-        if active_assoc and self.status == BuggyStatus.OFFLINE:
-            return None
-            
-        return active_assoc.driver_id if active_assoc else None
+        driver_id, _ = self._get_driver_association(active_only=True)
+        return driver_id
     
     def get_active_driver_name(self):
         """Get currently active (logged in) driver's name - only if buggy is active"""
+        _, driver_name = self._get_driver_association(active_only=True)
+        return driver_name
+    
+    def _get_driver_association(self, active_only=False):
+        """
+        Internal method to get driver association (cached in memory)
+        Returns: (driver_id, driver_name) tuple or (None, None)
+        """
+        # Cache kontrolü - aynı instance için tekrar sorgu yapma
+        cache_key = f'_driver_cache_{"active" if active_only else "assigned"}'
+        if hasattr(self, cache_key):
+            return getattr(self, cache_key)
+        
         from app.models.buggy_driver import BuggyDriver
         from app.models.user import SystemUser
         
-        # Only show driver if buggy is AVAILABLE or BUSY (not OFFLINE)
-        if self.status == BuggyStatus.OFFLINE:
-            return None
+        if active_only:
+            # Sadece aktif sürücü
+            if self.status == BuggyStatus.OFFLINE:
+                result = (None, None)
+            else:
+                assoc = BuggyDriver.query.filter_by(
+                    buggy_id=self.id,
+                    is_active=True
+                ).first()
+                if assoc:
+                    driver = SystemUser.query.get(assoc.driver_id)
+                    result = (assoc.driver_id, driver.full_name if driver and driver.full_name else driver.username if driver else None)
+                else:
+                    result = (None, None)
+        else:
+            # Primary veya herhangi bir atanmış sürücü
+            primary_assoc = BuggyDriver.query.filter_by(
+                buggy_id=self.id,
+                is_primary=True
+            ).first()
+            
+            if primary_assoc:
+                driver = SystemUser.query.get(primary_assoc.driver_id)
+                result = (primary_assoc.driver_id, driver.full_name if driver and driver.full_name else driver.username if driver else None)
+            else:
+                # Primary yoksa en son atanan
+                any_assoc = BuggyDriver.query.filter_by(
+                    buggy_id=self.id
+                ).order_by(BuggyDriver.assigned_at.desc()).first()
+                
+                if any_assoc:
+                    driver = SystemUser.query.get(any_assoc.driver_id)
+                    result = (any_assoc.driver_id, driver.full_name if driver and driver.full_name else driver.username if driver else None)
+                else:
+                    result = (None, None)
         
-        # Get active (logged in) driver
-        active_assoc = BuggyDriver.query.filter_by(
-            buggy_id=self.id,
-            is_active=True
-        ).first()
-        if active_assoc:
-            driver = SystemUser.query.get(active_assoc.driver_id)
-            if driver:
-                return driver.full_name if driver.full_name else driver.username
-        
-        return None
+        # Cache'e kaydet
+        setattr(self, cache_key, result)
+        return result
     
     def get_assigned_driver(self):
         """Get assigned driver (primary driver) regardless of active status"""
-        from app.models.buggy_driver import BuggyDriver
-        
-        print(f'[GET_ASSIGNED_DRIVER] Checking buggy_id={self.id}')
-        
-        # Önce primary driver'ı ara
-        primary_assoc = BuggyDriver.query.filter_by(
-            buggy_id=self.id,
-            is_primary=True
-        ).first()
-        
-        if primary_assoc:
-            print(f'[GET_ASSIGNED_DRIVER] Found primary driver: {primary_assoc.driver_id}')
-            return primary_assoc.driver_id
-        
-        # Primary yoksa, herhangi bir atamayı al (en son atanan)
-        any_assoc = BuggyDriver.query.filter_by(
-            buggy_id=self.id
-        ).order_by(BuggyDriver.assigned_at.desc()).first()
-        
-        if any_assoc:
-            print(f'[GET_ASSIGNED_DRIVER] Found any driver: {any_assoc.driver_id}')
-            return any_assoc.driver_id
-        
-        print(f'[GET_ASSIGNED_DRIVER] No driver found for buggy_id={self.id}')
-        return None
+        driver_id, _ = self._get_driver_association(active_only=False)
+        return driver_id
     
     def get_assigned_driver_name(self):
         """Get assigned driver's name (primary driver) regardless of active status"""
-        from app.models.buggy_driver import BuggyDriver
-        from app.models.user import SystemUser
-        
-        # Önce primary driver'ı ara
-        primary_assoc = BuggyDriver.query.filter_by(
-            buggy_id=self.id,
-            is_primary=True
-        ).first()
-        
-        if primary_assoc:
-            driver = SystemUser.query.get(primary_assoc.driver_id)
-            if driver:
-                return driver.full_name if driver.full_name else driver.username
-        
-        # Primary yoksa, herhangi bir atamayı al (en son atanan)
-        any_assoc = BuggyDriver.query.filter_by(
-            buggy_id=self.id
-        ).order_by(BuggyDriver.assigned_at.desc()).first()
-        
-        if any_assoc:
-            driver = SystemUser.query.get(any_assoc.driver_id)
-            if driver:
-                return driver.full_name if driver.full_name else driver.username
-        
-        return None
+        _, driver_name = self._get_driver_association(active_only=False)
+        return driver_name
     
     def to_dict(self):
         """Convert to dictionary"""
-        # Aktif sürücü (online olan)
-        active_driver_id = self.get_active_driver()
-        active_driver_name = self.get_active_driver_name()
-        
-        # Atanmış sürücü (offline olsa bile)
-        assigned_driver_id = self.get_assigned_driver()
-        assigned_driver_name = self.get_assigned_driver_name()
+        # Tek seferde hem aktif hem atanmış sürücü bilgisini al (cache kullanarak)
+        active_driver_id, active_driver_name = self._get_driver_association(active_only=True)
+        assigned_driver_id, assigned_driver_name = self._get_driver_association(active_only=False)
         
         # Öncelik: Aktif sürücü varsa onu göster, yoksa atanmış sürücüyü göster
         display_driver_id = active_driver_id if active_driver_id else assigned_driver_id

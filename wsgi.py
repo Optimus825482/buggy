@@ -9,7 +9,7 @@ import json
 
 # Configure logging for startup
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.ERROR,
     format='%(asctime)s [%(levelname)s] %(message)s',
     stream=sys.stdout
 )
@@ -59,7 +59,6 @@ except Exception as e:
     logger.error(f"   Error: {str(e)}")
     logger.error("="*60)
     import traceback
-    traceback.print_exc()
     sys.exit(1)
 
 if __name__ == "__main__":
