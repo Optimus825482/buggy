@@ -9,8 +9,9 @@ guest_bp = Blueprint('guest', __name__)
 @guest_bp.route('/call')
 def call():
     """Guest buggy call page with premium features (QR scanner, manual location)"""
-    location_id = request.args.get('location') or request.args.get('loc')
-    hotel_id = request.args.get('hotel', 1)  # Default hotel_id=1, QR koddan gelecek
+    # Kısa parametreleri destekle: l=location, h=hotel
+    location_id = request.args.get('l') or request.args.get('location') or request.args.get('loc')
+    hotel_id = request.args.get('h') or request.args.get('hotel', 1)  # Default hotel_id=1
     return render_template('guest/call_premium.html', location_id=location_id, hotel_id=hotel_id)
 
 

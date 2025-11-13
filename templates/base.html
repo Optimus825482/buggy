@@ -424,15 +424,21 @@
                     .then( registration => {
                         console.log( 'ServiceWorker registered:', registration.scope );
 
-                        // Check for updates periodically
+                        // Check for updates periodically (her 30 dakikada bir)
                         setInterval(() => {
                             registration.update();
-                        }, 60000); // Check every minute
+                        }, 1800000); // Check every 30 minutes
 
-                        // Check for updates when page becomes visible
+                        // Check for updates when page becomes visible (throttled)
+                        let lastUpdateCheck = 0;
                         document.addEventListener('visibilitychange', () => {
                             if (!document.hidden) {
-                                registration.update();
+                                const now = Date.now();
+                                // En az 5 dakika bekle
+                                if (now - lastUpdateCheck > 300000) {
+                                    lastUpdateCheck = now;
+                                    registration.update();
+                                }
                             }
                         });
 

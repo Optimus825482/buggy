@@ -346,7 +346,8 @@
 
 
     function showQRCodeAfterCreation(location) {
-        const guestUrl = location.qr_code_data || `${window.location.origin}/guest/call?location=${location.id}`;
+        // Kısa URL formatı kullan: l=location
+        const guestUrl = location.qr_code_data || `${window.location.origin}/guest/call?l=${location.id}`;
 
         const modal = BuggyModal.showCustomModal( {
             title: `✅ Lokasyon Oluşturuldu - ${location.name}`,
@@ -379,7 +380,7 @@
                             <i class="fas fa-print"></i> Yazdır
                         </button>
                         <button class="btn btn-success" onclick="downloadQRCode('${location.name}', '${location.id}')" style="min-width: 150px;">
-                            <i class="fas fa-download"></i> PNG İndir
+                            <i class="fas fa-download"></i> SVG İndir
                         </button>
                     </div>
 
@@ -418,8 +419,8 @@
     function showQRCode( id, name, qrData ) {
         console.log( 'showQRCode called:', { id, name, qrData } );
 
-        // qrData is the URL from backend (e.g., http://192.168.1.100:5000/guest/call?location=22)
-        const guestUrl = qrData || `${window.location.origin}/guest/call?location=${id}`;
+        // qrData is the URL from backend (kısa format: ?l=id)
+        const guestUrl = qrData || `${window.location.origin}/guest/call?l=${id}`;
 
         const modal = BuggyModal.showCustomModal( {
             title: `QR Kod - ${name}`,
@@ -447,7 +448,7 @@
                             <i class="fas fa-print"></i> Yazdır
                         </button>
                         <button class="btn btn-success" onclick="downloadQRCode('${name}', '${id}')" style="min-width: 150px;">
-                            <i class="fas fa-download"></i> PNG İndir
+                            <i class="fas fa-download"></i> SVG İndir
                         </button>
                     </div>
 
@@ -493,37 +494,43 @@
         return div.innerHTML;
     }
 
-    function downloadQRCode( name, locationId ) {
-        const container = document.getElementById( 'qr-code-container' );
-        if ( !container ) {
-            console.error( 'QR code container not found' );
-            return;
-        }
-
-        // Use html2canvas to capture the QR code container
-        if ( typeof html2canvas !== 'undefined' ) {
-            html2canvas( container, {
-                backgroundColor: '#ffffff',
-                scale: 2
-            } ).then( canvas => {
-                const link = document.createElement( 'a' );
-                link.download = `QR_${name.replace( /[^a-z0-9]/gi, '_' )}.png`;
-                link.href = canvas.toDataURL( 'image/png' );
-                link.click();
-                BuggyCall.Utils.showToast( 'QR kod indirildi!', 'success' );
-            } ).catch( error => {
-                console.error( 'QR download error:', error );
-                BuggyCall.Utils.showToast( 'QR kod indirilemedi', 'danger' );
-            } );
-        } else {
-            console.error( 'html2canvas library not loaded' );
-            BuggyCall.Utils.showToast( 'html2canvas kütüphanesi yüklenemedi', 'danger' );
+    async function downloadQRCode( name, locationId ) {
+        try {
+            BuggyCall.Utils.showLoading( 'QR kod hazırlanıyor...' );
+            
+            // Backend'den SVG formatında QR kod al
+            const response = await fetch( `/api/locations/${locationId}/qr-svg` );
+            
+            if ( !response.ok ) {
+                throw new Error( 'QR kod alınamadı' );
+            }
+            
+            const blob = await response.blob();
+            
+            // Download link oluştur
+            const url = URL.createObjectURL( blob );
+            const link = document.createElement( 'a' );
+            link.href = url;
+            link.download = `QR_${name.replace( /[^a-z0-9]/gi, '_' )}.svg`;
+            
+            // İndir ve temizle
+            document.body.appendChild( link );
+            link.click();
+            document.body.removeChild( link );
+            URL.revokeObjectURL( url );
+            
+            BuggyCall.Utils.hideLoading();
+            BuggyCall.Utils.showToast( 'QR kod SVG olarak indirildi!', 'success' );
+        } catch ( error ) {
+            console.error( 'QR download error:', error );
+            BuggyCall.Utils.hideLoading();
+            BuggyCall.Utils.showToast( 'QR kod indirilemedi: ' + error.message, 'danger' );
         }
     }
 
     function quickPrintQR(id, name, qrData) {
-        // Generate QR code in a hidden container and print directly
-        const guestUrl = qrData || `${window.location.origin}/guest/call?location=${id}`;
+        // Generate QR code in a hidden container and print directly (kısa format)
+        const guestUrl = qrData || `${window.location.origin}/guest/call?l=${id}`;
 
         // Create a temporary container
         const tempDiv = document.createElement('div');

@@ -125,14 +125,30 @@ async function loadBuggiesStatus() {
             console.log(`✅ [ADMIN] Found ${data.buggies.length} buggies, ${available} available`);
             availableCount.textContent = available;
             
-            buggiesList.innerHTML = data.buggies.map(buggy => `
-                <tr>
-                    <td><strong>${buggy.code || buggy.license_plate}</strong><br><small>${buggy.license_plate || ''}</small></td>
-                    <td>${buggy.driver_name || '<span class="badge badge-secondary">Atanmadı</span>'}</td>
-                    <td>${buggy.current_location?.name || buggy.current_location_name || '<span class="badge badge-secondary">-</span>'}</td>
-                    <td>${buggyStatusBadges[buggy.status] || buggy.status}</td>
-                </tr>
-            `).join('');
+            buggiesList.innerHTML = data.buggies.map(buggy => {
+                // Online olan buggy'ler için oturum kapatma butonu
+                const closeSessionBtn = (buggy.status === 'available' || buggy.status === 'busy') && buggy.driver_id
+                    ? `<button 
+                        class="btn btn-sm btn-danger" 
+                        onclick="closeDriverSession(${buggy.driver_id}, '${buggy.code}')"
+                        title="Sürücü oturumunu kapat"
+                        style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                        <i class="fas fa-power-off"></i>
+                    </button>`
+                    : '';
+                
+                return `
+                    <tr>
+                        <td><strong>${buggy.code || buggy.license_plate}</strong><br><small>${buggy.license_plate || ''}</small></td>
+                        <td>${buggy.driver_name || '<span class="badge badge-secondary">Atanmadı</span>'}</td>
+                        <td>${buggy.current_location?.name || buggy.current_location_name || '<span class="badge badge-secondary">-</span>'}</td>
+                        <td>
+                            ${buggyStatusBadges[buggy.status] || buggy.status}
+                            ${closeSessionBtn}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         } else {
             availableCount.textContent = '0';
             buggiesList.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #6B7280;">Buggy yok</td></tr>';
@@ -289,6 +305,44 @@ function requestNotificationPermission() {
 function loadAllData() {
     loadActiveRequests();
     loadBuggiesStatus();
+}
+
+// Close driver session (Admin)
+async function closeDriverSession(driverId, buggyCode) {
+    try {
+        const confirmed = await BuggyModal.confirm(
+            `${buggyCode} shuttle'ının sürücü oturumunu kapatmak istediğinize emin misiniz?`,
+            'Oturum Kapat',
+            'danger'
+        );
+        
+        if (!confirmed) return;
+        
+        BuggyCall.Utils.showLoading('Oturum kapatılıyor...');
+        
+        const response = await fetch(`/api/admin/close-driver-session/${driverId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        BuggyCall.Utils.hideLoading();
+        
+        if (response.ok && data.success) {
+            BuggyCall.Utils.showToast('Sürücü oturumu kapatıldı', 'success');
+            // Reload buggy list
+            loadBuggiesStatus();
+        } else {
+            BuggyCall.Utils.showToast(data.error || 'Oturum kapatılamadı', 'danger');
+        }
+    } catch (error) {
+        console.error('Close session error:', error);
+        BuggyCall.Utils.hideLoading();
+        BuggyCall.Utils.showToast('Bir hata oluştu', 'danger');
+    }
 }
 
 // Initial load

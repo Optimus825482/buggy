@@ -268,11 +268,12 @@ def create_location():
         else:
             base_url = request.host_url.rstrip('/')
         
-        qr_code_data = f"{base_url}/guest/call?location={location.id}"
+        # Kısa URL formatı kullan: l=location
+        qr_code_data = f"{base_url}/guest/call?l={location.id}"
         location.qr_code_data = qr_code_data
         
-        # Generate QR code image
-        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        # Generate QR code image (optimize edilmiş parametreler)
+        qr = qrcode.QRCode(version=1, box_size=2, border=0)
         qr.add_data(qr_code_data)
         qr.make(fit=True)
         
@@ -382,11 +383,12 @@ def update_location(location_id):
             else:
                 base_url = request.host_url.rstrip('/')
             
-            qr_code_data = f"{base_url}/guest/call?location={location.id}"
+            # Kısa URL formatı kullan: l=location
+            qr_code_data = f"{base_url}/guest/call?l={location.id}"
             location.qr_code_data = qr_code_data
             
-            # Generate new QR code image
-            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            # Generate new QR code image (optimize edilmiş parametreler)
+            qr = qrcode.QRCode(version=1, box_size=2, border=0)
             qr.add_data(qr_code_data)
             qr.make(fit=True)
             
@@ -436,11 +438,12 @@ def regenerate_qr_code(location_id):
         else:
             base_url = request.host_url.rstrip('/')
         
-        qr_code_data = f"{base_url}/guest/call?location={location.id}"
+        # Kısa URL formatı kullan: l=location
+        qr_code_data = f"{base_url}/guest/call?l={location.id}"
         location.qr_code_data = qr_code_data
         
-        # Generate new QR code image
-        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        # Generate new QR code image (optimize edilmiş parametreler)
+        qr = qrcode.QRCode(version=1, box_size=2, border=0)
         qr.add_data(qr_code_data)
         qr.make(fit=True)
         
@@ -511,8 +514,8 @@ def download_qr_code(location_id):
         if not location:
             return jsonify({'error': 'Lokasyon bulunamadı'}), 404
 
-        # Generate QR code
-        qr = qrcode.QRCode(version=1, box_size=10, border=5, error_correction=qrcode.constants.ERROR_CORRECT_H)
+        # Generate QR code (minimal yoğunluk)
+        qr = qrcode.QRCode(version=1, box_size=2, border=0, error_correction=qrcode.constants.ERROR_CORRECT_L)
         qr.add_data(location.qr_code_data)
         qr.make(fit=True)
 
@@ -527,9 +530,49 @@ def download_qr_code(location_id):
             buffer,
             mimetype='image/png',
             as_attachment=True,
-            download_name=f'QR_{location.name.replace(" ", "_")}_{location.qr_code_data}.png'
+            download_name=f'QR_{location.name.replace(" ", "_")}.png'
         )
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@api_bp.route('/locations/<int:location_id>/qr-svg', methods=['GET'])
+def download_qr_svg(location_id):
+    """Download QR code as SVG"""
+    try:
+        from flask import send_file
+        import qrcode.image.svg
+
+        location = Location.query.get(location_id)
+        if not location:
+            return jsonify({'error': 'Lokasyon bulunamadı'}), 404
+
+        # QR kod verisi
+        qr_data = location.qr_code_data
+        
+        # QRCodeService kullanarak SVG oluştur (800x800 boyut, minimal yoğunluk)
+        from app.services.qr_service import QRCodeService
+        svg_bytes, _ = QRCodeService.generate_qr_code(
+            data=qr_data,
+            box_size=2,  # Minimal yoğunluk
+            border=0,    # Kenarsız
+            error_correction=qrcode.constants.ERROR_CORRECT_L,  # %7 hata düzeltme
+            format='svg'  # 800x800 boyutunda oluşturulacak
+        )
+
+        # BytesIO'ya yaz
+        buffer = io.BytesIO(svg_bytes)
+        buffer.seek(0)
+
+        return send_file(
+            buffer,
+            mimetype='image/svg+xml',
+            as_attachment=True,
+            download_name=f'QR_{location.name.replace(" ", "_")}.svg'
+        )
+    except Exception as e:
+        import logging
+        logging.error(f"SVG QR kod oluşturma hatası: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -623,7 +666,7 @@ def create_buggy():
                     driver_id=driver_id,
                     is_active=False,  # Will be activated when driver logs in
                     is_primary=True,
-                    assigned_at=datetime.utcnow()
+                    assigned_at=get_current_timestamp()
                 )
                 db.session.add(association)
                 print(f'✅ BuggyDriver association created: buggy_id={buggy.id}, driver_id={driver_id}')
@@ -783,7 +826,7 @@ def create_request():
         if not location:
             return jsonify({'error': 'Geçersiz lokasyon'}), 404
         
-        # Create request
+        # Create request (requested_at otomatik olarak get_current_timestamp ile ayarlanır)
         buggy_request = BuggyRequest(
             hotel_id=location.hotel_id,
             location_id=location_id,
@@ -792,8 +835,7 @@ def create_request():
             phone=data.get('phone'),
             notes=data.get('notes'),
             guest_device_id=request.remote_addr,  # Use IP as guest identifier
-            status='PENDING',
-            requested_at=datetime.utcnow()
+            status='PENDING'
         )
         
         db.session.add(buggy_request)
@@ -1099,9 +1141,10 @@ def cancel_request(request_id):
             return jsonify({'error': 'Bu talep zaten iptal edilmiş'}), 400
         
         # Update request
+        from app.models import get_current_timestamp
         old_status = buggy_request.status
         buggy_request.status = 'cancelled'
-        buggy_request.cancelled_at = datetime.utcnow()
+        buggy_request.cancelled_at = get_current_timestamp()
         buggy_request.cancelled_by = current_user.id
         
         # If was accepted, free up the buggy
@@ -1614,8 +1657,9 @@ def close_driver_session(driver_id):
         buggy_ids = []
         for assoc in active_buggy_drivers:
             # Deactivate driver association
+            from app.models import get_current_timestamp
             assoc.is_active = False
-            assoc.last_active_at = datetime.utcnow()
+            assoc.last_active_at = get_current_timestamp()
             
             # Set buggy to offline and clear location
             buggy = Buggy.query.get(assoc.buggy_id)
@@ -1635,9 +1679,10 @@ def close_driver_session(driver_id):
             is_active=True
         ).all()
         
+        from app.models import get_current_timestamp
         for sess in active_sessions:
             sess.is_active = False
-            sess.revoked_at = datetime.utcnow()
+            sess.revoked_at = get_current_timestamp()
         
         db.session.commit()
         
@@ -1690,6 +1735,11 @@ def set_driver_location():
     """Set or update driver's current location"""
     try:
         user = SystemUser.query.get(session['user_id'])
+        
+        # User kontrolü
+        if not user:
+            return jsonify({'error': 'Kullanıcı bulunamadı'}), 404
+        
         data = request.get_json()
         
         if not data or 'location_id' not in data:
@@ -1697,13 +1747,17 @@ def set_driver_location():
         
         location_id = data['location_id']
         
+        # Location ID validasyonu
+        if not isinstance(location_id, int) or location_id <= 0:
+            return jsonify({'error': 'Geçersiz location_id'}), 400
+        
         # Check if user is driver
         if user.role != UserRole.DRIVER:
             return jsonify({'error': 'Sadece sürücüler lokasyon ayarlayabilir'}), 403
         
         # Check if driver has buggy
         if not user.buggy:
-            return jsonify({'error': 'Size atanmış buggy bulunamadı'}), 404
+            return jsonify({'error': 'Size atanmış buggy bulunamadı. Lütfen yöneticinizle iletişime geçin.'}), 404
         
         # Validate location
         location = Location.query.get(location_id)
@@ -1783,17 +1837,21 @@ def driver_accept_request(request_id):
     try:
         user = SystemUser.query.get(session['user_id'])
         
+        # User kontrolü
+        if not user:
+            return jsonify({'error': 'Kullanıcı bulunamadı'}), 404
+        
         # Check if user is driver
         if user.role != UserRole.DRIVER:
             return jsonify({'error': 'Sadece sürücüler talep kabul edebilir'}), 403
         
         # Check if driver has buggy
         if not user.buggy:
-            return jsonify({'error': 'Size atanmış buggy bulunamadı'}), 404
+            return jsonify({'error': 'Size atanmış buggy bulunamadı. Lütfen yöneticinizle iletişime geçin.'}), 404
         
         # Check if buggy is available
         if user.buggy.status != BuggyStatus.AVAILABLE:
-            return jsonify({'error': 'Buggy müsait değil'}), 400
+            return jsonify({'error': f'Buggy müsait değil. Mevcut durum: {user.buggy.status.value}'}), 400
         
         # Get request with row-level lock to prevent race conditions
         buggy_request = db.session.query(BuggyRequest).filter_by(
@@ -1806,10 +1864,11 @@ def driver_accept_request(request_id):
             return jsonify({'error': 'Talep bulunamadı veya artık müsait değil'}), 404
         
         # Update request
+        from app.models import get_current_timestamp
         buggy_request.status = RequestStatus.ACCEPTED
         buggy_request.buggy_id = user.buggy.id
         buggy_request.accepted_by_id = user.id
-        buggy_request.accepted_at = datetime.utcnow()
+        buggy_request.accepted_at = get_current_timestamp()
         
         # Update buggy status
         user.buggy.status = BuggyStatus.BUSY
@@ -1898,13 +1957,17 @@ def driver_complete_request(request_id):
     try:
         user = SystemUser.query.get(session['user_id'])
         
+        # User kontrolü
+        if not user:
+            return jsonify({'error': 'Kullanıcı bulunamadı'}), 404
+        
         # Check if user is driver
         if user.role != UserRole.DRIVER:
             return jsonify({'error': 'Sadece sürücüler talep tamamlayabilir'}), 403
         
         # Check if driver has buggy
         if not user.buggy:
-            return jsonify({'error': 'Size atanmış buggy bulunamadı'}), 404
+            return jsonify({'error': 'Size atanmış buggy bulunamadı. Lütfen yöneticinizle iletişime geçin.'}), 404
         
         # Get request
         buggy_request = BuggyRequest.query.filter_by(
@@ -1918,8 +1981,9 @@ def driver_complete_request(request_id):
             return jsonify({'error': 'Talep bulunamadı veya size ait değil'}), 404
         
         # Update request
+        from app.models import get_current_timestamp
         buggy_request.status = RequestStatus.COMPLETED
-        buggy_request.completed_at = datetime.utcnow()
+        buggy_request.completed_at = get_current_timestamp()
         
         # Keep buggy busy until driver sets new location
         # (Location modal will be shown on frontend)
@@ -2028,8 +2092,9 @@ def terminate_session(session_id):
             return jsonify({'error': 'Oturum zaten sonlandırılmış'}), 400
         
         # Terminate session
+        from app.models import get_current_timestamp
         user_session.is_active = False
-        user_session.revoked_at = datetime.utcnow()
+        user_session.revoked_at = get_current_timestamp()
         
         # If driver, set buggy offline
         session_user = SystemUser.query.get(user_session.user_id)
@@ -2232,10 +2297,17 @@ def get_driver_shuttle_info():
     try:
         user = SystemUser.query.get(session['user_id'])
         
+        # User kontrolü
+        if not user:
+            return jsonify({
+                'success': False,
+                'error': 'Kullanıcı bulunamadı'
+            }), 404
+        
         if not user.buggy:
             return jsonify({
                 'success': False,
-                'error': 'Size atanmış shuttle bulunamadı'
+                'error': 'Size atanmış shuttle bulunamadı. Lütfen yöneticinizle iletişime geçin.'
             }), 404
         
         return jsonify({
@@ -2316,7 +2388,7 @@ def assign_driver_to_buggy():
                 driver_id=driver_id,
                 is_active=False,  # Will be set to True when driver logs in
                 is_primary=True,  # Mark as primary driver
-                assigned_at=datetime.utcnow()
+                assigned_at=get_current_timestamp()
             )
             db.session.add(association)
         
@@ -2442,9 +2514,10 @@ def transfer_driver():
         session_was_active = active_session is not None
         
         # If active session exists, terminate it
+        from app.models import get_current_timestamp
         if active_session:
             active_session.is_active = False
-            active_session.revoked_at = datetime.utcnow()
+            active_session.revoked_at = get_current_timestamp()
             
             # Deactivate driver association from source buggy
             source_association.is_active = False
@@ -2465,7 +2538,7 @@ def transfer_driver():
         if target_association:
             # Reactivate existing association
             target_association.is_active = False  # Will be activated when driver logs in
-            target_association.assigned_at = datetime.utcnow()
+            target_association.assigned_at = get_current_timestamp()
         else:
             # Create new association
             target_association = BuggyDriver(
@@ -2473,7 +2546,7 @@ def transfer_driver():
                 driver_id=driver_id,
                 is_active=False,  # Will be activated when driver logs in
                 is_primary=True,
-                assigned_at=datetime.utcnow()
+                assigned_at=get_current_timestamp()
             )
             db.session.add(target_association)
         
