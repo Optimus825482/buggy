@@ -197,7 +197,11 @@ def send_guest_notification(request_id):
         except Exception as fcm_error:
             logger.error(f'❌ FCM send error: {str(fcm_error)}')
             # Fallback: HTTP API kullan
-            return send_fcm_http_notification(fcm_token, message_data, status)
+            success, message = send_fcm_http_notification(fcm_token, message_data, status)
+            if success:
+                return jsonify({'success': True, 'message': message}), 200
+            else:
+                return jsonify({'success': False, 'message': message}), 500
         
     except Exception as e:
         logger.error(f'❌ Error sending guest notification: {str(e)}')
@@ -209,67 +213,61 @@ def send_guest_notification(request_id):
 
 def send_fcm_http_notification(token, message_data, status):
     """
-    FCM HTTP v1 API kullanarak bildirim gönder (fallback)
+    Firebase Admin SDK kullanarak bildirim gönder
+    Returns: (success: bool, message: str)
     """
     try:
-        import requests
+        import firebase_admin
+        from firebase_admin import messaging, credentials
         
-        # FCM server key gerekli
-        server_key = current_app.config.get('FCM_SERVER_KEY')
-        if not server_key:
-            logger.error('❌ FCM_SERVER_KEY not configured')
-            return jsonify({
-                'success': False,
-                'message': 'FCM yapılandırması eksik'
-            }), 500
+        # Firebase Admin SDK'yı başlat (eğer başlatılmamışsa)
+        if not firebase_admin._apps:
+            cred_path = current_app.config.get('FIREBASE_SERVICE_ACCOUNT_PATH', 'firebase-service-account.json')
+            try:
+                cred = credentials.Certificate(cred_path)
+                firebase_admin.initialize_app(cred)
+                logger.info('✅ Firebase Admin SDK initialized')
+            except Exception as init_error:
+                logger.error(f'❌ Firebase Admin SDK init error: {str(init_error)}')
+                return False, f'Firebase başlatılamadı: {str(init_error)}'
         
-        # FCM HTTP v1 endpoint
-        url = 'https://fcm.googleapis.com/fcm/send'
-        
-        headers = {
-            'Authorization': f'key={server_key}',
-            'Content-Type': 'application/json'
-        }
-        
-        payload = {
-            'to': token,
-            'notification': {
-                'title': message_data['title'],
-                'body': message_data['body'],
-                'icon': '/static/icons/Icon-192.png',
-                'badge': '/static/icons/Icon-96.png',
-                'vibrate': [200, 100, 200, 100, 200],
-                'requireInteraction': (status == 'accepted')
-            },
-            'data': {
+        # FCM mesajı oluştur
+        message = messaging.Message(
+            notification=messaging.Notification(
+                title=message_data['title'],
+                body=message_data['body']
+            ),
+            data={
                 'type': 'status_update',
                 'status': status,
                 'priority': 'high' if status == 'accepted' else 'normal'
             },
-            'priority': 'high'
-        }
+            token=token,
+            webpush=messaging.WebpushConfig(
+                notification=messaging.WebpushNotification(
+                    title=message_data['title'],
+                    body=message_data['body'],
+                    icon='/static/icons/Icon-192.png',
+                    badge='/static/icons/Icon-96.png',
+                    vibrate=[200, 100, 200, 100, 200],
+                    require_interaction=(status == 'accepted')
+                ),
+                fcm_options=messaging.WebpushFCMOptions(
+                    link='/'
+                )
+            )
+        )
         
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        # Bildirimi gönder
+        response = messaging.send(message)
+        logger.info(f'✅ FCM notification sent successfully: {response}')
+        return True, 'Bildirim başarıyla gönderildi'
         
-        if response.status_code == 200:
-            logger.info(f'✅ FCM HTTP notification sent successfully')
-            return jsonify({
-                'success': True,
-                'message': 'Bildirim başarıyla gönderildi (HTTP)'
-            }), 200
-        else:
-            logger.error(f'❌ FCM HTTP error: {response.status_code} - {response.text}')
-            return jsonify({
-                'success': False,
-                'message': f'FCM HTTP hatası: {response.status_code}'
-            }), 500
-            
     except Exception as e:
-        logger.error(f'❌ FCM HTTP send error: {str(e)}')
-        return jsonify({
-            'success': False,
-            'message': f'HTTP bildirim gönderilemedi: {str(e)}'
-        }), 500
+        logger.error(f'❌ FCM send error: {str(e)}')
+        import traceback
+        logger.error(traceback.format_exc())
+        return False, f'Bildirim gönderilemedi: {str(e)}'
 
 
 @guest_notification_api_bp.route('/guest/test-notification', methods=['POST'])
@@ -295,4 +293,31 @@ def test_guest_notification():
         return jsonify({
             'success': False,
             'message': f'Test bildirimi gönderilemedi: {str(e)}'
+        }), 500
+
+
+@guest_notification_api_bp.route('/guest/debug-tokens', methods=['GET'])
+def debug_tokens():
+    """
+    Kayıtlı FCM token'ları göster (debug için)
+    """
+    try:
+        tokens_info = {}
+        for req_id, token_data in GUEST_FCM_TOKENS.items():
+            tokens_info[req_id] = {
+                'token_preview': token_data['token'][:20] + '...',
+                'registered_at': token_data['registered_at']
+            }
+        
+        return jsonify({
+            'success': True,
+            'total_tokens': len(GUEST_FCM_TOKENS),
+            'tokens': tokens_info
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'❌ Debug tokens error: {str(e)}')
+        return jsonify({
+            'success': False,
+            'message': f'Token listesi alınamadı: {str(e)}'
         }), 500
