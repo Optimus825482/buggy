@@ -1049,6 +1049,44 @@ def accept_request(request_id):
             'accepted_at': buggy_request.accepted_at.isoformat()
         }, room=f'request_{request_id}')
         
+        # Guest'e FCM bildirimi gönder
+        try:
+            from app.routes.guest_notification_api import GUEST_FCM_TOKENS
+            import requests
+            
+            token_data = GUEST_FCM_TOKENS.get(request_id)
+            if token_data:
+                # FCM bildirimi gönder
+                fcm_url = 'https://fcm.googleapis.com/fcm/send'
+                fcm_headers = {
+                    'Authorization': f'key={current_app.config.get("FCM_SERVER_KEY")}',
+                    'Content-Type': 'application/json'
+                }
+                fcm_payload = {
+                    'to': token_data['token'],
+                    'notification': {
+                        'title': '🚀 Shuttle Yola Çıktı!',
+                        'body': f'Shuttle\'ınız {buggy.plate_number} yola çıktı. Yakında yanınızda!',
+                        'icon': '/static/img/shuttle-icon.png',
+                        'click_action': f'/guest/status/{request_id}'
+                    },
+                    'data': {
+                        'request_id': str(request_id),
+                        'status': 'accepted',
+                        'buggy_plate': buggy.plate_number
+                    }
+                }
+                
+                response = requests.post(fcm_url, json=fcm_payload, headers=fcm_headers, timeout=5)
+                if response.status_code == 200:
+                    logger.info(f'✅ FCM notification sent to guest for request {request_id}')
+                else:
+                    logger.warning(f'⚠️ FCM notification failed: {response.text}')
+            else:
+                logger.info(f'ℹ️ No FCM token found for request {request_id}')
+        except Exception as notif_error:
+            logger.error(f'❌ Error sending FCM notification: {str(notif_error)}')
+        
         # Emit to other drivers that this request is taken (via SSE)
         from app.routes.sse import send_to_all_drivers
         send_to_all_drivers(buggy_request.hotel_id, 'request_taken', {

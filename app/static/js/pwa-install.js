@@ -19,6 +19,27 @@ class PWAInstaller {
             return;
         }
 
+        // Check if app is already installed
+        if (window.matchMedia('(display-mode: standalone)').matches ||
+            window.navigator.standalone === true) {
+            console.log('[PWA] App is running in standalone mode');
+            return;
+        }
+
+        // iOS Safari özel kontrolü
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS/i.test(navigator.userAgent);
+        
+        if (isIOS && isSafari) {
+            console.log('[PWA] iOS Safari detected - showing iOS install instructions');
+            // iOS için özel prompt göster (biraz gecikmeyle)
+            setTimeout(() => {
+                this.showIOSInstallPrompt();
+            }, 3000);
+            return;
+        }
+
+        // Android/Desktop için normal prompt
         // Listen for beforeinstallprompt event
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log('[PWA] Install prompt available');
@@ -33,13 +54,6 @@ class PWAInstaller {
             this.hideInstallPrompt();
             this.showInstalledMessage();
         });
-
-        // Check if app is already installed
-        if (window.matchMedia('(display-mode: standalone)').matches ||
-            window.navigator.standalone === true) {
-            console.log('[PWA] App is running in standalone mode');
-            this.hideInstallPrompt();
-        }
 
         // Create install UI
         this.createInstallUI();
@@ -347,6 +361,192 @@ class PWAInstaller {
             toast.classList.add('hide');
             setTimeout(() => toast.remove(), 300);
         }, 3000);
+    }
+
+    /**
+     * iOS için özel install promptu göster
+     */
+    showIOSInstallPrompt() {
+        // Daha önce kapatıldıysa tekrar gösterme
+        if (this.isPromptDismissed()) {
+            return;
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'ios-install-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        `;
+
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            background: white;
+            border-radius: 20px 20px 0 0;
+            width: 100%;
+            max-width: 500px;
+            padding: 24px;
+            animation: slideUpFromBottom 0.4s ease;
+        `;
+
+        modal.innerHTML = `
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideUpFromBottom {
+                    from { transform: translateY(100%); }
+                    to { transform: translateY(0); }
+                }
+                .ios-install-step {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    padding: 16px;
+                    background: #f8fafc;
+                    border-radius: 12px;
+                    margin-bottom: 12px;
+                }
+                .ios-install-step-number {
+                    width: 32px;
+                    height: 32px;
+                    background: #1BA5A8;
+                    color: white;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: 700;
+                    flex-shrink: 0;
+                }
+                .ios-install-icon {
+                    font-size: 24px;
+                    flex-shrink: 0;
+                }
+                .ios-close-btn {
+                    width: 100%;
+                    padding: 14px;
+                    background: #e2e8f0;
+                    border: none;
+                    border-radius: 12px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: #64748b;
+                    cursor: pointer;
+                    margin-top: 16px;
+                }
+            </style>
+
+            <div style="text-align: center; margin-bottom: 24px;">
+                <div style="
+                    width: 80px;
+                    height: 80px;
+                    margin: 0 auto 16px;
+                    background: linear-gradient(135deg, #1BA5A8 0%, #158B8E 100%);
+                    border-radius: 20px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 8px 16px rgba(27, 165, 168, 0.3);
+                ">
+                    <img src="/static/icons/Icon-96.png" alt="Shuttle Call" style="width: 60px; height: 60px; border-radius: 12px;">
+                </div>
+                <h3 style="font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 8px;">
+                    Ana Ekrana Ekle
+                </h3>
+                <p style="font-size: 14px; color: #64748b;">
+                    Daha hızlı erişim ve bildirimler için uygulamayı yükleyin
+                </p>
+            </div>
+
+            <div class="ios-install-step">
+                <div class="ios-install-step-number">1</div>
+                <div class="ios-install-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1BA5A8" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                        <line x1="12" y1="18" x2="12" y2="18"></line>
+                    </svg>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">
+                        Paylaş Butonuna Dokun
+                    </div>
+                    <div style="font-size: 13px; color: #64748b;">
+                        Safari'nin alt kısmındaki paylaş ikonuna tıklayın
+                    </div>
+                </div>
+            </div>
+
+            <div class="ios-install-step">
+                <div class="ios-install-step-number">2</div>
+                <div class="ios-install-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1BA5A8" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">
+                        "Ana Ekrana Ekle" Seçin
+                    </div>
+                    <div style="font-size: 13px; color: #64748b;">
+                        Açılan menüden "Add to Home Screen" seçeneğini bulun
+                    </div>
+                </div>
+            </div>
+
+            <div class="ios-install-step">
+                <div class="ios-install-step-number">3</div>
+                <div class="ios-install-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1BA5A8" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">
+                        Ekle'ye Basın
+                    </div>
+                    <div style="font-size: 13px; color: #64748b;">
+                        Sağ üstteki "Ekle" butonuna tıklayın
+                    </div>
+                </div>
+            </div>
+
+            <button class="ios-close-btn" id="ios-close-btn">
+                Anladım
+            </button>
+        `;
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        // Close button
+        const closeBtn = modal.querySelector('#ios-close-btn');
+        closeBtn.addEventListener('click', () => {
+            overlay.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => {
+                overlay.remove();
+            }, 300);
+            this.setPromptDismissed();
+        });
+
+        // Close on backdrop click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeBtn.click();
+            }
+        });
     }
 
     isPromptDismissed() {

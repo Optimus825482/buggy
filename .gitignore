@@ -38,6 +38,10 @@ instance/
 .env.local
 .env.*.local
 
+# Firebase Credentials (SENSITIVE!)
+firebase-service-account.json
+*service-account*.json
+
 # IDE
 .vscode/
 .idea/
@@ -56,9 +60,7 @@ htmlcov/
 *.log
 logs/
 
-# Uploads
-app/static/uploads/*
-!app/static/uploads/.gitkeep
+
 
 # QR Codes
 app/static/qr_codes/*
@@ -91,4 +93,3 @@ docker-compose.override.yml
 .env.coolify
 coolify.log
 COOLIFY_ENV_READY.txt
-firebase-service-account.json

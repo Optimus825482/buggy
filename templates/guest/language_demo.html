@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Language Demo - Shuttle Call</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(180deg, #F8F8F8 0%, #E8F4F8 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1A2B4A;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #6B7280;
+            margin-bottom: 40px;
+            font-size: 16px;
+        }
+
+        .demo-section {
+            margin-bottom: 40px;
+            padding: 24px;
+            background: #F8F9FA;
+            border-radius: 12px;
+        }
+
+        .demo-section h2 {
+            color: #1A2B4A;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .demo-item {
+            margin-bottom: 16px;
+            padding: 16px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .demo-key {
+            font-family: 'Courier New', monospace;
+            color: #D4AF37;
+            font-size: 14px;
+        }
+
+        .demo-value {
+            color: #1A2B4A;
+            font-weight: 600;
+        }
+
+        .info-box {
+            background: #E0F2FE;
+            border-left: 4px solid #1BA5A8;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .info-box h3 {
+            color: #1A2B4A;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .info-box p {
+            color: #6B7280;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid #E5E7EB;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list i {
+            color: #27AE60;
+            font-size: 18px;
+        }
+
+        .lang-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #1BA5A8;
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>🌍 Multi-Language Support Demo</h1>
+        <p class="subtitle">Shuttle Call Guest Pages - Automatic Language Detection</p>
+
+        <div class="info-box">
+            <h3><i class="fas fa-info-circle"></i> Nasıl Çalışır?</h3>
+            <p>
+                Sistem otomatik olarak kullanıcının tarayıcı dilini algılar ve içeriği o dilde gösterir.
+                Sağ üst köşedeki dil değiştirici ile manuel olarak da dil seçilebilir.
+            </p>
+        </div>
+
+        <div class="demo-section">
+            <h2>📱 Desteklenen Diller</h2>
+            <ul class="feature-list">
+                <li>
+                    <img src="/static/flags/tr.svg" alt="TR" style="width: 32px; height: 24px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <span>Türkçe (Turkish)</span>
+                </li>
+                <li>
+                    <img src="/static/flags/gb-eng.svg" alt="EN" style="width: 32px; height: 24px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <span>English</span>
+                </li>
+                <li>
+                    <img src="/static/flags/de.svg" alt="DE" style="width: 32px; height: 24px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <span>Deutsch (German)</span>
+                </li>
+                <li>
+                    <img src="/static/flags/ru.svg" alt="RU" style="width: 32px; height: 24px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <span>Русский (Russian)</span>
+                </li>
+                <li>
+                    <img src="/static/flags/sa.svg" alt="AR" style="width: 32px; height: 24px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <span>العربية (Arabic) - RTL Support</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h2>✨ Özellikler</h2>
+            <ul class="feature-list">
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <span>Otomatik tarayıcı dili algılama</span>
+                </li>
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <span>Manuel dil değiştirme (sağ üst köşe)</span>
+                </li>
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <span>LocalStorage ile dil tercihi kaydetme</span>
+                </li>
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <span>URL parametresi ile dil seçimi (?lang=en)</span>
+                </li>
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <span>RTL (Right-to-Left) desteği (Arapça)</span>
+                </li>
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    <span>Dinamik içerik çevirisi</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h2>🔤 Örnek Çeviriler</h2>
+            
+            <div class="demo-item">
+                <span class="demo-key">call.title</span>
+                <span class="demo-value" data-i18n="call.title">Shuttle Çağır</span>
+            </div>
+            
+            <div class="demo-item">
+                <span class="demo-key">call.scan_qr</span>
+                <span class="demo-value" data-i18n="call.scan_qr">QR Kod Okut</span>
+            </div>
+            
+            <div class="demo-item">
+                <span class="demo-key">call.call_shuttle</span>
+                <span class="demo-value" data-i18n="call.call_shuttle">Shuttle Çağır</span>
+            </div>
+            
+            <div class="demo-item">
+                <span class="demo-key">status.pending</span>
+                <span class="demo-value" data-i18n="status.pending">Bekliyor</span>
+            </div>
+            
+            <div class="demo-item">
+                <span class="demo-key">status.accepted</span>
+                <span class="demo-value" data-i18n="status.accepted">Kabul Edildi</span>
+            </div>
+            
+            <div class="demo-item">
+                <span class="demo-key">notif.shuttle_accepted</span>
+                <span class="demo-value" data-i18n="notif.shuttle_accepted">🎉 Shuttle Kabul Edildi!</span>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h3><i class="fas fa-lightbulb"></i> Test Etmek İçin</h3>
+            <p>
+                1. Sağ üst köşedeki bayrak ikonuna tıklayın<br>
+                2. Farklı diller seçin ve çevirilerin değiştiğini görün<br>
+                3. <strong>Tarayıcı sekmesindeki başlığın da değiştiğini gözlemleyin</strong><br>
+                4. Sayfayı yenileyin - seçtiğiniz dil korunur<br>
+                5. URL'ye ?lang=en ekleyerek dil parametresi test edin
+            </p>
+        </div>
+
+        <div class="demo-section">
+            <h2>🏷️ Sayfa Başlıkları (Title)</h2>
+            
+            <div class="demo-item">
+                <span class="demo-key">Call Page</span>
+                <span class="demo-value" id="call-title-demo">Shuttle Çağır - Shuttle Call System</span>
+            </div>
+            
+            <div class="demo-item">
+                <span class="demo-key">Status Page</span>
+                <span class="demo-value" id="status-title-demo">Talep Durumu - Shuttle Call System</span>
+            </div>
+            
+            <div class="demo-item">
+                <span class="demo-key">Current Page</span>
+                <span class="demo-value" id="current-title-demo" style="color: #1BA5A8; font-weight: 700;">
+                    <script>document.write(document.title);</script>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multi-Language Support -->
+    <script src="{{ url_for('static', filename='js/i18n-guest.js') }}"></script>
+
+    <script>
+        // Dil değiştiğinde title örneklerini güncelle
+        const originalChangeLanguage = window.guestI18n.changeLanguage.bind(window.guestI18n);
+        window.guestI18n.changeLanguage = function(lang) {
+            originalChangeLanguage(lang);
+            
+            // Demo title'ları güncelle
+            const i18n = window.guestI18n;
+            document.getElementById('call-title-demo').textContent = 
+                `${i18n.t('call.title')} - ${i18n.t('brand.name')}`;
+            document.getElementById('status-title-demo').textContent = 
+                `${i18n.t('status.title')} - ${i18n.t('brand.name')}`;
+            document.getElementById('current-title-demo').textContent = document.title;
+        };
+    </script>
+</body>
+</html>

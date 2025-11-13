@@ -257,6 +257,7 @@ def register_blueprints(app):
     from app.routes.admin_notification_api import admin_notification_api
     from app.routes.map_api import map_api
     from app.routes.sse import sse_bp
+    from app.routes.guest_notification_api import guest_notification_api_bp
 
     app.register_blueprint(setup_bp)  # No prefix, setup routes at root level
     app.register_blueprint(system_reset_bp)  # No prefix, system reset at root level
@@ -267,6 +268,7 @@ def register_blueprints(app):
     csrf.exempt(system_reset_bp)
     csrf.exempt(system_admin_bp)
     csrf.exempt(map_api)  # Map API uses GET requests for thumbnails
+    csrf.exempt(guest_notification_api_bp)  # Guest notification API
     
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -277,6 +279,7 @@ def register_blueprints(app):
     app.register_blueprint(audit_bp, url_prefix='/api')
     app.register_blueprint(admin_notification_api)  # Admin notification monitoring
     app.register_blueprint(map_api)  # Map thumbnail generation
+    app.register_blueprint(guest_notification_api_bp, url_prefix='/api')  # Guest notification API
     app.register_blueprint(health_bp)  # No prefix for health endpoints
     app.register_blueprint(sse_bp, url_prefix='/sse')  # SSE for real-time notifications
     

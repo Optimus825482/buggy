@@ -127,9 +127,9 @@ body {
     margin-top: 12px;
 }
 
-.small-logo {
-    width: 48px;
-    height: 48px;
+.l-logo {
+    width: 150px;
+    height: 150px;
     object-fit: contain;
 }
 
@@ -584,8 +584,8 @@ body {
         <!-- Brand Title -->
         <div class="brand-title-section">
             <!-- Small Logo -->
-        
-           <p class="brand-title-text">      Shuttle Call System</p>  </div>
+            <p class="brand-title-text" data-i18n="brand.name">Shuttle Call System</p>
+        </div>
       
         
         <!-- Location Image (Large) -->
@@ -613,7 +613,7 @@ body {
             <div class="qr-icon-wrapper" role="img" aria-label="QR Kod İkonu">
                 <i class="fas fa-qrcode" aria-hidden="true"></i>
             </div>
-            <h2>QR Kod Okutun</h2>
+            <h2 data-i18n="call.scan_qr">QR Kod Okutun</h2>
             <p>Bulunduğunuz lokasyondaki QR kodu okutarak kolayca shuttle çağırabilirsiniz</p>
             <button
                 class="btn-primary-modern"
@@ -621,7 +621,7 @@ body {
                 aria-label="QR kod okuyucuyu başlat"
                 type="button">
                 <i class="fas fa-camera" aria-hidden="true"></i>
-                <span>QR Kod Okut</span>
+                <span data-i18n="call.scan_qr">QR Kod Okut</span>
             </button>
         </div>
 
@@ -635,18 +635,19 @@ body {
                 style="margin-bottom: 24px;"
                 type="button">
                 <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                <span>Shuttle Çağır</span>
+                <span data-i18n="call.call_shuttle">Shuttle Çağır</span>
             </button>
 
             <!-- Room Number Input -->
-            <div class="input-section">
+       
+            <div class="input-section" style="display: none;">
                 <div class="input-header">
                     <div class="input-icon" role="img" aria-label="Oda ikonu">
                         <i class="fas fa-door-open" aria-hidden="true"></i>
                     </div>
-                    <h3 class="input-label">Oda Numaranız (Opsiyonel)</h3>
+                    <h3 class="input-label" data-i18n="call.room_number">Oda Numaranız (Opsiyonel)</h3>
                 </div>
-                <label for="room-number" class="sr-only">Oda numaranız (opsiyonel)</label>
+                <label for="room-number" class="sr-only" data-i18n="call.room_number">Oda numaranız (opsiyonel)</label>
                 <input
                     type="text"
                     class="modern-input"
@@ -1676,5 +1677,73 @@ animationStyles.textContent = `
     }
 `;
 document.head.appendChild(animationStyles);
+</script>
+
+<!-- Multi-Language Support (Load First) -->
+<script src="{{ url_for('static', filename='js/i18n-guest.js') }}"></script>
+
+<!-- Firebase SDK for FCM -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
+
+<!-- iOS Notification Handler -->
+<script src="{{ url_for('static', filename='js/ios-notification-handler.js') }}"></script>
+
+<!-- Guest Notification Manager -->
+<script src="{{ url_for('static', filename='js/guest-notifications.js') }}"></script>
+
+<script>
+// Guest için bildirim sistemi başlat
+(async function() {
+    'use strict';
+    
+    console.log('[Guest] Initializing notification system...');
+    
+    // iOS kontrolü
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    
+    if (isIOS && !isPWA) {
+        console.log('[Guest] iOS detected - PWA required for notifications');
+    }
+    
+    // Guest notification manager'ı başlat
+    const initialized = await window.guestNotificationManager.init();
+    
+    if (initialized) {
+        console.log('[Guest] Notification manager initialized');
+        
+        // Request oluşturulduğunda bildirim izni iste
+        window.addEventListener('request-created', async (event) => {
+            const requestId = event.detail.requestId;
+            console.log('[Guest] Request created, requesting notification permission:', requestId);
+            
+            // Bildirim izni iste ve token al
+            const token = await window.guestNotificationManager.requestPermissionAndGetToken(requestId);
+            
+            if (token) {
+                console.log('[Guest] FCM token registered successfully');
+            } else {
+                console.log('[Guest] FCM token registration failed or permission denied');
+            }
+        });
+        
+        // FCM mesajlarını dinle ve UI'ı güncelle
+        window.addEventListener('guest-fcm-message', (event) => {
+            const payload = event.detail;
+            console.log('[Guest] FCM message received:', payload);
+            
+            // Status güncellemesi varsa UI'ı güncelle
+            if (payload.data?.type === 'status_update' && payload.data?.status) {
+                // Guest.js'deki updateStatus fonksiyonunu çağır
+                if (window.Guest && typeof window.Guest.updateStatus === 'function') {
+                    window.Guest.updateStatus(payload.data.status, payload.data);
+                }
+            }
+        });
+    } else {
+        console.log('[Guest] Notification manager initialization failed');
+    }
+})();
 </script>
 {% endblock %}

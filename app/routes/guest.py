@@ -32,3 +32,9 @@ def status(request_id):
 def test_qr():
     """Test QR code page - shows latest QR code for testing"""
     return render_template('test_qr.html')
+
+
+@guest_bp.route('/language-demo')
+def language_demo():
+    """Multi-language support demo page"""
+    return render_template('guest/language_demo.html')

@@ -67,8 +67,8 @@ const Guest = {
         if (callForm) {
             callForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                // Show confirmation modal before submitting
-                await this.showCallConfirmation();
+                // Direkt submit et (confirmation modal'ı atla)
+                await this.submitRequest();
             });
         }
         
@@ -344,11 +344,12 @@ const Guest = {
      * Show call confirmation modal
      */
     async showCallConfirmation() {
+        const i18n = window.guestI18n || { t: (key) => key };
         const formData = BuggyCall.Form.getData('call-buggy-form');
         
         // Validation
         if (!this.locationId) {
-            await BuggyCall.Utils.showWarning('Lütfen bir lokasyon seçin veya QR kod okutun.');
+            await BuggyCall.Utils.showWarning(i18n.t('error.no_location'));
             return;
         }
         
@@ -357,8 +358,8 @@ const Guest = {
         const locationName = locationSelect?.options[locationSelect.selectedIndex]?.text || 'Seçili Lokasyon';
         
         // Build confirmation details
-        const roomInfo = formData.room_number ? `<div class="confirm-detail"><i class="fas fa-door-open"></i> Oda: ${formData.room_number}</div>` : '';
-        const notesInfo = formData.notes ? `<div class="confirm-detail"><i class="fas fa-comment"></i> Not: ${formData.notes}</div>` : '';
+        const roomInfo = formData.room_number ? `<div class="confirm-detail"><i class="fas fa-door-open"></i> ${i18n.t('confirm.room')}: ${formData.room_number}</div>` : '';
+        const notesInfo = formData.notes ? `<div class="confirm-detail"><i class="fas fa-comment"></i> ${i18n.t('call.notes')}: ${formData.notes}</div>` : '';
         
         // Create custom confirmation overlay
         const overlay = document.createElement('div');
@@ -473,7 +474,7 @@ const Guest = {
                     color: #1e293b;
                     margin-bottom: 1rem;
                 ">
-                    Shuttle Çağırmak İstiyor musunuz?
+                    ${i18n.t('confirm.title')}
                 </h3>
                 
                 <p style="
@@ -481,7 +482,7 @@ const Guest = {
                     color: #64748b;
                     margin-bottom: 1.5rem;
                 ">
-                    Talebinizi onaylayın
+                    ${i18n.t('confirm.subtitle')}
                 </p>
                 
                 <div style="
@@ -494,7 +495,7 @@ const Guest = {
                 ">
                     <div class="confirm-detail">
                         <i class="fas fa-map-marker-alt"></i>
-                        <span><strong>Lokasyon:</strong> ${locationName}</span>
+                        <span><strong>${i18n.t('confirm.location')}:</strong> ${locationName}</span>
                     </div>
                     ${roomInfo}
                     ${notesInfo}
@@ -502,10 +503,10 @@ const Guest = {
                 
                 <div style="display: flex; gap: 1rem;">
                     <button class="confirm-btn confirm-btn-no" id="cancel-btn">
-                        <i class="fas fa-times"></i> İptal
+                        <i class="fas fa-times"></i> ${i18n.t('btn.cancel')}
                     </button>
                     <button class="confirm-btn confirm-btn-yes" id="confirm-btn">
-                        <i class="fas fa-check"></i> Evet, Çağır
+                        <i class="fas fa-check"></i> ${i18n.t('btn.confirm')}
                     </button>
                 </div>
             </div>
@@ -513,6 +514,19 @@ const Guest = {
         
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
+        
+        // Manuel olarak çevir (MutationObserver innerHTML'i yakalamıyor)
+        setTimeout(() => {
+            if (window.guestI18n) {
+                const i18nElements = modal.querySelectorAll('[data-i18n]');
+                i18nElements.forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    const translation = window.guestI18n.t(key);
+                    el.textContent = translation;
+                });
+                console.log('[Guest] Confirmation modal translated:', i18nElements.length, 'elements');
+            }
+        }, 50);
         
         // Handle button clicks
         return new Promise((resolve) => {
@@ -550,50 +564,95 @@ const Guest = {
     },
 
     /**
-     * Submit buggy request
+     * Submit shuttle request
      */
     async submitRequest() {
         try {
-            const formData = BuggyCall.Form.getData('call-buggy-form');
+            // Get location ID from global state or this object
+            const locationId = window.state?.selectedLocationId || this.locationId;
             
             // Validation
-            if (!this.locationId) {
-                await BuggyCall.Utils.showWarning('Lütfen bir lokasyon seçin veya QR kod okutun.');
+            if (!locationId) {
+                console.error('❌ Location ID bulunamadı');
+                if (typeof showToast === 'function') {
+                    showToast('Lütfen önce QR kod okutun', 'error');
+                } else {
+                    alert('Lütfen önce QR kod okutun');
+                }
                 return;
             }
             
-            BuggyCall.Utils.showLoading();
+            // Get room number from input
+            const roomNumberInput = document.getElementById('room-number');
+            const roomNumber = roomNumberInput?.value?.trim() || null;
             
-            const response = await BuggyCall.API.post('/requests', {
-                hotel_id: this.hotelId,
-                location_id: this.locationId,
-                room_number: formData.room_number || null,
-                notes: formData.notes || null
-            });
+            console.log('🚀 Submitting request:', { locationId, roomNumber });
             
-            if (response.success) {
-                this.requestId = response.request.id;
-                
-                // Show themed success notification with 5 second warning
-                this.showRequestSuccessNotification();
-                
-                // Join request room for updates
-                this.socket.emit('join_request', {
-                    request_id: this.requestId
-                });
-                
-                // Setup status tracking
-                this.setupStatusTracking();
-                
-                // Show status view
-                this.showStatusView();
+            // Show loading
+            if (typeof showLoadingOverlay === 'function') {
+                showLoadingOverlay('Shuttle çağrılıyor...');
             }
             
-            BuggyCall.Utils.hideLoading();
+            // Submit request
+            const response = await fetch('/api/requests', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    location_id: locationId,
+                    room_number: roomNumber
+                })
+            });
+            
+            const data = await response.json();
+            
+            // Hide loading
+            if (typeof hideLoadingOverlay === 'function') {
+                hideLoadingOverlay();
+            }
+            
+            if (data.success && data.request) {
+                this.requestId = data.request.id;
+                
+                console.log('✅ Request created:', this.requestId);
+                
+                // Trigger request-created event for notification system
+                const requestCreatedEvent = new CustomEvent('request-created', {
+                    detail: { requestId: this.requestId }
+                });
+                window.dispatchEvent(requestCreatedEvent);
+                
+                // Show success toast
+                if (typeof showToast === 'function') {
+                    showToast('Talebiniz oluşturuldu! Yönlendiriliyorsunuz...', 'success');
+                }
+                
+                // Redirect to status page
+                setTimeout(() => {
+                    window.location.href = `/guest/status/${this.requestId}`;
+                }, 500);
+            } else {
+                console.error('❌ Request failed:', data);
+                if (typeof showToast === 'function') {
+                    showToast(data.error || 'Talep oluşturulamadı', 'error');
+                } else {
+                    alert(data.error || 'Talep oluşturulamadı');
+                }
+            }
         } catch (error) {
-            console.error('Request submission error:', error);
-            await BuggyCall.Utils.showError('Shuttle çağrısı gönderilemedi: ' + error.message);
-            BuggyCall.Utils.hideLoading();
+            console.error('❌ Request submission error:', error);
+            
+            // Hide loading
+            if (typeof hideLoadingOverlay === 'function') {
+                hideLoadingOverlay();
+            }
+            
+            if (typeof showToast === 'function') {
+                showToast('Bağlantı hatası. Lütfen tekrar deneyin.', 'error');
+            } else {
+                alert('Bağlantı hatası. Lütfen tekrar deneyin.');
+            }
         }
     },
 
@@ -601,6 +660,9 @@ const Guest = {
      * Show themed request success notification
      */
     showRequestSuccessNotification() {
+        // Get translations
+        const i18n = window.guestI18n || { t: (key) => key };
+        
         // Create custom notification overlay
         const overlay = document.createElement('div');
         overlay.className = 'custom-notification-overlay';
@@ -673,7 +735,7 @@ const Guest = {
                     color: #1e293b;
                     margin-bottom: 1rem;
                 ">
-                    ✅ Talebiniz Alındı!
+                    ${i18n.t('notif.request_received')}
                 </h3>
                 
                 <p style="
@@ -682,8 +744,7 @@ const Guest = {
                     line-height: 1.6;
                     margin-bottom: 1.5rem;
                 ">
-                    Shuttle çağrınız başarıyla gönderildi.<br>
-                    Durumunu takip edebilirsiniz.
+                    ${i18n.t('notif.request_received_msg')}
                 </p>
                 
                 <div style="
@@ -704,7 +765,7 @@ const Guest = {
                         gap: 0.5rem;
                     ">
                         <i class="fas fa-exclamation-triangle"></i>
-                        Bu pencereyi 5 saniye boyunca kapatmayın!
+                        ${i18n.t('notif.do_not_close')}
                     </p>
                 </div>
             </div>
@@ -712,6 +773,19 @@ const Guest = {
         
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
+        
+        // Manuel olarak çevir (MutationObserver innerHTML'i yakalamıyor)
+        setTimeout(() => {
+            if (window.guestI18n) {
+                const i18nElements = modal.querySelectorAll('[data-i18n]');
+                i18nElements.forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    const translation = window.guestI18n.t(key);
+                    el.textContent = translation;
+                });
+                console.log('[Guest] Success modal translated:', i18nElements.length, 'elements');
+            }
+        }, 50);
         
         // Auto-close after 5 seconds
         setTimeout(() => {
@@ -864,6 +938,157 @@ const Guest = {
                 badge: '/static/icons/icon-96x96.png',
                 vibrate: [200, 100, 200, 100, 200]
             });
+        } else if ('Notification' in window && Notification.permission === 'default') {
+            // İzin verilmemişse uyarı göster
+            this.showNotificationPermissionPrompt();
+        }
+    },
+
+    /**
+     * Bildirim izni isteme prompt'u göster
+     */
+    showNotificationPermissionPrompt() {
+        const i18n = window.guestI18n || { t: (key) => key };
+        
+        // Zaten gösteriliyorsa tekrar gösterme
+        if (document.querySelector('.notification-permission-prompt')) {
+            return;
+        }
+        
+        const prompt = document.createElement('div');
+        prompt.className = 'notification-permission-prompt';
+        prompt.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 500px;
+            width: calc(100% - 40px);
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            z-index: 9999;
+            animation: slideUpFade 0.4s ease-out;
+        `;
+        
+        prompt.innerHTML = `
+            <style>
+                @keyframes slideUpFade {
+                    from {
+                        transform: translate(-50%, 100px);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translate(-50%, 0);
+                        opacity: 1;
+                    }
+                }
+            </style>
+            <div style="display: flex; align-items: start; gap: 16px;">
+                <div style="
+                    width: 48px;
+                    height: 48px;
+                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                ">
+                    <i class="fas fa-bell" style="color: white; font-size: 24px;"></i>
+                </div>
+                <div style="flex: 1;">
+                    <h3 style="
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: #1e293b;
+                        margin: 0 0 8px 0;
+                    ">${i18n.t('notif.permission_denied')}</h3>
+                    <p style="
+                        font-size: 14px;
+                        color: #64748b;
+                        margin: 0 0 16px 0;
+                        line-height: 1.5;
+                    ">${i18n.t('notif.permission_denied_msg')}</p>
+                    <div style="display: flex; gap: 12px;">
+                        <button onclick="Guest.requestNotificationPermission()" style="
+                            flex: 1;
+                            padding: 12px 20px;
+                            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                            color: white;
+                            border: none;
+                            border-radius: 10px;
+                            font-size: 14px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: transform 0.2s;
+                        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fas fa-check"></i> ${i18n.t('btn.enable_notifications')}
+                        </button>
+                        <button onclick="this.closest('.notification-permission-prompt').remove()" style="
+                            padding: 12px 20px;
+                            background: #e2e8f0;
+                            color: #64748b;
+                            border: none;
+                            border-radius: 10px;
+                            font-size: 14px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: background 0.2s;
+                        " onmouseover="this.style.background='#cbd5e1'" onmouseout="this.style.background='#e2e8f0'">
+                            ${i18n.t('btn.close')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(prompt);
+        
+        // 10 saniye sonra otomatik kapat
+        setTimeout(() => {
+            if (prompt.parentNode) {
+                prompt.style.animation = 'slideUpFade 0.3s ease-in reverse';
+                setTimeout(() => prompt.remove(), 300);
+            }
+        }, 10000);
+    },
+
+    /**
+     * Bildirim izni iste
+     */
+    async requestNotificationPermission() {
+        try {
+            // Prompt'u kapat
+            const prompt = document.querySelector('.notification-permission-prompt');
+            if (prompt) {
+                prompt.remove();
+            }
+            
+            // iOS kontrolü
+            if (window.iosNotificationHandler && window.iosNotificationHandler.isIOSDevice()) {
+                const permission = await window.iosNotificationHandler.requestPermission();
+                if (permission === 'granted') {
+                    BuggyCall.Utils.showSuccess('Bildirimler aktif edildi! 🔔');
+                }
+            } else {
+                // Normal tarayıcılar
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    BuggyCall.Utils.showSuccess('Bildirimler aktif edildi! 🔔');
+                    
+                    // Guest notification manager varsa token al
+                    if (window.guestNotificationManager && this.requestId) {
+                        await window.guestNotificationManager.requestPermissionAndGetToken(this.requestId);
+                    }
+                } else {
+                    BuggyCall.Utils.showWarning('Bildirim izni reddedildi');
+                }
+            }
+        } catch (error) {
+            console.error('Notification permission error:', error);
+            BuggyCall.Utils.showError('Bildirim izni alınamadı');
         }
     },
 
@@ -938,24 +1163,28 @@ const Guest = {
      * Get status message
      */
     getStatusMessage(status) {
+        const i18n = window.guestI18n || { t: (key) => key };
         const messages = {
-            'PENDING': 'Talebiniz alındı, sürücü bekleniyor...',
-            'accepted': 'Shuttle yolda! Sürücü konumunuza geliyor.',
-            'completed': 'Shuttle ulaştı! İyi günler dileriz.',
-            'cancelled': 'Talebiniz iptal edildi.'
+            'PENDING': i18n.t('status.pending_msg'),
+            'accepted': i18n.t('status.accepted_msg'),
+            'in_progress': i18n.t('status.in_progress_msg'),
+            'completed': i18n.t('status.completed_msg'),
+            'cancelled': i18n.t('status.cancelled_msg')
         };
         return messages[status] || 'Durum güncelleniyor...';
     },
 
     /**
-     * Get status text in Turkish
+     * Get status text
      */
     getStatusText(status) {
+        const i18n = window.guestI18n || { t: (key) => key };
         const statusMap = {
-            'PENDING': 'Bekliyor',
-            'accepted': 'Kabul Edildi',
-            'completed': 'Tamamlandı',
-            'cancelled': 'İptal Edildi'
+            'PENDING': i18n.t('status.pending'),
+            'accepted': i18n.t('status.accepted'),
+            'in_progress': i18n.t('status.in_progress'),
+            'completed': i18n.t('status.completed'),
+            'cancelled': i18n.t('status.cancelled')
         };
         return statusMap[status] || status;
     }

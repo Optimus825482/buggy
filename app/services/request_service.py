@@ -13,6 +13,9 @@ from app.utils.exceptions import (
 )
 from app.utils.helpers import Pagination
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class RequestService:
@@ -209,6 +212,29 @@ class RequestService:
         except Exception as e:
             print(f"⚠️ FCM bildirim hatası: {str(e)}")
         
+        # Notify guest via HTTP API (for web push)
+        try:
+            import requests
+            from flask import current_app
+            
+            # Backend'e bildirim gönder
+            base_url = current_app.config.get('BASE_URL', 'http://localhost:5000')
+            notification_url = f"{base_url}/api/guest/send-notification/{request_id}"
+            
+            response = requests.post(
+                notification_url,
+                json={'type': 'request_accepted'},
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                print(f"✅ Guest bildirimi gönderildi - Request ID: {request_id}")
+            else:
+                print(f"⚠️ Guest bildirimi gönderilemedi: {response.status_code}")
+                
+        except Exception as e:
+            print(f"⚠️ Guest bildirim hatası: {str(e)}")
+        
         return request_obj
     
     @staticmethod
@@ -291,6 +317,44 @@ class RequestService:
             'request': request_obj.to_dict()
         }, room=f'request_{request_id}')
         
+        # Guest'e FCM bildirimi gönder
+        try:
+            from app.routes.guest_notification_api import GUEST_FCM_TOKENS
+            import requests
+            from flask import current_app
+            
+            token_data = GUEST_FCM_TOKENS.get(request_id)
+            if token_data:
+                # FCM bildirimi gönder
+                fcm_url = 'https://fcm.googleapis.com/fcm/send'
+                fcm_headers = {
+                    'Authorization': f'key={current_app.config.get("FCM_SERVER_KEY")}',
+                    'Content-Type': 'application/json'
+                }
+                fcm_payload = {
+                    'to': token_data['token'],
+                    'notification': {
+                        'title': '✅ Shuttle Ulaştı!',
+                        'body': 'Shuttle\'ınız hedefe ulaştı. İyi yolculuklar!',
+                        'icon': '/static/img/shuttle-icon.png',
+                        'click_action': f'/guest/status/{request_id}'
+                    },
+                    'data': {
+                        'request_id': str(request_id),
+                        'status': 'completed'
+                    }
+                }
+                
+                response = requests.post(fcm_url, json=fcm_payload, headers=fcm_headers, timeout=5)
+                if response.status_code == 200:
+                    logger.info(f'✅ FCM completion notification sent to guest for request {request_id}')
+                else:
+                    logger.warning(f'⚠️ FCM notification failed: {response.text}')
+            else:
+                logger.info(f'ℹ️ No FCM token found for request {request_id}')
+        except Exception as notif_error:
+            logger.error(f'❌ Error sending FCM notification: {str(notif_error)}')
+        
         # Notify admins
         socketio.emit('request_status_changed', {
             'request': request_obj.to_dict()
@@ -302,6 +366,29 @@ class RequestService:
             FCMNotificationService.notify_request_completed(request_obj)
         except Exception as e:
             print(f"⚠️ FCM bildirim hatası: {str(e)}")
+        
+        # Notify guest via HTTP API (for web push)
+        try:
+            import requests
+            from flask import current_app
+            
+            # Backend'e bildirim gönder
+            base_url = current_app.config.get('BASE_URL', 'http://localhost:5000')
+            notification_url = f"{base_url}/api/guest/send-notification/{request_id}"
+            
+            response = requests.post(
+                notification_url,
+                json={'type': 'request_completed'},
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                print(f"✅ Guest tamamlanma bildirimi gönderildi - Request ID: {request_id}")
+            else:
+                print(f"⚠️ Guest tamamlanma bildirimi gönderilemedi: {response.status_code}")
+                
+        except Exception as e:
+            print(f"⚠️ Guest tamamlanma bildirim hatası: {str(e)}")
         
         # Emit buggy status and location change
         if request_obj.buggy:
