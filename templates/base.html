@@ -75,10 +75,11 @@
                 <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Menu">
                     <i class="fas fa-bars"></i>
                 </button>
-
-                {% block header_nav %}{% endblock %}
             </div>
         </div>
+        
+        <!-- Mobile Navigation (outside container for full width) -->
+        {% block header_nav %}{% endblock %}
     </header>
 
     <!-- Main Content -->

@@ -1048,16 +1048,19 @@ a:hover {
     /* Hide nav by default on mobile */
     .nav {
         display: none;
-        position: absolute;
-        top: 100%;
+        position: fixed;
+        top: 60px;
         left: 0;
         right: 0;
         background: var(--primary-dark);
         flex-direction: column;
         width: 100%;
-        padding: var(--spacing-lg) var(--spacing-xl);
+        min-height: 200px;
+        max-height: calc(100vh - 60px);
+        overflow-y: auto;
+        padding: 2rem 1.5rem;
         box-shadow: var(--shadow-lg);
-        gap: var(--spacing-sm);
+        gap: 1rem;
         z-index: var(--z-dropdown);
         animation: slideDown 0.3s ease-out;
     }
@@ -1069,11 +1072,14 @@ a:hover {
 
     .nav-link {
         width: 100%;
-        padding: var(--spacing-md) var(--spacing-lg);
+        padding: 1rem 1.5rem;
         text-align: left;
         border-radius: var(--radius-md);
         font-size: var(--font-size-lg);
         font-weight: var(--font-weight-medium);
+        min-height: 48px;
+        display: flex;
+        align-items: center;
     }
 
     .nav-link i {
