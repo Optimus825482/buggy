@@ -38,7 +38,8 @@ class BuggyRequest(db.Model, BaseModel):
     has_room = Column(db.Boolean, default=True, nullable=False)  # Does guest have a room number?
     phone = Column(String(50))
     notes = Column(Text)
-    guest_device_id = Column(Text)  # Push notification subscription info (JSON)
+    guest_device_id = Column(Text)  # Push notification subscription info (JSON) - DEPRECATED
+    guest_push_subscription = Column(Text)  # Web Push API subscription (JSON)
     status = Column(Enum(RequestStatus), default=RequestStatus.PENDING, nullable=False, index=True)
     cancelled_by = Column(String(50))  # 'driver', 'guest', 'admin'
     

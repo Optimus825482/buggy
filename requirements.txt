@@ -31,6 +31,9 @@ Pillow==10.1.0
 # Push Notifications - Firebase Cloud Messaging
 firebase-admin==6.3.0
 
+# Web Push Notifications
+pywebpush==1.14.0
+
 # Background Jobs
 APScheduler==3.10.4
 

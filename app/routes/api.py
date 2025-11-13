@@ -1941,8 +1941,24 @@ def driver_accept_request(request_id):
             hotel_id=user.hotel_id
         )
         
-        # Send notification to guest if subscribed (FCM)
-        # guest_device_id içinde FCM token olabilir (JSON parse gerekebilir)
+        # Send Web Push notification to guest
+        if buggy_request.guest_push_subscription:
+            from app.services.web_push_service import WebPushService
+            try:
+                location_name = buggy_request.location.name if buggy_request.location else "Lokasyon"
+                driver_name = user.full_name or user.username
+                
+                WebPushService.send_shuttle_on_way_notification(
+                    request_id=buggy_request.id,
+                    location_name=location_name,
+                    driver_name=driver_name
+                )
+                current_app.logger.info(f'✅ Web push notification gönderildi: request_id={buggy_request.id}')
+            except Exception as e:
+                current_app.logger.error(f'Web push notification hatası: {str(e)}')
+                # Notification failure shouldn't break the flow
+        
+        # Send FCM notification to guest if subscribed (backward compatibility)
         if buggy_request.guest_device_id:
             from app.services.fcm_notification_service import FCMNotificationService
             try:
@@ -2902,6 +2918,54 @@ def delete_user(user_id):
         db.session.rollback()
         current_app.logger.error(f'Error deleting user {user_id}: {str(e)}')
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ==================== Guest Push Notifications ====================
+@api_bp.route('/guest/subscribe-push', methods=['POST'])
+@csrf.exempt
+def guest_subscribe_push():
+    """
+    Guest için push notification subscription kaydet
+    
+    Request Body:
+        {
+            "request_id": 123,
+            "subscription": {
+                "endpoint": "...",
+                "keys": {...}
+            }
+        }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'request_id' not in data or 'subscription' not in data:
+            return jsonify({'error': 'request_id ve subscription gereklidir'}), 400
+        
+        request_id = data['request_id']
+        subscription = data['subscription']
+        
+        # Request'i bul
+        buggy_request = BuggyRequest.query.get(request_id)
+        if not buggy_request:
+            return jsonify({'error': 'Talep bulunamadı'}), 404
+        
+        # Subscription'ı kaydet (JSON olarak)
+        import json
+        buggy_request.guest_push_subscription = json.dumps(subscription)
+        db.session.commit()
+        
+        current_app.logger.info(f'Guest push subscription kaydedildi: request_id={request_id}')
+        
+        return jsonify({
+            'success': True,
+            'message': 'Push subscription kaydedildi'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Guest push subscription hatası: {str(e)}')
+        return jsonify({'error': str(e)}), 500
 
 
 # ==================== FCM Push Notifications ====================

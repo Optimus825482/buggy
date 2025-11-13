@@ -1,7 +1,7 @@
 """
 Buggy Call - Guest Routes
 """
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, current_app
 
 guest_bp = Blueprint('guest', __name__)
 
@@ -12,7 +12,14 @@ def call():
     # Kısa parametreleri destekle: l=location, h=hotel
     location_id = request.args.get('l') or request.args.get('location') or request.args.get('loc')
     hotel_id = request.args.get('h') or request.args.get('hotel', 1)  # Default hotel_id=1
-    return render_template('guest/call_premium.html', location_id=location_id, hotel_id=hotel_id)
+    
+    # VAPID public key'i gönder (push notifications için)
+    vapid_public_key = current_app.config.get('VAPID_PUBLIC_KEY', '')
+    
+    return render_template('guest/call_premium.html', 
+                         location_id=location_id, 
+                         hotel_id=hotel_id,
+                         vapid_public_key=vapid_public_key)
 
 
 @guest_bp.route('/status/<int:request_id>')

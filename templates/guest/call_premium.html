@@ -1326,6 +1326,8 @@ const GuestCall = (() => {
             hideLoadingOverlay();
 
             if (data.success && data.request) {
+                // Talep başarılı - bildirim izni iste
+                await requestNotificationPermissionForGuest(data.request.id);
                 showSuccessNotification(data.request.id);
             } else {
                 showToast(data.error || 'Talep oluşturulamadı', 'error');
@@ -1337,6 +1339,91 @@ const GuestCall = (() => {
         } finally {
             state.isProcessing = false;
         }
+    };
+
+    // ==================== PUSH NOTIFICATIONS ====================
+    const requestNotificationPermissionForGuest = async (requestId) => {
+        // Tarayıcı bildirimleri destekliyor mu?
+        if (!('Notification' in window)) {
+            console.log('Bu tarayıcı bildirimleri desteklemiyor');
+            return;
+        }
+
+        // Zaten izin verilmiş mi?
+        if (Notification.permission === 'granted') {
+            console.log('Bildirim izni zaten verilmiş');
+            await subscribeGuestToPush(requestId);
+            return;
+        }
+
+        // Zaten reddedilmiş mi?
+        if (Notification.permission === 'denied') {
+            console.log('Bildirim izni reddedilmiş');
+            return;
+        }
+
+        // İzin iste
+        try {
+            const permission = await Notification.requestPermission();
+            
+            if (permission === 'granted') {
+                console.log('Bildirim izni verildi');
+                await subscribeGuestToPush(requestId);
+                showToast('✅ Shuttle yola çıktığında bildirim alacaksınız!', 'success');
+            } else {
+                console.log('Bildirim izni reddedildi');
+            }
+        } catch (error) {
+            console.error('Bildirim izni hatası:', error);
+        }
+    };
+
+    const subscribeGuestToPush = async (requestId) => {
+        try {
+            if (!('serviceWorker' in navigator)) {
+                console.log('Service Worker desteklenmiyor');
+                return;
+            }
+
+            const registration = await navigator.serviceWorker.ready;
+            
+            // Push subscription oluştur
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array('{{ vapid_public_key }}')
+            });
+
+            // Backend'e kaydet
+            await fetch('/api/guest/subscribe-push', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    subscription: subscription.toJSON()
+                })
+            });
+
+            console.log('Guest push subscription kaydedildi');
+        } catch (error) {
+            console.error('Push subscription hatası:', error);
+        }
+    };
+
+    const urlBase64ToUint8Array = (base64String) => {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/\-/g, '+')
+            .replace(/_/g, '/');
+
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
     };
 
     const showSuccessNotification = (requestId) => {
@@ -1388,6 +1475,30 @@ const GuestCall = (() => {
                     Shuttle çağrınız başarıyla gönderildi.<br>
                     Durumunu takip edebilirsiniz.
                 </p>
+
+                ${Notification.permission === 'granted' ? `
+                <div style="
+                    background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
+                    border-left: 4px solid #3B82F6;
+                    padding: 16px 20px;
+                    border-radius: 12px;
+                    margin-bottom: 16px;
+                ">
+                    <p style="
+                        margin: 0;
+                        color: #1E40AF;
+                        font-size: 14px;
+                        font-weight: 600;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                    ">
+                        <i class="fas fa-bell"></i>
+                        <span>Shuttle yola çıktığında bildirim alacaksınız!</span>
+                    </p>
+                </div>
+                ` : ''}
 
                 <div style="
                     background: linear-gradient(135deg, #FEF3C7, #FDE68A);
