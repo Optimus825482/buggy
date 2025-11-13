@@ -95,10 +95,14 @@ class BackgroundJobsService:
         - Mark as permanently_failed after 3 attempts
         """
         try:
-            logger.info("Starting retry_failed_notifications job")
+            from app import create_app
+            app = create_app()
             
-            # Get failed notifications from last 24 hours with retry count < 3
-            cutoff_time = datetime.utcnow() - timedelta(hours=24)
+            with app.app_context():
+                logger.info("Starting retry_failed_notifications job")
+                
+                # Get failed notifications from last 24 hours with retry count < 3
+                cutoff_time = datetime.utcnow() - timedelta(hours=24)
             failed_notifications = NotificationLog.query.filter(
                 NotificationLog.status == 'failed',
                 NotificationLog.sent_at >= cutoff_time,
@@ -184,11 +188,14 @@ class BackgroundJobsService:
                     db.session.rollback()
                     continue
             
-            logger.info(f"Retry job completed: {retry_count} retried, {success_count} successful")
+                logger.info(f"Retry job completed: {retry_count} retried, {success_count} successful")
             
         except Exception as e:
             logger.error(f"Error in retry_failed_notifications job: {str(e)}")
-            db.session.rollback()
+            try:
+                db.session.rollback()
+            except:
+                pass
     
     @staticmethod
     def mark_permanently_failed():
@@ -284,16 +291,20 @@ class BackgroundJobsService:
         - Calculate response time
         """
         try:
-            logger.info("Starting check_request_timeouts job")
+            from app import create_app
+            app = create_app()
             
-            from app.tasks.timeout_checker import check_and_timeout_requests
-            
-            timeout_count = check_and_timeout_requests()
-            
-            if timeout_count > 0:
-                logger.info(f"✅ Timeout check completed: {timeout_count} request(s) marked as unanswered")
-            else:
-                logger.info("No requests timed out")
+            with app.app_context():
+                logger.info("Starting check_request_timeouts job")
+                
+                from app.tasks.timeout_checker import check_and_timeout_requests
+                
+                timeout_count = check_and_timeout_requests()
+                
+                if timeout_count > 0:
+                    logger.info(f"✅ Timeout check completed: {timeout_count} request(s) marked as unanswered")
+                else:
+                    logger.info("No requests timed out")
             
         except Exception as e:
             logger.error(f"Error in check_request_timeouts job: {str(e)}")

@@ -1891,13 +1891,23 @@ def driver_accept_request(request_id):
         )
         
         # Send notification to guest if subscribed (FCM)
-        if buggy_request.guest_fcm_token:
+        # guest_device_id içinde FCM token olabilir (JSON parse gerekebilir)
+        if buggy_request.guest_device_id:
             from app.services.fcm_notification_service import FCMNotificationService
             try:
-                FCMNotificationService.send_to_token(
-                    token=buggy_request.guest_fcm_token,
-                    title="Buggy Kabul Edildi",
-                    body=f"Buggy'niz yola çıktı. {user.buggy.code}",
+                # guest_device_id string veya JSON olabilir
+                import json
+                try:
+                    device_data = json.loads(buggy_request.guest_device_id) if isinstance(buggy_request.guest_device_id, str) else buggy_request.guest_device_id
+                    fcm_token = device_data.get('fcm_token') if isinstance(device_data, dict) else None
+                except:
+                    fcm_token = None
+                
+                if fcm_token:
+                    FCMNotificationService.send_to_token(
+                        token=fcm_token,
+                        title="Buggy Kabul Edildi",
+                        body=f"Buggy'niz yola çıktı. {user.buggy.code}",
                     data={'type': 'request_accepted', 'request_id': str(buggy_request.id)},
                     priority='high'
                 )
@@ -2002,13 +2012,23 @@ def driver_complete_request(request_id):
         )
         
         # Send notification to guest if subscribed (FCM)
-        if buggy_request.guest_fcm_token:
+        # guest_device_id içinde FCM token olabilir (JSON parse gerekebilir)
+        if buggy_request.guest_device_id:
             from app.services.fcm_notification_service import FCMNotificationService
             try:
-                FCMNotificationService.send_to_token(
-                    token=buggy_request.guest_fcm_token,
-                    title="Buggy Geldi!",
-                    body="Buggy'niz konumunuza ulaştı. İyi yolculuklar!",
+                # guest_device_id string veya JSON olabilir
+                import json
+                try:
+                    device_data = json.loads(buggy_request.guest_device_id) if isinstance(buggy_request.guest_device_id, str) else buggy_request.guest_device_id
+                    fcm_token = device_data.get('fcm_token') if isinstance(device_data, dict) else None
+                except:
+                    fcm_token = None
+                
+                if fcm_token:
+                    FCMNotificationService.send_to_token(
+                        token=fcm_token,
+                        title="Buggy Geldi!",
+                        body="Buggy'niz konumunuza ulaştı. İyi yolculuklar!",
                     data={'type': 'request_completed', 'request_id': str(buggy_request.id)},
                     priority='high'
                 )
