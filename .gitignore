@@ -41,7 +41,8 @@ instance/
 # Firebase Credentials (SENSITIVE!)
 firebase-service-account.json
 *service-account*.json
-.docs/firebase-service-account.json
+docs/firebase-service-account.json
+docs/*service-account*.json
 
 # IDE
 .vscode/
