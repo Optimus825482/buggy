@@ -12,24 +12,44 @@ class FCMNotificationManager {
         
         // Firebase Config (Firebase Console'dan alınmalı)
         this.firebaseConfig = {
-            
-
-            apiKey: "AIzaSyDyjVSgW8j4wY-wF0G9uUJpY_Iv-5uQx1I",
-            authDomain: "buggy-call-a5785.firebaseapp.com",
-            projectId: "buggy-call-a5785",
-            storageBucket: "buggy-call-a5785.firebasestorage.app",
-            messagingSenderId: "141355725901",
-            appId: "1:141355725901:web:a2c08a67a489ba82ca1804",
-            measurementId: "G-7HZ1RNDNX5"
-
+            apiKey: "AIzaSyD5brCkHqSPVCtt0XJmUMqZizrjK_HX9dc",
+            authDomain: "shuttle-call-835d9.firebaseapp.com",
+            projectId: "shuttle-call-835d9",
+            storageBucket: "shuttle-call-835d9.firebasestorage.app",
+            messagingSenderId: "1044072191950",
+            appId: "1:1044072191950:web:dc780e1832d3a4ee5afd9f",
+            measurementId: "G-DCP7FTRM9Q",
+            vapidKey: "BBrNGl2-VPA-iuLasrj8jpS2Sj2FrYr-FQq57GET6ofRV4QOljRwyLg--HMI-bV7m-lmdBk5NJxSyy3nVpNLzA4"
         };
     }
     
     /**
-     * FCM'i başlat
+     * FCM'i başlat (iOS kontrolü ile)
      */
     async initialize() {
         try {
+            // iOS kontrolü
+            if (window.iosNotificationHandler && window.iosNotificationHandler.isIOSDevice()) {
+                const iosStatus = window.iosNotificationHandler.getStatus();
+                console.log('📱 iOS Device Detected:', iosStatus);
+
+                // iOS 16.4 altı - FCM desteklenmiyor
+                if (!iosStatus.webPushSupported) {
+                    console.warn('⚠️ iOS version does not support Web Push:', iosStatus.version);
+                    this.isSupported = false;
+                    return false;
+                }
+
+                // PWA modunda değil - FCM çalışmaz
+                if (!iosStatus.isPWA) {
+                    console.warn('⚠️ iOS requires PWA mode for FCM');
+                    this.isSupported = false;
+                    return false;
+                }
+
+                console.log('✅ iOS PWA mode - FCM supported');
+            }
+
             // Firebase SDK kontrolü
             if (typeof firebase === 'undefined') {
                 console.error('❌ Firebase SDK yüklenmemiş');
@@ -65,10 +85,23 @@ class FCMNotificationManager {
     }
     
     /**
-     * Bildirim izni iste ve token al
+     * Bildirim izni iste ve token al (iOS kontrolü ile)
      */
     async requestPermissionAndGetToken() {
         try {
+            // iOS kontrolü
+            if (window.iosNotificationHandler && window.iosNotificationHandler.isIOSDevice()) {
+                const iosStatus = window.iosNotificationHandler.getStatus();
+                
+                // iOS desteklemiyor
+                if (!iosStatus.notificationSupported) {
+                    console.warn('⚠️ iOS notifications not supported:', iosStatus.message);
+                    return null;
+                }
+                
+                console.log('✅ iOS notifications supported, proceeding...');
+            }
+
             // Önce mevcut izin durumunu kontrol et
             if (Notification.permission === 'denied') {
                 console.warn('⚠️ Bildirim izni kalıcı olarak reddedilmiş');
@@ -77,7 +110,14 @@ class FCMNotificationManager {
             }
             
             // Bildirim izni iste
-            const permission = await Notification.requestPermission();
+            let permission;
+            if (window.iosNotificationHandler && window.iosNotificationHandler.isIOSDevice()) {
+                // iOS için özel handler kullan
+                permission = await window.iosNotificationHandler.requestPermission();
+            } else {
+                // Normal akış
+                permission = await Notification.requestPermission();
+            }
             
             if (permission !== 'granted') {
                 console.warn('⚠️ Bildirim izni reddedildi');
@@ -97,7 +137,7 @@ class FCMNotificationManager {
             
             // FCM token al
             const token = await this.messaging.getToken({
-                vapidKey: 'BB2-xRCo75G7j3UVqhbeUjv5G55uTN11XCnMt2iZD0w718faVYUZpsGxfAGzqM5Eftw8xN_PVee6X7jRAgoFeAY',
+                vapidKey: this.firebaseConfig.vapidKey,
                 serviceWorkerRegistration: registration
             });
             
@@ -116,6 +156,14 @@ class FCMNotificationManager {
             
         } catch (error) {
             console.error('❌ Token alma hatası:', error);
+            
+            // iOS için özel hata mesajı
+            if (window.iosNotificationHandler && window.iosNotificationHandler.isIOSDevice()) {
+                console.error('❌ iOS FCM Error:', error);
+                const iosStatus = window.iosNotificationHandler.getStatus();
+                console.log('📱 iOS Status:', iosStatus);
+            }
+            
             return null;
         }
     }
@@ -215,7 +263,7 @@ class FCMNotificationManager {
                 
                 const registration = await navigator.serviceWorker.ready;
                 const newToken = await this.messaging.getToken({
-                    vapidKey: 'BB2-xRCo75G7j3UVqhbeUjv5G55uTN11XCnMt2iZD0w718faVYUZpsGxfAGzqM5Eftw8xN_PVee6X7jRAgoFeAY',
+                    vapidKey: this.firebaseConfig.vapidKey,
                     serviceWorkerRegistration: registration
                 });
                 
@@ -478,17 +526,30 @@ window.addEventListener('fcm-message', (event) => {
     
     console.log('📬 FCM mesajı alındı:', payload);
     
-    // Yeni talep geldiğinde listeyi güncelle
+    // Yeni talep geldiğinde AJAX ile ekle
     if (payload.data?.type === 'new_request') {
-        console.log('🆕 Yeni talep - Dashboard güncelleniyor...');
+        console.log('🆕 Yeni talep - AJAX ile ekleniyor...');
         
-        // Dashboard'ı yenile (eğer loadPendingRequests fonksiyonu varsa)
-        if (typeof loadPendingRequests === 'function') {
-            loadPendingRequests();
+        // driverDashboard varsa handleNewRequest çağır
+        if (window.driverDashboard && typeof window.driverDashboard.handleNewRequest === 'function') {
+            const requestData = {
+                request_id: parseInt(payload.data.request_id),
+                guest_name: payload.data.guest_name || null,
+                room_number: payload.data.room_number || null,
+                phone_number: payload.data.phone || null,
+                location: {
+                    name: payload.data.location_name || 'Bilinmeyen Lokasyon'
+                },
+                requested_at: new Date().toISOString(),
+                notes: payload.data.notes || null
+            };
+            
+            window.driverDashboard.handleNewRequest(requestData);
+            console.log('✅ Talep AJAX ile eklendi');
+        } else {
+            console.warn('⚠️ driverDashboard bulunamadı, sayfa yenileniyor...');
+            setTimeout(() => window.location.reload(), 1000);
         }
-        
-        // Veya sayfayı yenile
-        // window.location.reload();
     }
 });
 

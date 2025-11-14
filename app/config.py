@@ -47,12 +47,13 @@ class Config:
     JWT_HEADER_TYPE = 'Bearer'
     
     # CORS Configuration
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:5000').split(',')
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:5000,http://127.0.0.1:5000,http://192.168.1.103:5000').split(',')
     CORS_SUPPORTS_CREDENTIALS = True
     
     # SocketIO Configuration (works without Redis)
     SOCKETIO_MESSAGE_QUEUE = os.getenv('SOCKETIO_MESSAGE_QUEUE', None)  # None = single instance mode
-    SOCKETIO_CORS_ALLOWED_ORIGINS = CORS_ORIGINS
+    # ✅ withCredentials kullanırken '*' kullanılamaz, explicit origins gerekli
+    SOCKETIO_CORS_ALLOWED_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:5000,http://127.0.0.1:5000,http://192.168.1.103:5000').split(',')
     # Auto-detect best async mode: threading for local dev, gevent for production
     SOCKETIO_ASYNC_MODE = os.getenv('SOCKETIO_ASYNC_MODE', 'threading')
     
@@ -72,6 +73,9 @@ class Config:
     VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY', '')
     VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY', '')
     VAPID_CLAIMS_EMAIL = os.getenv('VAPID_CLAIMS_EMAIL', 'mailto:admin@buggycall.com')
+    
+    # Firebase VAPID Key (Web Push Certificate from Firebase Console)
+    FIREBASE_VAPID_KEY = os.getenv('FIREBASE_VAPID_KEY', '')
     
     # Email Configuration (Optional)
     MAIL_SERVER = os.getenv('MAIL_SERVER', 'smtp.gmail.com')

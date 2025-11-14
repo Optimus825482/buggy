@@ -63,8 +63,8 @@ class AuthService:
         if not user.is_active:
             raise UnauthorizedException('Hesabınız aktif değil. Lütfen yöneticinizle iletişime geçin.')
         
-        # Update last login
-        user.last_login = datetime.utcnow()
+        # Update last login (UTC)
+        user.last_login = datetime.utcnow().replace(tzinfo=None)
         
         # Create session
         session['user_id'] = user.id
@@ -122,7 +122,7 @@ class AuthService:
                 
                 # Activate this driver on this buggy
                 assoc.is_active = True
-                assoc.last_active_at = datetime.utcnow()
+                assoc.last_active_at = datetime.utcnow().replace(tzinfo=None)  # UTC naive
                 
                 # Driver must always select location on login
                 # (location is cleared on logout/disconnect)

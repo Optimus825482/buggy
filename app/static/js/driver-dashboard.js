@@ -26,6 +26,9 @@ const DriverDashboard = {
         this.buggyId = parseInt(container.dataset.buggyId) || 0;
         const needsLocationSetup = container.dataset.needsLocationSetup === 'true';
         
+        // Initialize pending render flag
+        this._pendingRenderUpdate = false;
+        
         // Driver data loaded
         
         // Check if driver has buggy assigned
@@ -37,15 +40,11 @@ const DriverDashboard = {
         // Location setup is now handled by separate page (select_location.html)
         // No need for modal anymore
         
-        // Initialize real-time connection (SSE or WebSocket)
-        if (typeof sseClient !== 'undefined') {
-            this.useSSE = true;
-            this.initSSE();
-        } else if (typeof io !== 'undefined') {
-            this.useSSE = false;
+        // Initialize WebSocket connection
+        if (typeof io !== 'undefined') {
             this.initSocket();
         } else {
-            console.error('❌ No real-time connection available (SSE or WebSocket)');
+            console.error('❌ WebSocket not available');
         }
         
         // Load initial data (even if no buggy, show empty state)
@@ -53,6 +52,14 @@ const DriverDashboard = {
         
         // Setup event listeners
         this.setupEventListeners();
+        
+        // Setup visibility change handler for deferred updates
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && this._pendingRenderUpdate) {
+                this._pendingRenderUpdate = false;
+                this.renderPendingRequests();
+            }
+        });
         
         // FCM sistemi kullanılıyor, eski push notification devre dışı
         // this.requestPushNotificationPermission();
@@ -345,33 +352,7 @@ const DriverDashboard = {
         }
     },
 
-    /**
-     * Initialize SSE connection
-     */
-    initSSE() {
-        // Connect to SSE stream
-        sseClient.connect('/sse/stream');
-        
-        // Listen to new requests
-        sseClient.on('new_request', (data) => {
-            console.log('🎉 [DRIVER] Yeni talep:', data.request_id);
-            this.handleNewRequest(data);
-        });
-        
-        // Listen to request taken
-        sseClient.on('request_taken', (data) => {
-            this.removeRequest(data.request_id);
-        });
-        
-        // Connection status
-        sseClient.on('connected', () => {
-            // SSE connected
-        });
-        
-        sseClient.on('error', (error) => {
-            console.error('❌ [SSE] Connection error:', error);
-        });
-    },
+
 
     /**
      * Initialize WebSocket connection
@@ -382,22 +363,22 @@ const DriverDashboard = {
             return;
         }
         
-        // Use common Socket helper for consistency with admin panel
-        if (typeof BuggyCall !== 'undefined' && BuggyCall.Socket) {
-            this.socket = BuggyCall.Socket.init();
-            this.socket.connect();
-        } else {
-            // Fallback to direct io()
-            this.socket = io({
-                transports: ['polling', 'websocket'],
-                reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionAttempts: 5
-            });
-        }
+        // Initialize Socket.IO with polling first to avoid WebSocket frame errors
+        this.socket = io({
+            transports: ['polling', 'websocket'],  // Polling önce, sonra WebSocket
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 5,
+            timeout: 10000,
+            withCredentials: true,  // ✅ Cookie'leri gönder (session için gerekli)
+            autoConnect: true
+        });
         
         // Join hotel drivers room and user-specific room
         this.socket.on('connect', () => {
+            console.log('✅ Socket connected');
+            this.updateConnectionStatus('connected');
+            
             this.socket.emit('join_hotel', {
                 hotel_id: this.hotelId,
                 role: 'driver'
@@ -408,8 +389,24 @@ const DriverDashboard = {
             });
         });
         
+        this.socket.on('disconnect', () => {
+            console.log('❌ Socket disconnected');
+            this.updateConnectionStatus('disconnected');
+        });
+        
+        this.socket.on('reconnecting', (attemptNumber) => {
+            console.log(`🔄 Reconnecting... (attempt ${attemptNumber})`);
+            this.updateConnectionStatus('connecting');
+        });
+        
         this.socket.on('joined_hotel', (data) => {
-            // Joined hotel room
+            console.log('✅ Joined hotel room');
+        });
+        
+        // Listen to guest connected (pre-alert)
+        this.socket.on('guest_connected', (data) => {
+            console.log('🚨 [DRIVER] Misafir bağlandı:', data);
+            this.showGuestConnectedAlert(data);
         });
         
         // Listen to new requests
@@ -608,7 +605,7 @@ const DriverDashboard = {
     },
 
     /**
-     * Render pending requests
+     * Render pending requests (optimized with RAF and diff-based updates)
      */
     renderPendingRequests() {
         const container = document.getElementById('pending-requests');
@@ -616,72 +613,133 @@ const DriverDashboard = {
         
         if (!container) return;
         
-        if (this.pendingRequests.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-check-circle"></i>
-                    <p>Bekleyen talep yok</p>
-                </div>
-            `;
-            if (badge) badge.textContent = '0';
+        // Defer updates if page is in background
+        if (document.hidden) {
+            this._pendingRenderUpdate = true;
             return;
         }
         
-        if (badge) badge.textContent = this.pendingRequests.length;
-        
-        container.innerHTML = this.pendingRequests.map(req => {
-            if (!req.id) {
-                console.error('❌ [DRIVER] Request missing ID:', req);
-                return '';
+        // Use RequestAnimationFrame for smooth rendering
+        requestAnimationFrame(() => {
+            if (this.pendingRequests.length === 0) {
+                // Only update if content changed
+                if (!container.querySelector('.empty-state')) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-check-circle"></i>
+                            <p>Bekleyen talep yok</p>
+                        </div>
+                    `;
+                }
+                if (badge && badge.textContent !== '0') badge.textContent = '0';
+                return;
             }
             
-            const timeAgo = this.getTimeAgo(req.requested_at);
+            // Update badge only if changed
+            if (badge && badge.textContent !== String(this.pendingRequests.length)) {
+                badge.textContent = this.pendingRequests.length;
+            }
+        
+            // Get existing request IDs for diff
+            const existingIds = new Set(
+                Array.from(container.querySelectorAll('.request-card'))
+                    .map(card => parseInt(card.dataset.id))
+            );
             
-            return `
-            <div class="request-card" data-id="${req.id}">
-                <div class="request-header">
-                    <div class="request-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        ${req.location?.name || 'Bilinmiyor'}
+            const currentIds = new Set(this.pendingRequests.map(r => r.id));
+            
+            // Remove deleted requests
+            existingIds.forEach(id => {
+                if (!currentIds.has(id)) {
+                    const card = container.querySelector(`[data-id="${id}"]`);
+                    if (card) card.remove();
+                }
+            });
+            
+            // Add or update requests
+            this.pendingRequests.forEach((req, index) => {
+                if (!req.id) {
+                    console.error('❌ [DRIVER] Request missing ID:', req);
+                    return;
+                }
+                
+                let card = container.querySelector(`[data-id="${req.id}"]`);
+                
+                // Only update time if card exists (avoid full re-render)
+                if (card) {
+                    const timeElement = card.querySelector('.request-time');
+                    if (timeElement) {
+                        const newTimeAgo = this.getTimeAgo(req.requested_at);
+                        const currentTime = timeElement.textContent.replace(/.*\s/, '');
+                        if (currentTime !== newTimeAgo) {
+                            timeElement.innerHTML = `<i class="fas fa-clock"></i> ${newTimeAgo}`;
+                        }
+                    }
+                    return;
+                }
+                
+                // Create new card
+                const timeAgo = this.getTimeAgo(req.requested_at);
+                const newCard = document.createElement('div');
+                newCard.className = 'request-card';
+                newCard.dataset.id = req.id;
+                
+                newCard.innerHTML = `
+                    <div class="request-header">
+                        <div class="request-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            ${req.location?.name || 'Bilinmiyor'}
+                        </div>
+                        <div class="request-time">
+                            <i class="fas fa-clock"></i> ${timeAgo}
+                        </div>
                     </div>
-                    <div class="request-time">
-                        <i class="fas fa-clock"></i> ${timeAgo}
+                    <div class="request-details">
+                        ${req.guest_name ? `
+                            <div class="request-detail">
+                                <i class="fas fa-user"></i>
+                                <span>${req.guest_name}</span>
+                            </div>
+                        ` : ''}
+                        ${req.room_number ? `
+                            <div class="request-detail">
+                                <i class="fas fa-door-open"></i>
+                                <span>Oda ${req.room_number}</span>
+                            </div>
+                        ` : ''}
+                        ${req.phone_number ? `
+                            <div class="request-detail">
+                                <i class="fas fa-phone"></i>
+                                <span>${req.phone_number}</span>
+                            </div>
+                        ` : ''}
                     </div>
-                </div>
-                <div class="request-details">
-                    ${req.guest_name ? `
-                        <div class="request-detail">
-                            <i class="fas fa-user"></i>
-                            <span>${req.guest_name}</span>
+                    ${req.notes ? `
+                        <div class="request-detail" style="margin-top: 0.5rem; color: #6c757d;">
+                            <i class="fas fa-comment"></i>
+                            <span>${req.notes}</span>
                         </div>
                     ` : ''}
-                    ${req.room_number ? `
-                        <div class="request-detail">
-                            <i class="fas fa-door-open"></i>
-                            <span>Oda ${req.room_number}</span>
-                        </div>
-                    ` : ''}
-                    ${req.phone_number ? `
-                        <div class="request-detail">
-                            <i class="fas fa-phone"></i>
-                            <span>${req.phone_number}</span>
-                        </div>
-                    ` : ''}
-                </div>
-                ${req.notes ? `
-                    <div class="request-detail" style="margin-top: 0.5rem; color: #6c757d;">
-                        <i class="fas fa-comment"></i>
-                        <span>${req.notes}</span>
+                    <div class="request-actions">
+                        <button class="btn-accept" onclick="DriverDashboard.acceptRequest(${req.id})">
+                            <i class="fas fa-check"></i> Kabul Et
+                        </button>
                     </div>
-                ` : ''}
-                <div class="request-actions">
-                    <button class="btn-accept" onclick="DriverDashboard.acceptRequest(${req.id})">
-                        <i class="fas fa-check"></i> Kabul Et
-                    </button>
-                </div>
-            </div>
-        `;
-        }).join('');
+                `;
+                
+                // Insert at correct position
+                if (index === 0) {
+                    container.insertBefore(newCard, container.firstChild);
+                } else {
+                    const prevCard = container.querySelector(`[data-id="${this.pendingRequests[index - 1].id}"]`);
+                    if (prevCard && prevCard.nextSibling) {
+                        container.insertBefore(newCard, prevCard.nextSibling);
+                    } else {
+                        container.appendChild(newCard);
+                    }
+                }
+            });
+        });
     },
 
     /**
@@ -690,19 +748,22 @@ const DriverDashboard = {
     renderCurrentRequest() {
         const container = document.getElementById('current-request');
         const section = document.getElementById('current-request-section');
+        const pendingSection = document.getElementById('pending-requests-section');
         const activeCount = document.getElementById('active-request-count');
         
         if (!container) return;
         
         if (!this.currentRequest) {
-            // Hide the entire section when no active request
+            // Hide active request section, show pending requests section
             if (section) section.style.display = 'none';
+            if (pendingSection) pendingSection.style.display = 'block';
             if (activeCount) activeCount.textContent = '0';
             return;
         }
         
-        // Show the section when there's an active request
+        // Show active request section, hide pending requests section
         if (section) section.style.display = 'block';
+        if (pendingSection) pendingSection.style.display = 'none';
         
         if (activeCount) activeCount.textContent = '1';
         
@@ -1513,6 +1574,129 @@ const DriverDashboard = {
         
         const days = Math.floor(hours / 24);
         return `${days} gün önce`;
+    },
+
+    /**
+     * Update connection status indicator
+     */
+    updateConnectionStatus(status) {
+        const statusElement = document.getElementById('connection-status');
+        const textElement = document.getElementById('connection-text');
+        
+        if (!statusElement || !textElement) return;
+        
+        // Remove all status classes
+        statusElement.classList.remove('connected', 'disconnected', 'connecting');
+        
+        // Add new status class and update text
+        switch(status) {
+            case 'connected':
+                statusElement.classList.add('connected');
+                textElement.innerHTML = '<i class="fas fa-check-circle"></i> Sisteme Bağlı';
+                break;
+            case 'disconnected':
+                statusElement.classList.add('disconnected');
+                textElement.innerHTML = '<i class="fas fa-times-circle"></i> Bağlantı Kesildi';
+                break;
+            case 'connecting':
+                statusElement.classList.add('connecting');
+                textElement.innerHTML = '<i class="fas fa-sync fa-spin"></i> Bağlanıyor...';
+                break;
+        }
+    },
+
+    /**
+     * Show guest connected alert (5 seconds blinking)
+     */
+    showGuestConnectedAlert(data) {
+        // Create alert element
+        const alertId = 'guest-alert-' + Date.now();
+        const alert = document.createElement('div');
+        alert.id = alertId;
+        alert.style.cssText = `
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-weight: 600;
+            animation: slideInRight 0.3s ease, blink 1s ease-in-out infinite;
+            max-width: 350px;
+        `;
+        
+        alert.innerHTML = `
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+            ">
+                🚨
+            </div>
+            <div style="flex: 1;">
+                <div style="font-size: 1rem; margin-bottom: 0.25rem;">Yeni Misafir Bağlandı!</div>
+                <div style="font-size: 0.875rem; opacity: 0.9;">${data.location_name}</div>
+            </div>
+        `;
+        
+        // Add to page
+        document.body.appendChild(alert);
+        
+        // Play sound
+        this.playAlertSound();
+        
+        // Remove after 5 seconds
+        setTimeout(() => {
+            alert.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => {
+                if (document.getElementById(alertId)) {
+                    document.body.removeChild(alert);
+                }
+            }, 300);
+        }, 5000);
+    },
+
+    /**
+     * Play alert sound
+     */
+    playAlertSound() {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Play two beeps
+            [800, 1000].forEach((freq, index) => {
+                setTimeout(() => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = freq;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                }, index * 250);
+            });
+        } catch (error) {
+            console.error('Error playing alert sound:', error);
+        }
     }
 };
 
@@ -1525,3 +1709,4 @@ if (document.readyState === 'loading') {
 
 // Export to global scope
 window.DriverDashboard = DriverDashboard;
+window.driverDashboard = DriverDashboard; // Lowercase alias for easy access

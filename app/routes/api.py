@@ -4,7 +4,7 @@ Powered by Erkan ERDEM
 Updated with Service Layer & Security
 """
 from flask import Blueprint, jsonify, request, session, current_app
-from app import db, csrf
+from app import db, csrf, socketio
 from app.models.user import SystemUser, UserRole
 from app.models.location import Location
 from app.models.buggy import Buggy, BuggyStatus
@@ -12,6 +12,7 @@ from app.models.request import BuggyRequest, RequestStatus
 from app.services import LocationService, BuggyService, RequestService, AuthService
 from app.utils import APIResponse, require_login, require_role, validate_schema
 from app.utils.exceptions import BuggyCallException
+from app.utils.logger import logger, log_request_event, log_driver_event, log_websocket_event, log_api_call, log_error
 from app.schemas import (
     LocationCreateSchema, LocationUpdateSchema,
     BuggyCreateSchema, BuggyUpdateSchema,
@@ -847,6 +848,110 @@ def get_drivers():
         return jsonify({'error': str(e)}), 500
 
 
+@api_bp.route('/drivers/active', methods=['GET'])
+def get_active_drivers():
+    """Get active drivers with their buggies (No auth required for guest debugging)"""
+    try:
+        hotel_id = request.args.get('hotel_id', 1, type=int)
+        notify_param = request.args.get('notify', 'false')
+        notify = notify_param.lower() == 'true' if notify_param else False
+        
+        from app.models.buggy import Buggy, BuggyStatus
+        from app.models.buggy_driver import BuggyDriver
+        from app.models.location import Location
+        
+        # DEBUG: Tüm buggy'leri kontrol et
+        all_buggies = Buggy.query.filter_by(hotel_id=hotel_id).all()
+        print(f'\n🔍 [DEBUG] Hotel {hotel_id} - Total Buggies: {len(all_buggies)}')
+        for b in all_buggies:
+            print(f'   Buggy {b.code}: status={b.status.value}, location={b.current_location_id}')
+        
+        # Müsait buggy'leri bul
+        available_buggies = Buggy.query.filter_by(
+            hotel_id=hotel_id,
+            status=BuggyStatus.AVAILABLE
+        ).all()
+        
+        print(f'🟢 [DEBUG] Available Buggies: {len(available_buggies)}')
+        
+        active_drivers = []
+        
+        for buggy in available_buggies:
+            # Aktif sürücü atamalarını bul
+            print(f'   🔍 Checking Buggy {buggy.code} (ID: {buggy.id})')
+            
+            # Tüm assignment'ları kontrol et (debug için)
+            all_assignments = BuggyDriver.query.filter_by(buggy_id=buggy.id).all()
+            print(f'      Total assignments: {len(all_assignments)}')
+            for a in all_assignments:
+                print(f'         - Driver ID: {a.driver_id}, is_active: {a.is_active}')
+            
+            active_assignments = BuggyDriver.query.filter_by(
+                buggy_id=buggy.id,
+                is_active=True
+            ).all()
+            
+            print(f'   ✅ Active assignments: {len(active_assignments)}')
+            
+            for assignment in active_assignments:
+                driver = SystemUser.query.get(assignment.driver_id)
+                if driver:
+                    print(f'      ✅ Driver: {driver.full_name or driver.username}, FCM: {bool(driver.fcm_token)}')
+                    active_drivers.append({
+                        'driver_id': driver.id,
+                        'driver_name': driver.full_name or driver.username,
+                        'buggy_id': buggy.id,
+                        'buggy_code': buggy.code,
+                        'buggy_icon': buggy.icon,
+                        'buggy_status': buggy.status.value,
+                        'has_fcm_token': bool(driver.fcm_token),
+                        'last_active': assignment.last_active_at.isoformat() if assignment.last_active_at else None
+                    })
+        
+        print(f'👥 [DEBUG] Total Active Drivers: {len(active_drivers)}\n')
+        
+        # Eğer notify=true ise, sürücülere WebSocket ile bildirim gönder
+        if notify and len(active_drivers) > 0:
+            # Location bilgisini al (varsa)
+            location_id = request.args.get('location_id', type=int)
+            location_name = 'Bilinmeyen Lokasyon'
+            if location_id:
+                location = Location.query.get(location_id)
+                if location:
+                    location_name = location.name
+            
+            # WebSocket event data
+            event_data = {
+                'type': 'guest_connected',
+                'message': '🚨 Yeni Misafir Bağlandı!',
+                'location_name': location_name,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+            # Hotel drivers room'a gönder
+            drivers_room = f'hotel_{hotel_id}_drivers'
+            socketio.emit('guest_connected', event_data, room=drivers_room, namespace='/')
+            print(f'🚨 WebSocket: Guest connected notification sent to {drivers_room}')
+        
+        return jsonify({
+            'success': True,
+            'hotel_id': hotel_id,
+            'active_drivers_count': len(active_drivers),
+            'active_drivers': active_drivers,
+            'notification_sent': notify and len(active_drivers) > 0
+        }), 200
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f'❌ [ERROR] get_active_drivers failed: {str(e)}')
+        print(error_details)
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'details': error_details if current_app.debug else None
+        }), 500
+
+
 # ==================== Requests API ====================
 @api_bp.route('/requests', methods=['POST'])
 def create_request():
@@ -857,11 +962,13 @@ def create_request():
         # Validate required fields
         location_id = data.get('location_id')
         if not location_id:
+            log_error('CREATE_REQUEST', 'Location ID eksik', data)
             return jsonify({'error': 'Location ID gerekli'}), 400
         
         # Get location to verify and get hotel_id
         location = Location.query.get(location_id)
         if not location:
+            log_error('CREATE_REQUEST', f'Geçersiz lokasyon: {location_id}')
             return jsonify({'error': 'Geçersiz lokasyon'}), 404
         
         # Create request (requested_at otomatik olarak get_current_timestamp ile ayarlanır)
@@ -879,6 +986,22 @@ def create_request():
         db.session.add(buggy_request)
         db.session.commit()
         
+        # Eager load relationships before session closes
+        # Bu sayede to_dict() çağrısı güvenli olur
+        db.session.refresh(buggy_request)
+        _ = buggy_request.location  # Force load
+        _ = buggy_request.buggy  # Force load (None olacak ama yüklensin)
+        _ = buggy_request.accepted_by_driver  # Force load (None olacak)
+        
+        # Log request creation
+        log_request_event('CREATED', {
+            'request_id': buggy_request.id,
+            'guest_name': buggy_request.guest_name,
+            'location': location.name,
+            'hotel_id': location.hotel_id,
+            'room_number': buggy_request.room_number
+        })
+        
         # Emit WebSocket event for drivers and admins
         from app import socketio
         event_data = {
@@ -894,20 +1017,20 @@ def create_request():
         # Send via SSE (Server-Sent Events) - Simple and reliable!
         from app.routes.sse import send_to_all_drivers
         sent_count = send_to_all_drivers(location.hotel_id, 'new_request', event_data)
-        print(f'✅ SSE: Sent new_request to {sent_count} drivers')
+        log_websocket_event('SSE_NEW_REQUEST', {'request_id': buggy_request.id, 'drivers_notified': sent_count})
         
         # Also send via WebSocket for admin panel
         admin_room = f'hotel_{location.hotel_id}_admin'
         socketio.emit('new_request', event_data, room=admin_room, namespace='/')
-        print(f'✅ WebSocket: Sent to admin room {admin_room}')
+        log_websocket_event('WS_NEW_REQUEST_ADMIN', {'request_id': buggy_request.id, 'room': admin_room})
         
         # Send push notifications to available drivers (FCM)
         try:
             from app.services.fcm_notification_service import FCMNotificationService
             notification_count = FCMNotificationService.notify_new_request(buggy_request)
-            print(f'✅ FCM notifications sent to {notification_count} driver(s)')
+            log_request_event('FCM_SENT', {'request_id': buggy_request.id, 'drivers_notified': notification_count})
         except Exception as e:
-            print(f'⚠️ Push notification error: {str(e)}')
+            log_error('FCM_NOTIFICATION', str(e), {'request_id': buggy_request.id})
             # Don't fail the request if notification fails
         
         return jsonify({
@@ -1017,14 +1140,17 @@ def accept_request(request_id):
         # Get driver's buggy
         buggy = Buggy.query.filter_by(driver_id=user.id).first()
         if not buggy:
+            log_error('ACCEPT_REQUEST', 'Buggy bulunamadı', {'user_id': user.id, 'request_id': request_id})
             return jsonify({'error': 'Bu kullanıcıya atanmış buggy bulunamadı'}), 404
         
         # Get request
         buggy_request = BuggyRequest.query.get(request_id)
         if not buggy_request:
+            log_error('ACCEPT_REQUEST', 'Talep bulunamadı', {'request_id': request_id})
             return jsonify({'error': 'Talep bulunamadı'}), 404
         
         if buggy_request.status != 'PENDING':
+            log_error('ACCEPT_REQUEST', 'Talep zaten işleme alınmış', {'request_id': request_id, 'status': buggy_request.status})
             return jsonify({'error': 'Bu talep zaten işleme alınmış'}), 400
         
         # Update request
@@ -1040,6 +1166,14 @@ def accept_request(request_id):
         buggy.status = BuggyStatus.BUSY
         
         db.session.commit()
+        
+        # Log acceptance
+        log_request_event('ACCEPTED', {
+            'request_id': request_id,
+            'driver': user.full_name,
+            'buggy': buggy.code,
+            'response_time': buggy_request.response_time_seconds
+        })
         
         # Emit WebSocket event for guest
         from app import socketio

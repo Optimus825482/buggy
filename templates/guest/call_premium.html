@@ -721,6 +721,9 @@ body {
         crossorigin="anonymous"></script>
 
 <script>
+// Firebase Configuration from Backend
+window.firebaseVapidKey = '{{ firebase_vapid_key }}';
+
 /**
  * Guest Call Premium - Enhanced JavaScript Module
  * Optimized for performance, accessibility, and maintainability
@@ -798,8 +801,47 @@ const GuestCall = (() => {
         }
     };
 
+    // ==================== DEBUG: CHECK ACTIVE DRIVERS ====================
+    const checkActiveDrivers = async () => {
+        try {
+            const hotelId = parseInt('{{ hotel_id }}') || 1;
+            const locationId = state.selectedLocationId || '';
+            const response = await fetch(`/api/drivers/active?hotel_id=${hotelId}&notify=true&location_id=${locationId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('🚗 ==================== ACTIVE DRIVERS DEBUG ====================');
+                console.log(`📊 Hotel ID: ${data.hotel_id}`);
+                console.log(`👥 Active Drivers Count: ${data.active_drivers_count}`);
+                
+                if (data.active_drivers_count > 0) {
+                    console.log('✅ Active Drivers:');
+                    data.active_drivers.forEach((driver, index) => {
+                        console.log(`\n  ${index + 1}. ${driver.driver_name}`);
+                        console.log(`     🚗 Buggy: ${driver.buggy_icon || '🚗'} ${driver.buggy_code}`);
+                        console.log(`     📱 FCM Token: ${driver.has_fcm_token ? '✅ Yes' : '❌ No'}`);
+                        console.log(`     🟢 Status: ${driver.buggy_status}`);
+                        console.log(`     ⏰ Last Active: ${driver.last_active || 'N/A'}`);
+                    });
+                } else {
+                    console.warn('⚠️ NO ACTIVE DRIVERS FOUND!');
+                    console.warn('   Possible reasons:');
+                    console.warn('   - No drivers logged in');
+                    console.warn('   - BuggyDriver.is_active = False');
+                    console.warn('   - No available buggies');
+                }
+                console.log('🚗 ============================================================');
+            }
+        } catch (error) {
+            console.error('❌ Error checking active drivers:', error);
+        }
+    };
+
     // ==================== INITIALIZATION ====================
     const initializePage = () => {
+        // DEBUG: Check active drivers on page load
+        checkActiveDrivers();
+        
         // Flask template'den gelen location_id'yi öncelikli kullan
         const container = document.querySelector('.guest-call-container');
         const templateLocationId = container ? container.dataset.locationId : null;

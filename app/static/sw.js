@@ -1,8 +1,8 @@
 // Service Worker for Shuttle Call PWA - Optimized Version
-// Version 5.1.0 - Cache Fixed
+// Version 5.1.2 - Async Claim Fix
 // Powered by Erkan ERDEM
 
-const CACHE_VERSION = 'shuttlecall-v5.1.0';
+const CACHE_VERSION = 'shuttlecall-v5.1.2';
 const CACHE_NAME = `${CACHE_VERSION}-cache`;
 
 // Offline sayfası için cache
@@ -51,10 +51,11 @@ self.addEventListener('activate', (event) => {
   console.log('[SW v5.1] Activating Service Worker');
   
   event.waitUntil(
-    Promise.all([
-      self.clients.claim(),
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
+    (async () => {
+      try {
+        // Önce eski cache'leri temizle
+        const cacheNames = await caches.keys();
+        await Promise.all(
           cacheNames.map((cacheName) => {
             if (cacheName !== CACHE_NAME) {
               console.log(`[SW] Deleting old cache: ${cacheName}`);
@@ -62,10 +63,15 @@ self.addEventListener('activate', (event) => {
             }
           })
         );
-      })
-    ]).then(() => {
-      console.log('[SW v5.0] Activation complete');
-    })
+        
+        // Cache temizliği bittikten SONRA claim yap
+        console.log('[SW v5.1] Activation complete, claiming clients');
+        await self.clients.claim();
+      } catch (error) {
+        console.warn('[SW] Activation error:', error);
+        // Hata olsa bile devam et
+      }
+    })()
   );
 });
 

@@ -18,11 +18,20 @@ ws_connections = {}
 @socketio.on('connect')
 def handle_connect():
     """Handle client connection"""
-    print(f'Client connected: {request.sid}')
+    print(f'✅ Client connected: {request.sid}')
+    
+    # Session bilgisini logla (debug için)
+    user_id = session.get('user_id')
+    role = session.get('role')
+    if user_id:
+        print(f'   User: {user_id}, Role: {role}')
+    
     emit('connected', {
         'message': 'Connected to Buggy Call server',
         'sid': request.sid
     })
+    
+    return True  # ✅ Bağlantıyı kabul et
 
 
 @socketio.on('disconnect')

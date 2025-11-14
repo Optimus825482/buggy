@@ -53,10 +53,31 @@ class NotificationPermissionHandler {
     }
 
     /**
-     * Check conditions and show dialog if needed
+     * Check conditions and show dialog if needed (iOS entegrasyonu ile)
      */
     async checkAndShowDialog() {
         try {
+            // iOS kontrolü - iOS handler varsa kullan
+            if (window.iosNotificationHandler && window.iosNotificationHandler.isIOSDevice()) {
+                const iosStatus = window.iosNotificationHandler.getStatus();
+                console.log('[NotificationPermission] iOS Status:', iosStatus);
+
+                // iOS 16.4 altı - bildirim desteklenmiyor
+                if (!iosStatus.webPushSupported) {
+                    console.log('[NotificationPermission] iOS version does not support Web Push');
+                    return;
+                }
+
+                // PWA modunda değil - önce PWA install gerekli
+                if (!iosStatus.isPWA) {
+                    console.log('[NotificationPermission] iOS requires PWA mode - install prompt will handle this');
+                    return;
+                }
+
+                // iOS PWA modunda - normal akış devam et
+                console.log('[NotificationPermission] iOS PWA mode - proceeding with normal flow');
+            }
+
             // Check browser permission status first
             const browserStatus = await this.getBrowserPermissionStatus();
             // Browser status checked
@@ -319,7 +340,7 @@ class NotificationPermissionHandler {
     }
 
     /**
-     * Handle "Allow" button click
+     * Handle "Allow" button click (iOS entegrasyonu ile)
      */
     async handleAllow() {
         console.log('[NotificationPermission] User clicked Allow');
@@ -331,6 +352,20 @@ class NotificationPermissionHandler {
             // Browser support check
             if (!('Notification' in window)) {
                 console.error('[NotificationPermission] Notifications not supported');
+                return;
+            }
+
+            // iOS için özel handling
+            if (window.iosNotificationHandler && window.iosNotificationHandler.isIOSDevice()) {
+                console.log('[NotificationPermission] Using iOS notification handler');
+                const permission = await window.iosNotificationHandler.requestPermission();
+                console.log('[NotificationPermission] iOS permission result:', permission);
+                
+                await this.updateSessionStatus(permission);
+                
+                if (permission === 'granted') {
+                    this.showSuccessToast('Bildirimler aktif edildi! 🔔');
+                }
                 return;
             }
 

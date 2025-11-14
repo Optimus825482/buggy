@@ -464,23 +464,13 @@ body {
 
         <h1 class="status-title" id="status-title" data-i18n="request.created">Talebiniz Alındı</h1>
         <p class="status-message" id="status-message" data-i18n="request.created_msg">
-            Talebiniz başarıyla oluşturuldu. Yakındaki sürücüler bilgilendirildi.
+            Talebiniz başarıyla oluşturuldu. 
         </p>
 
-        <!-- Info Grid -->
-        <div class="info-grid">
-            <div class="info-box">
-                <div class="info-label" data-i18n="label.location">Lokasyon</div>
-                <div class="info-value" id="location-name">-</div>
-            </div>
-            <div class="info-box">
-                <div class="info-label" data-i18n="label.room">Oda No</div>
-                <div class="info-value" id="room-number">-</div>
-            </div>
-        </div>
+
 
         <!-- Timeline -->
-        <div class="timeline">
+        <div class="timeline" id="timeline-container">
             <div class="timeline-step completed" id="step-requested">
                 <div class="timeline-dot">
                     <i class="fas fa-check"></i>
@@ -501,23 +491,13 @@ body {
                 </div>
             </div>
 
-            <div class="timeline-step" id="step-onway">
+            <div class="timeline-step" id="step-completed">
                 <div class="timeline-dot">
-                    <i class="fas fa-shuttle-van"></i>
+                    <i class="fas fa-check-circle"></i>
                 </div>
                 <div class="timeline-content">
-                    <div class="timeline-label" data-i18n="label.on_the_way">Shuttle Yolda</div>
-                    <div class="timeline-time" id="time-onway">-</div>
-                </div>
-            </div>
-
-            <div class="timeline-step" id="step-arrived">
-                <div class="timeline-dot">
-                    <i class="fas fa-flag-checkered"></i>
-                </div>
-                <div class="timeline-content">
-                    <div class="timeline-label" data-i18n="label.arrived">Geldi</div>
-                    <div class="timeline-time" id="time-arrived">-</div>
+                    <div class="timeline-label" data-i18n="label.completed">Tamamlandı</div>
+                    <div class="timeline-time" id="time-completed">-</div>
                 </div>
             </div>
         </div>
@@ -541,15 +521,26 @@ body {
                 <i class="fas fa-check-circle"></i>
             </div>
             <h3 style="font-size: 20px; font-weight: 700; color: var(--success-green); margin-bottom: 8px;">
-                Talebiniz Tamamlandı!
+                ✅ Tamamlandı!
             </h3>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">
-                İyi yolculuklar dileriz
+            <p style="font-size: 16px; color: #065f46; margin-bottom: 16px; font-weight: 600;">
+                Shuttle Call sistemini kullandığınız için<br>
+                teşekkür ederiz! 🙏
             </p>
-            <button class="btn-primary" onclick="window.location.href='/guest/call'">
-                <i class="fas fa-plus-circle"></i>
-                Yeni Talep Oluştur
-            </button>
+            
+            <!-- Service Provider Info -->
+            <div style="
+                margin-top: 24px;
+                padding: 16px;
+                background: #f9fafb;
+                border-radius: 12px;
+                font-size: 11px;
+                color: #6b7280;
+                line-height: 1.6;
+            ">
+                Bu hizmet <strong>Optimist Bilişim & Elektronik</strong> tarafından<br>
+                <strong>MERIT INTERNATIONAL HOTELS</strong> güvencesi ve kalitesiyle verilmektedir.
+            </div>
         </div>
     </div>
 
@@ -723,51 +714,66 @@ function updateStatus(request) {
 
 function updateToPending() {
     // Talep oluşturuldu completed, işleme alındı active
-    document.getElementById('step-requested').classList.add('completed');
-    document.getElementById('step-accepted').classList.add('active');
-    document.getElementById('step-accepted').classList.remove('completed');
+    const stepRequested = document.getElementById('step-requested');
+    const stepAccepted = document.getElementById('step-accepted');
+    const statusTitle = document.getElementById('status-title');
+    const statusMessage = document.getElementById('status-message');
     
-    document.getElementById('status-title').textContent = 'Sürücü Aranıyor...';
-    document.getElementById('status-message').textContent = 
-        'Talebiniz yakındaki sürücülere iletildi. En kısa sürede yanıtlanacaktır.';
+    if (stepRequested) stepRequested.classList.add('completed');
+    if (stepAccepted) {
+        stepAccepted.classList.add('active');
+        stepAccepted.classList.remove('completed');
+    }
+    
+    if (statusTitle) statusTitle.textContent = 'Sürücü Aranıyor...';
+    if (statusMessage) {
+        statusMessage.textContent = 'Talebiniz yakındaki sürücülere iletildi. En kısa sürede yanıtlanacaktır.';
+    }
 }
 
 function updateToAccepted(request) {
-    // Talep oluşturuldu ve işleme alındı completed, shuttle yolda active
-    document.getElementById('step-requested').classList.add('completed');
-    document.getElementById('step-accepted').classList.add('completed');
-    document.getElementById('step-accepted').classList.remove('active');
-    document.getElementById('step-onway').classList.add('active');
-    document.getElementById('step-onway').classList.remove('completed');
+    // Talep oluşturuldu completed, işleme alındı active
+    const stepRequested = document.getElementById('step-requested');
+    const stepAccepted = document.getElementById('step-accepted');
+    const stepCompleted = document.getElementById('step-completed');
+    
+    if (stepRequested) stepRequested.classList.add('completed');
+    if (stepAccepted) {
+        stepAccepted.classList.add('active');
+        stepAccepted.classList.remove('completed');
+    }
+    if (stepCompleted) stepCompleted.classList.remove('completed');
 
     if (request.accepted_at) {
-        document.getElementById('time-accepted').textContent = 
-            new Date(request.accepted_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
-        document.getElementById('time-onway').textContent = 'Şimdi';
+        const timeAccepted = document.getElementById('time-accepted');
+        if (timeAccepted) {
+            timeAccepted.textContent = new Date(request.accepted_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
+        }
     }
 
     // Update status
-    document.getElementById('status-icon').innerHTML = '<i class="fas fa-shuttle-van"></i>';
-    document.getElementById('status-title').textContent = 'Shuttle Yolda!';
-    document.getElementById('status-message').textContent = 
-        'Shuttle yola çıktı. Yakında yanınızda olacak.';
+    const statusIcon = document.getElementById('status-icon');
+    const statusTitle = document.getElementById('status-title');
+    const statusMessage = document.getElementById('status-message');
+    
+    if (statusIcon) statusIcon.innerHTML = '<i class="fas fa-shuttle-van"></i>';
+    if (statusTitle) statusTitle.textContent = 'Shuttle Yolda!';
+    if (statusMessage) statusMessage.textContent = 'Shuttle yola çıktı. Yakında yanınızda olacak.';
 
     // Show driver info
     if (request.buggy_code) {
-        document.getElementById('buggy-code').textContent = request.buggy_code;
-        document.getElementById('driver-info').classList.add('show');
+        const buggyCode = document.getElementById('buggy-code');
+        const driverInfo = document.getElementById('driver-info');
+        if (buggyCode) buggyCode.textContent = request.buggy_code;
+        if (driverInfo) driverInfo.classList.add('show');
     }
 }
 
 function updateToCompleted(request) {
-    // Mark all steps as completed
-    document.querySelectorAll('.timeline-step').forEach(step => {
-        step.classList.add('completed');
-    });
-
-    if (request.completed_at) {
-        document.getElementById('time-arrived').textContent = 
-            new Date(request.completed_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
+    // Hide timeline when completed
+    const timeline = document.getElementById('timeline-container');
+    if (timeline) {
+        timeline.style.display = 'none';
     }
 
     // Update status

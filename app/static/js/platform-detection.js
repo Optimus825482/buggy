@@ -19,6 +19,41 @@ const PlatformDetection = {
     },
     
     /**
+     * Get iOS version (returns null if not iOS)
+     */
+    getIOSVersion() {
+        if (!this.isIOS()) return null;
+        
+        const match = navigator.userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
+        if (!match) return null;
+        
+        return {
+            major: parseInt(match[1], 10),
+            minor: parseInt(match[2], 10),
+            patch: match[3] ? parseInt(match[3], 10) : 0,
+            full: `${match[1]}.${match[2]}${match[3] ? '.' + match[3] : ''}`
+        };
+    },
+    
+    /**
+     * Check if iOS version supports Web Push (iOS 16.4+)
+     */
+    isIOSWebPushSupported() {
+        const version = this.getIOSVersion();
+        if (!version) return false;
+        
+        // iOS 16.4+ destekliyor
+        return version.major > 16 || (version.major === 16 && version.minor >= 4);
+    },
+    
+    /**
+     * Detect if browser is Safari
+     */
+    isSafari() {
+        return /Safari/i.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS/i.test(navigator.userAgent);
+    },
+    
+    /**
      * Detect if device is desktop
      */
     isDesktop() {
@@ -40,11 +75,18 @@ const PlatformDetection = {
     },
     
     /**
-     * Check if PWA is installed
+     * Check if PWA is installed (gelişmiş kontrol)
      */
     isPWAInstalled() {
+        // iOS için özel kontrol
+        if (this.isIOS()) {
+            return window.navigator.standalone === true;
+        }
+        
+        // Android ve Desktop için
         return window.matchMedia('(display-mode: standalone)').matches ||
-               window.navigator.standalone === true;
+               window.matchMedia('(display-mode: fullscreen)').matches ||
+               window.matchMedia('(display-mode: minimal-ui)').matches;
     },
     
     /**
@@ -108,9 +150,19 @@ const PlatformDetection = {
     },
     
     /**
-     * Check if notifications are supported
+     * Check if notifications are supported (iOS için özel kontrol)
      */
     isNotificationSupported() {
+        // iOS kontrolü
+        if (this.isIOS()) {
+            // iOS'ta bildirimler sadece PWA modunda ve iOS 16.4+ çalışır
+            return this.isPWAInstalled() && 
+                   this.isIOSWebPushSupported() && 
+                   'Notification' in window && 
+                   'serviceWorker' in navigator;
+        }
+        
+        // Diğer platformlar
         return 'Notification' in window && 'serviceWorker' in navigator;
     },
     
@@ -136,9 +188,11 @@ const PlatformDetection = {
     },
     
     /**
-     * Get platform info
+     * Get platform info (gelişmiş)
      */
     getPlatformInfo() {
+        const iosVersion = this.getIOSVersion();
+        
         return {
             platform: this.isAndroid() ? 'Android' : 
                      this.isIOS() ? 'iOS' : 
@@ -146,6 +200,9 @@ const PlatformDetection = {
             isMobile: this.isMobile(),
             isTablet: this.isTablet(),
             isPWA: this.isPWAInstalled(),
+            browser: this.isSafari() ? 'Safari' : 'Other',
+            iosVersion: iosVersion ? iosVersion.full : null,
+            iosWebPushSupported: this.isIOSWebPushSupported(),
             features: {
                 notifications: this.isNotificationSupported(),
                 push: this.isPushSupported(),

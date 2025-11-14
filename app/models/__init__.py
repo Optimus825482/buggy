@@ -9,18 +9,16 @@ import os
 
 def get_current_timestamp():
     """
-    Get current timestamp in configured timezone
-    Reads APP_TIMEZONE from environment (default: Europe/Istanbul)
+    Get current UTC timestamp (timezone-aware, then converted to naive)
+    
+    IMPORTANT: All timestamps in the database are stored in UTC.
+    Frontend should handle timezone conversion for display.
+    
+    Returns:
+        datetime: Current UTC timestamp (naive datetime)
     """
-    try:
-        timezone_str = os.getenv('APP_TIMEZONE', 'Europe/Istanbul')
-        timezone = pytz.timezone(timezone_str)
-        return datetime.now(timezone)
-    except Exception as e:
-        # Fallback to UTC if timezone is invalid
-        import logging
-        logging.warning(f"Invalid timezone '{timezone_str}', falling back to UTC: {str(e)}")
-        return datetime.now(pytz.UTC)
+    # Always use UTC for database storage (best practice for production)
+    return datetime.now(pytz.UTC).replace(tzinfo=None)
 
 
 # Base model class

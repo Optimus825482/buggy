@@ -6,15 +6,15 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
-// Firebase Configuration
-// NOT: Bu değerler Firebase Console'dan alınmalı
+// Firebase Configuration - MUST MATCH backend service account!
 const firebaseConfig = {
-  apiKey: "AIzaSyDyjVSgW8j4wY-wF0G9uUJpY_Iv-5uQx1I",
-  authDomain: "buggy-call-a5785.firebaseapp.com",
-  projectId: "buggy-call-a5785",
-  storageBucket: "buggy-call-a5785.firebasestorage.app",
-  messagingSenderId: "141355725901",
-  appId: "1:141355725901:web:a2c08a67a489ba82ca1804"
+  apiKey: "AIzaSyD5brCkHqSPVCtt0XJmUMqZizrjK_HX9dc",
+  authDomain: "shuttle-call-835d9.firebaseapp.com",
+  projectId: "shuttle-call-835d9",
+  storageBucket: "shuttle-call-835d9.firebasestorage.app",
+  messagingSenderId: "1044072191950",
+  appId: "1:1044072191950:web:dc780e1832d3a4ee5afd9f",
+  measurementId: "G-DCP7FTRM9Q"
 };
 
 // Firebase'i başlat
@@ -25,49 +25,10 @@ try {
   console.log('[FCM SW] Firebase Messaging initialized');
   
   // ============================================================================
-  // CACHE MANAGEMENT - Sound files için
-  // ============================================================================
-  
-  const CACHE_NAME = 'fcm-sounds-v1';
-  const SOUND_FILES = [
-    '/static/sounds/notification.mp3',
-    '/static/sounds/notification.ogg'
-  ];
-  
-  // Install event - Sound dosyalarını cache'le
-  self.addEventListener('install', (event) => {
-    console.log('[FCM SW] Installing and caching sound files');
-    event.waitUntil(
-      caches.open(CACHE_NAME)
-        .then((cache) => {
-          return cache.addAll(SOUND_FILES).catch((err) => {
-            console.warn('[FCM SW] Some sound files could not be cached:', err);
-          });
-        })
-        .then(() => self.skipWaiting())
-    );
-  });
-  
-  // Activate event - Eski cache'leri temizle
-  self.addEventListener('activate', (event) => {
-    console.log('[FCM SW] Activating');
-    event.waitUntil(
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME && cacheName.startsWith('fcm-sounds-')) {
-              console.log('[FCM SW] Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      }).then(() => self.clients.claim())
-    );
-  });
-  
-  // ============================================================================
   // BACKGROUND MESSAGE HANDLER
   // ============================================================================
+  // NOT: Cache management ana sw.js tarafından yapılıyor
+  // Install/Activate event'leri kaldırıldı - SW update döngüsünü önlemek için
   
   messaging.onBackgroundMessage((payload) => {
     console.log('[FCM SW] Background message received:', payload);

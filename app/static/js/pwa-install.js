@@ -364,12 +364,53 @@ class PWAInstaller {
     }
 
     /**
-     * iOS için özel install promptu göster
+     * iOS için özel install promptu göster (bildirim vurgusu ile)
      */
     showIOSInstallPrompt() {
         // Daha önce kapatıldıysa tekrar gösterme
         if (this.isPromptDismissed()) {
             return;
+        }
+
+        // iOS versiyon kontrolü
+        let iosVersionInfo = '';
+        if (window.iosNotificationHandler) {
+            const iosStatus = window.iosNotificationHandler.getStatus();
+            if (iosStatus.webPushSupported) {
+                iosVersionInfo = `
+                    <div style="
+                        background: #d1fae5;
+                        border-left: 4px solid #10b981;
+                        padding: 12px 16px;
+                        border-radius: 8px;
+                        margin-bottom: 16px;
+                    ">
+                        <div style="font-weight: 600; color: #065f46; margin-bottom: 4px;">
+                            ✅ Bildirimler Destekleniyor
+                        </div>
+                        <div style="font-size: 13px; color: #047857; line-height: 1.6;">
+                            iOS ${iosStatus.version} - Ana ekrana ekledikten sonra bildirimler aktif olacak
+                        </div>
+                    </div>
+                `;
+            } else {
+                iosVersionInfo = `
+                    <div style="
+                        background: #fef3c7;
+                        border-left: 4px solid #f59e0b;
+                        padding: 12px 16px;
+                        border-radius: 8px;
+                        margin-bottom: 16px;
+                    ">
+                        <div style="font-weight: 600; color: #92400e; margin-bottom: 4px;">
+                            ⚠️ Bildirimler İçin Güncelleme Gerekli
+                        </div>
+                        <div style="font-size: 13px; color: #78350f; line-height: 1.6;">
+                            iOS ${iosStatus.version} - Bildirimler için iOS 16.4+ gerekli
+                        </div>
+                    </div>
+                `;
+            }
         }
 
         const overlay = document.createElement('div');
@@ -396,6 +437,8 @@ class PWAInstaller {
             max-width: 500px;
             padding: 24px;
             animation: slideUpFromBottom 0.4s ease;
+            max-height: 90vh;
+            overflow-y: auto;
         `;
 
         modal.innerHTML = `
@@ -465,9 +508,11 @@ class PWAInstaller {
                     Ana Ekrana Ekle
                 </h3>
                 <p style="font-size: 14px; color: #64748b;">
-                    Daha hızlı erişim ve bildirimler için uygulamayı yükleyin
+                    Daha hızlı erişim ve <strong>bildirimler</strong> için uygulamayı yükleyin
                 </p>
             </div>
+
+            ${iosVersionInfo}
 
             <div class="ios-install-step">
                 <div class="ios-install-step-number">1</div>
@@ -565,16 +610,14 @@ if ('serviceWorker' in navigator) {
 
 // Handle service worker updates
 if ('serviceWorker' in navigator) {
-    let updateToastShown = false;
-    
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // Sadece bir kez göster
-        if (updateToastShown) {
+        // Session storage ile kontrol et - sadece bir kez göster
+        if (sessionStorage.getItem('pwa-toast-shown')) {
             console.log('[PWA] Update toast already shown, skipping');
             return;
         }
         
-        updateToastShown = true;
+        sessionStorage.setItem('pwa-toast-shown', 'true');
         console.log('[PWA] New service worker activated');
 
         // Mevcut toast'ı kaldır
@@ -583,26 +626,28 @@ if ('serviceWorker' in navigator) {
             existingToast.remove();
         }
 
-        // Show update notification
-        const updateToast = document.createElement('div');
-        updateToast.className = 'pwa-toast pwa-update-toast';
-        updateToast.innerHTML = `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M4 4V9H4.58152M19.9381 11C19.446 7.05369 16.0796 4 12 4C8.64262 4 5.76829 6.06817 4.58152 9M4.58152 9H9M20 20V15H19.4185M19.4185 15C18.2317 17.9318 15.3574 20 12 20C7.92038 20 4.55399 16.9463 4.06189 13M19.4185 15H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>Yeni sürüm yüklendi!</span>
-            <button onclick="location.reload()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;">Yenile</button>
-        `;
+        // Show update notification (sadece reload sonrası değil, ilk aktivasyonda)
+        if (!performance.navigation || performance.navigation.type !== 1) {
+            const updateToast = document.createElement('div');
+            updateToast.className = 'pwa-toast pwa-update-toast';
+            updateToast.innerHTML = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 4V9H4.58152M19.9381 11C19.446 7.05369 16.0796 4 12 4C8.64262 4 5.76829 6.06817 4.58152 9M4.58152 9H9M20 20V15H19.4185M19.4185 15C18.2317 17.9318 15.3574 20 12 20C7.92038 20 4.55399 16.9463 4.06189 13M19.4185 15H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Yeni sürüm yüklendi!</span>
+                <button onclick="location.reload()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;">Yenile</button>
+            `;
 
-        document.body.appendChild(updateToast);
-        
-        // 10 saniye sonra otomatik kapat
-        setTimeout(() => {
-            updateToast.style.opacity = '0';
+            document.body.appendChild(updateToast);
+            
+            // 10 saniye sonra otomatik kapat
             setTimeout(() => {
-                updateToast.remove();
-            }, 300);
-        }, 10000);
+                updateToast.style.opacity = '0';
+                setTimeout(() => {
+                    updateToast.remove();
+                }, 300);
+            }, 10000);
+        }
     });
 }
 

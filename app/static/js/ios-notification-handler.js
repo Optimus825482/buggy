@@ -8,7 +8,37 @@ class IOSNotificationHandler {
     constructor() {
         this.isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         this.isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS/i.test(navigator.userAgent);
-        this.isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        this.isPWA = window.navigator.standalone === true;
+        this.iosVersion = this.getIOSVersion();
+        this.webPushSupported = this.checkWebPushSupport();
+    }
+
+    /**
+     * iOS versiyonunu al
+     */
+    getIOSVersion() {
+        if (!this.isIOS) return null;
+        
+        const match = navigator.userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
+        if (!match) return null;
+        
+        return {
+            major: parseInt(match[1], 10),
+            minor: parseInt(match[2], 10),
+            patch: match[3] ? parseInt(match[3], 10) : 0,
+            full: `${match[1]}.${match[2]}${match[3] ? '.' + match[3] : ''}`
+        };
+    }
+
+    /**
+     * Web Push desteğini kontrol et (iOS 16.4+)
+     */
+    checkWebPushSupport() {
+        if (!this.iosVersion) return false;
+        
+        // iOS 16.4+ Web Push destekliyor
+        return this.iosVersion.major > 16 || 
+               (this.iosVersion.major === 16 && this.iosVersion.minor >= 4);
     }
 
     /**
@@ -26,54 +56,233 @@ class IOSNotificationHandler {
     }
 
     /**
-     * Bildirim desteği kontrolü
+     * Bildirim desteği kontrolü (gelişmiş)
      */
     isNotificationSupported() {
-        // iOS'ta bildirimler sadece PWA modunda çalışır
-        if (this.isIOS && !this.isPWA) {
-            console.log('[iOS] Notifications only work in PWA mode on iOS');
+        // iOS değilse normal kontrol
+        if (!this.isIOS) {
+            return 'Notification' in window && 'serviceWorker' in navigator;
+        }
+
+        // iOS 16.4 altı - bildirim yok
+        if (!this.webPushSupported) {
+            console.log('[iOS] Web Push requires iOS 16.4+. Current:', this.iosVersion?.full || 'Unknown');
             return false;
         }
 
+        // iOS 16.4+ - PWA modunda olmalı
+        if (!this.isPWA) {
+            console.log('[iOS] Notifications require PWA mode on iOS');
+            return false;
+        }
+
+        // Tüm koşullar sağlandı
         return 'Notification' in window && 'serviceWorker' in navigator;
     }
 
     /**
-     * Bildirim izni iste (iOS için özel)
+     * iOS için detaylı durum bilgisi
+     */
+    getStatus() {
+        if (!this.isIOS) {
+            return {
+                platform: 'not-ios',
+                supported: true,
+                message: 'Not an iOS device'
+            };
+        }
+
+        const status = {
+            platform: 'ios',
+            version: this.iosVersion?.full || 'Unknown',
+            isPWA: this.isPWA,
+            webPushSupported: this.webPushSupported,
+            notificationSupported: this.isNotificationSupported(),
+            message: ''
+        };
+
+        // Durum mesajı oluştur
+        if (!this.webPushSupported) {
+            status.message = `iOS ${this.iosVersion?.full || 'Unknown'} - Web Push için iOS 16.4+ gerekli`;
+        } else if (!this.isPWA) {
+            status.message = 'PWA modunda değil - Ana ekrana ekleyin';
+        } else {
+            status.message = 'Bildirimler destekleniyor';
+        }
+
+        return status;
+    }
+
+    /**
+     * Bildirim izni iste (iOS için özel - gelişmiş)
      */
     async requestPermission() {
         try {
+            // iOS değilse normal akış
+            if (!this.isIOS) {
+                return await Notification.requestPermission();
+            }
+
+            // iOS 16.4 altı - desteklenmiyor
+            if (!this.webPushSupported) {
+                console.log('[iOS] Web Push not supported on iOS', this.iosVersion?.full);
+                this.showVersionNotSupportedMessage();
+                return 'denied';
+            }
+
             // iOS Safari (PWA değil) - kullanıcıyı bilgilendir
-            if (this.isIOS && !this.isPWA) {
+            if (!this.isPWA) {
                 console.log('[iOS] Not in PWA mode - showing install instructions');
                 this.showPWARequiredMessage();
                 return 'denied';
             }
 
-            // iOS PWA - normal bildirim izni iste
-            if (this.isIOSPWA()) {
-                console.log('[iOS PWA] Requesting notification permission');
+            // iOS PWA + 16.4+ - bildirim izni iste
+            console.log('[iOS PWA] Requesting notification permission');
+            
+            // iOS'ta bildirim izni için kullanıcı etkileşimi gerekli
+            const permission = await Notification.requestPermission();
+            console.log('[iOS PWA] Permission result:', permission);
+            
+            if (permission === 'granted') {
+                this.showSuccessMessage();
                 
-                // iOS'ta bildirim izni için kullanıcı etkileşimi gerekli
-                const permission = await Notification.requestPermission();
-                console.log('[iOS PWA] Permission result:', permission);
-                
-                if (permission === 'granted') {
-                    this.showSuccessMessage();
-                } else if (permission === 'denied') {
-                    this.showDeniedMessage();
+                // FCM token al (eğer fcmManager varsa)
+                if (window.fcmManager && typeof window.fcmManager.requestPermissionAndGetToken === 'function') {
+                    console.log('[iOS PWA] Getting FCM token...');
+                    await window.fcmManager.requestPermissionAndGetToken();
                 }
-                
-                return permission;
+            } else if (permission === 'denied') {
+                this.showDeniedMessage();
             }
-
-            // Diğer platformlar
-            return await Notification.requestPermission();
+            
+            return permission;
 
         } catch (error) {
             console.error('[iOS] Error requesting permission:', error);
+            this.showErrorMessage(error.message);
             return 'denied';
         }
+    }
+
+    /**
+     * iOS versiyon desteklenmiyor mesajı
+     */
+    showVersionNotSupportedMessage() {
+        const overlay = document.createElement('div');
+        overlay.className = 'ios-notification-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+            padding: 20px;
+        `;
+
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            background: white;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            animation: scaleIn 0.3s ease;
+        `;
+
+        modal.innerHTML = `
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes scaleIn {
+                    from { transform: scale(0.9); opacity: 0; }
+                    to { transform: scale(1); opacity: 1; }
+                }
+            </style>
+
+            <div style="text-align: center;">
+                <div style="
+                    width: 80px;
+                    height: 80px;
+                    margin: 0 auto 16px;
+                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
+                ">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+
+                <h3 style="font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 12px;">
+                    iOS Versiyonu Eski
+                </h3>
+
+                <p style="font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 20px;">
+                    Bildirimler için <strong>iOS 16.4 veya üzeri</strong> gereklidir.<br>
+                    Mevcut versiyon: <strong>${this.iosVersion?.full || 'Bilinmiyor'}</strong>
+                </p>
+
+                <div style="
+                    background: #fef3c7;
+                    border-left: 4px solid #f59e0b;
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    text-align: left;
+                    margin-bottom: 20px;
+                ">
+                    <div style="font-weight: 600; color: #92400e; margin-bottom: 4px;">
+                        💡 Çözüm
+                    </div>
+                    <div style="font-size: 13px; color: #78350f; line-height: 1.6;">
+                        Ayarlar → Genel → Yazılım Güncellemesi'nden iOS'u güncelleyin
+                    </div>
+                </div>
+
+                <button onclick="this.closest('.ios-notification-overlay').remove()" style="
+                    width: 100%;
+                    padding: 14px;
+                    background: #1BA5A8;
+                    border: none;
+                    border-radius: 12px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: white;
+                    cursor: pointer;
+                ">
+                    Anladım
+                </button>
+            </div>
+        `;
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+            }
+        });
+    }
+
+    /**
+     * Hata mesajı göster
+     */
+    showErrorMessage(errorText) {
+        this.showToast(`❌ Hata: ${errorText}`, 'error');
     }
 
     /**

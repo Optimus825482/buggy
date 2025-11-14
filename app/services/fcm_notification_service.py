@@ -1,51 +1,164 @@
 """
 Buggy Call - Firebase Cloud Messaging (FCM) Notification Service
-Priority-based & Rich Media Support - Optimize edilmiş
+Priority-based & Rich Media Support - Production Ready
+Enhanced with comprehensive error handling, retry logic, and detailed logging
 """
 import firebase_admin
 from firebase_admin import credentials, messaging
 import os
 import json
+import time
+import traceback
 from datetime import datetime, timedelta
 from app import db
 from app.models.user import SystemUser
 from app.models.notification_log import NotificationLog
-from typing import List, Dict, Optional
+from app.utils.logger import logger, log_fcm_event, log_error
+from typing import List, Dict, Optional, Tuple
 
 
 class FCMNotificationService:
-    """Firebase Cloud Messaging servisi - Optimize edilmiş"""
+    """Firebase Cloud Messaging servisi - Production Ready"""
     
     _initialized = False
     
+    # Retry configuration
+    MAX_RETRIES = 3
+    RETRY_DELAY_BASE = 1  # seconds
+    RETRY_BACKOFF_MULTIPLIER = 2  # exponential backoff
+    
     @staticmethod
-    def initialize():
-        """Firebase Admin SDK'yı başlat - Error handling ile"""
+    def _retry_with_exponential_backoff(func, *args, **kwargs) -> Tuple[bool, Optional[str], int]:
+        """
+        Retry a function with exponential backoff
+        
+        Args:
+            func: Function to retry
+            *args: Function arguments
+            **kwargs: Function keyword arguments
+        
+        Returns:
+            Tuple[bool, Optional[str], int]: (success, error_message, attempts)
+        """
+        last_error = None
+        
+        for attempt in range(FCMNotificationService.MAX_RETRIES):
+            try:
+                result = func(*args, **kwargs)
+                if result:
+                    if attempt > 0:
+                        logger.info(f"✅ Retry başarılı (attempt {attempt + 1}/{FCMNotificationService.MAX_RETRIES})")
+                    return True, None, attempt + 1
+                else:
+                    last_error = "Function returned False"
+                    
+            except messaging.UnregisteredError as e:
+                # Don't retry for invalid tokens
+                logger.warning(f"⚠️ Invalid token, no retry: {str(e)}")
+                return False, f"Invalid token: {str(e)}", attempt + 1
+                
+            except messaging.SenderIdMismatchError as e:
+                # Don't retry for sender ID mismatch
+                logger.warning(f"⚠️ Sender ID mismatch, no retry: {str(e)}")
+                return False, f"Sender ID mismatch: {str(e)}", attempt + 1
+                
+            except Exception as e:
+                last_error = str(e)
+                logger.warning(f"⚠️ Attempt {attempt + 1}/{FCMNotificationService.MAX_RETRIES} failed: {last_error}")
+            
+            # Exponential backoff (don't sleep on last attempt)
+            if attempt < FCMNotificationService.MAX_RETRIES - 1:
+                delay = FCMNotificationService.RETRY_DELAY_BASE * (FCMNotificationService.RETRY_BACKOFF_MULTIPLIER ** attempt)
+                logger.info(f"⏳ Waiting {delay}s before retry...")
+                time.sleep(delay)
+        
+        logger.error(f"❌ All {FCMNotificationService.MAX_RETRIES} attempts failed")
+        return False, last_error, FCMNotificationService.MAX_RETRIES
+    
+    @staticmethod
+    def initialize() -> bool:
+        """
+        Firebase Admin SDK'yı başlat - Enhanced error handling
+        
+        Returns:
+            bool: Başarılı ise True, aksi halde False
+        """
         if FCMNotificationService._initialized:
+            logger.info("✅ Firebase Admin SDK zaten başlatılmış")
             return True
         
         try:
+            # Check if already initialized
             firebase_admin.get_app()
             FCMNotificationService._initialized = True
-            print("✅ Firebase Admin SDK zaten başlatılmış")
+            logger.info("✅ Firebase Admin SDK zaten başlatılmış")
             return True
+            
         except ValueError:
+            # Not initialized, proceed with initialization
             try:
-                service_account_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH', 'firebase-service-account.json')
+                service_account_path = os.getenv(
+                    'FIREBASE_SERVICE_ACCOUNT_PATH', 
+                    'firebase-service-account.json'
+                )
                 
+                # Validate service account file exists
                 if not os.path.exists(service_account_path):
-                    print(f"❌ Firebase service account dosyası bulunamadı: {service_account_path}")
+                    error_msg = f'Service account dosyası bulunamadı: {service_account_path}'
+                    logger.error(f"❌ FCM_INIT: {error_msg}")
+                    log_error('FCM_INIT', error_msg, {
+                        'path': service_account_path,
+                        'cwd': os.getcwd()
+                    })
                     return False
                 
+                # Validate service account file is readable
+                try:
+                    with open(service_account_path, 'r') as f:
+                        json.load(f)
+                except json.JSONDecodeError as e:
+                    error_msg = f'Service account dosyası geçersiz JSON: {str(e)}'
+                    logger.error(f"❌ FCM_INIT: {error_msg}")
+                    log_error('FCM_INIT', error_msg, {'path': service_account_path})
+                    return False
+                except Exception as e:
+                    error_msg = f'Service account dosyası okunamadı: {str(e)}'
+                    logger.error(f"❌ FCM_INIT: {error_msg}")
+                    log_error('FCM_INIT', error_msg, {'path': service_account_path})
+                    return False
+                
+                # Initialize Firebase Admin SDK
                 cred = credentials.Certificate(service_account_path)
                 firebase_admin.initialize_app(cred)
                 FCMNotificationService._initialized = True
-                print("✅ Firebase Admin SDK başlatıldı")
+                
+                logger.info("✅ Firebase Admin SDK başarıyla başlatıldı")
+                log_fcm_event('SDK_INITIALIZED', {
+                    'service_account': service_account_path,
+                    'timestamp': datetime.utcnow().isoformat()
+                })
                 return True
                 
             except Exception as e:
-                print(f"❌ Firebase Admin SDK başlatma hatası: {str(e)}")
+                error_msg = f'Firebase Admin SDK başlatma hatası: {str(e)}'
+                logger.error(f"❌ FCM_INIT: {error_msg}")
+                logger.error(f"❌ Traceback: {traceback.format_exc()}")
+                log_error('FCM_INIT', error_msg, {
+                    'exception_type': type(e).__name__,
+                    'traceback': traceback.format_exc()
+                })
                 return False
+        
+        except Exception as e:
+            # Unexpected error
+            error_msg = f'Beklenmeyen FCM başlatma hatası: {str(e)}'
+            logger.error(f"❌ FCM_INIT: {error_msg}")
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
+            log_error('FCM_INIT', error_msg, {
+                'exception_type': type(e).__name__,
+                'traceback': traceback.format_exc()
+            })
+            return False
 
     @staticmethod
     def send_to_token(
@@ -57,10 +170,11 @@ class FCMNotificationService:
         sound: str = 'default',
         badge: Optional[int] = None,
         image: Optional[str] = None,
-        click_action: Optional[str] = None
+        click_action: Optional[str] = None,
+        retry: bool = True
     ) -> bool:
         """
-        Tek bir token'a bildirim gönder - Priority-based
+        Tek bir token'a bildirim gönder - Priority-based with retry logic
         
         Args:
             token: FCM device token
@@ -72,110 +186,157 @@ class FCMNotificationService:
             badge: Badge sayısı
             image: Görsel URL (Rich media)
             click_action: Tıklama aksiyonu
+            retry: Retry on failure (default: True)
         
         Returns:
             bool: Başarılı ise True
         """
+        # Initialize Firebase
         if not FCMNotificationService.initialize():
-            print("❌ Firebase başlatılamadı, bildirim gönderilemedi")
-            return False
-        
-        try:
-            # Notification payload
-            notification = messaging.Notification(
-                title=title,
-                body=body,
-                image=image
-            )
-            
-            # Android config - Priority-based
-            android_priority = 'high' if priority == 'high' else 'normal'
-            android_config = messaging.AndroidConfig(
-                priority=android_priority,
-                notification=messaging.AndroidNotification(
-                    sound=sound if priority == 'high' else None,
-                    click_action=click_action,
-                    icon='/static/icons/Icon-192.png',
-                    color='#4CAF50',
-                    channel_id='buggy_notifications'
-                )
-            )
-            
-            # APNS (iOS) config - Priority-based
-            apns_priority = '10' if priority == 'high' else '5'
-            apns_config = messaging.APNSConfig(
-                headers={'apns-priority': apns_priority},
-                payload=messaging.APNSPayload(
-                    aps=messaging.Aps(
-                        sound=sound if priority == 'high' else None,
-                        badge=badge,
-                        content_available=True
-                    )
-                )
-            )
-            
-            # Web push config - Rich media support
-            # fcm_options sadece HTTPS URL'ler için kullanılabilir
-            webpush_fcm_options = None
-            if click_action and click_action.startswith('https://'):
-                webpush_fcm_options = messaging.WebpushFCMOptions(link=click_action)
-            
-            webpush_config = messaging.WebpushConfig(
-                notification=messaging.WebpushNotification(
-                    title=title,
-                    body=body,
-                    icon='/static/icons/Icon-192.png',
-                    badge='/static/icons/Icon-96.png',
-                    image=image,
-                    vibrate=[200, 100, 200] if priority == 'high' else None,
-                    data=data or {},
-                    require_interaction=priority == 'high'
-                ),
-                fcm_options=webpush_fcm_options
-            )
-            
-            # Message oluştur
-            message = messaging.Message(
-                token=token,
-                notification=notification,
-                data=data or {},
-                android=android_config,
-                apns=apns_config,
-                webpush=webpush_config
-            )
-            
-            # Gönder
-            response = messaging.send(message)
-            print(f"✅ FCM bildirimi gönderildi (Priority: {priority}): {response}")
-            
-            # Log kaydet
-            FCMNotificationService._log_notification(
-                token=token,
-                title=title,
-                body=body,
-                status='sent',
-                priority=priority,
-                response=response
-            )
-            
-            return True
-            
-        except messaging.UnregisteredError:
-            print(f"❌ Token geçersiz veya kayıtsız: {token[:20]}...")
-            FCMNotificationService._remove_invalid_token(token)
-            return False
-            
-        except Exception as e:
-            print(f"❌ FCM bildirim hatası: {str(e)}")
+            error_msg = "Firebase başlatılamadı, bildirim gönderilemedi"
+            logger.error(f"❌ {error_msg}")
             FCMNotificationService._log_notification(
                 token=token,
                 title=title,
                 body=body,
                 status='failed',
                 priority=priority,
-                error=str(e)
+                error=error_msg
             )
             return False
+        
+        # Define send function for retry
+        def _send():
+            try:
+                # Notification payload
+                notification = messaging.Notification(
+                    title=title,
+                    body=body,
+                    image=image
+                )
+                
+                # Android config - Priority-based
+                android_priority = 'high' if priority == 'high' else 'normal'
+                android_config = messaging.AndroidConfig(
+                    priority=android_priority,
+                    notification=messaging.AndroidNotification(
+                        sound=sound if priority == 'high' else None,
+                        click_action=click_action,
+                        icon='/static/icons/Icon-192.png',
+                        color='#4CAF50',
+                        channel_id='buggy_notifications'
+                    )
+                )
+                
+                # APNS (iOS) config - Priority-based
+                apns_priority = '10' if priority == 'high' else '5'
+                apns_config = messaging.APNSConfig(
+                    headers={'apns-priority': apns_priority},
+                    payload=messaging.APNSPayload(
+                        aps=messaging.Aps(
+                            sound=sound if priority == 'high' else None,
+                            badge=badge,
+                            content_available=True
+                        )
+                    )
+                )
+                
+                # Web push config - Rich media support
+                # fcm_options sadece HTTPS URL'ler için kullanılabilir
+                webpush_fcm_options = None
+                if click_action and click_action.startswith('https://'):
+                    webpush_fcm_options = messaging.WebpushFCMOptions(link=click_action)
+                
+                # Vibration patterns based on priority
+                vibration_patterns = {
+                    'high': [200, 100, 200, 100, 200, 100, 200],  # Urgent: 4 vibrations
+                    'normal': [200, 100, 200],  # Normal: 2 vibrations
+                    'low': [100]  # Low: 1 short vibration
+                }
+                vibrate = vibration_patterns.get(priority, vibration_patterns['normal'])
+                
+                webpush_config = messaging.WebpushConfig(
+                    notification=messaging.WebpushNotification(
+                        title=title,
+                        body=body,
+                        icon='/static/icons/Icon-192.png',
+                        badge='/static/icons/Icon-96.png',
+                        image=image,
+                        vibrate=vibrate,
+                        data=data or {},
+                        require_interaction=priority == 'high'
+                    ),
+                    fcm_options=webpush_fcm_options
+                )
+                
+                # Message oluştur
+                message = messaging.Message(
+                    token=token,
+                    notification=notification,
+                    data=data or {},
+                    android=android_config,
+                    apns=apns_config,
+                    webpush=webpush_config
+                )
+                
+                # Gönder
+                response = messaging.send(message)
+                logger.info(f"✅ FCM bildirimi gönderildi (Priority: {priority}): {response}")
+                
+                # Log kaydet
+                FCMNotificationService._log_notification(
+                    token=token,
+                    title=title,
+                    body=body,
+                    status='sent',
+                    priority=priority,
+                    response=response
+                )
+                
+                return True
+                
+            except messaging.UnregisteredError as e:
+                logger.warning(f"❌ Token geçersiz veya kayıtsız: {token[:20]}...")
+                FCMNotificationService._remove_invalid_token(token)
+                FCMNotificationService._log_notification(
+                    token=token,
+                    title=title,
+                    body=body,
+                    status='failed',
+                    priority=priority,
+                    error=f"Invalid token: {str(e)}"
+                )
+                raise  # Re-raise to be caught by retry logic
+                
+            except Exception as e:
+                logger.error(f"❌ FCM bildirim hatası: {str(e)}")
+                logger.error(f"❌ Traceback: {traceback.format_exc()}")
+                FCMNotificationService._log_notification(
+                    token=token,
+                    title=title,
+                    body=body,
+                    status='failed',
+                    priority=priority,
+                    error=str(e)
+                )
+                raise  # Re-raise to be caught by retry logic
+        
+        # Execute with retry if enabled
+        if retry:
+            success, error_msg, attempts = FCMNotificationService._retry_with_exponential_backoff(_send)
+            if success:
+                logger.info(f"✅ FCM notification sent successfully (attempts: {attempts})")
+                return True
+            else:
+                logger.error(f"❌ FCM notification failed after {attempts} attempts: {error_msg}")
+                return False
+        else:
+            # No retry, execute once
+            try:
+                return _send()
+            except Exception as e:
+                logger.error(f"❌ FCM notification failed (no retry): {str(e)}")
+                return False
     
     @staticmethod
     def send_to_multiple(
@@ -235,19 +396,25 @@ class FCMNotificationService:
                 android=android_config
             )
             
-            # Gönder
-            response = messaging.send_multicast(message)
+            # ✅ Yeni API kullan: send_each_for_multicast (batch endpoint hatası çözümü)
+            try:
+                response = messaging.send_each_for_multicast(message)
+            except AttributeError:
+                # Eski SDK versiyonu için fallback
+                response = messaging.send_multicast(message)
             
-            print(f"✅ Multicast (Priority: {priority}): {response.success_count} başarılı, {response.failure_count} başarısız")
+            print(f"✅ FCM notifications sent: {response.success_count} success, {response.failure_count} failed")
             
-            # Başarısız token'ları temizle
+            # Başarısız token'ları temizle ve hata detaylarını logla
             if response.failure_count > 0:
-                failed_tokens = [
-                    tokens[idx] for idx, resp in enumerate(response.responses)
-                    if not resp.success
-                ]
-                for token in failed_tokens:
-                    FCMNotificationService._remove_invalid_token(token)
+                print(f"❌ FCM Failures detected:")
+                for idx, resp in enumerate(response.responses):
+                    if not resp.success:
+                        token = tokens[idx]
+                        error_code = resp.exception.code if hasattr(resp.exception, 'code') else 'UNKNOWN'
+                        error_msg = str(resp.exception) if resp.exception else 'No error message'
+                        print(f"   Token {idx+1}: {token[:20]}... - Error: {error_code} - {error_msg}")
+                        FCMNotificationService._remove_invalid_token(token)
             
             return {
                 'success': response.success_count,
@@ -255,7 +422,9 @@ class FCMNotificationService:
             }
             
         except Exception as e:
-            print(f"❌ Multicast hatası: {str(e)}")
+            print(f"❌ FCM error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {'success': 0, 'failure': len(tokens)}
 
     @staticmethod
@@ -272,25 +441,48 @@ class FCMNotificationService:
         """
         from app.models.buggy import Buggy, BuggyStatus
         
+        # Tüm buggy'leri logla
+        all_buggies = Buggy.query.filter_by(hotel_id=request_obj.hotel_id).all()
+        logger.info(f"🚗 Hotel {request_obj.hotel_id} - Toplam buggy sayısı: {len(all_buggies)}")
+        for b in all_buggies:
+            logger.info(f"  - Buggy {b.code}: Status={b.status}, Driver={b.driver_id}")
+        
         # Müsait buggy'leri bul
         available_buggies = Buggy.query.filter_by(
             hotel_id=request_obj.hotel_id,
             status=BuggyStatus.AVAILABLE
         ).all()
         
+        logger.info(f"🚗 Müsait buggy sayısı: {len(available_buggies)}")
+        
         # Sürücü token'larını topla
         tokens = []
         driver_ids = []
         
         for buggy in available_buggies:
-            if buggy.driver_id:
-                driver = SystemUser.query.get(buggy.driver_id)
-                if driver and driver.fcm_token:
-                    tokens.append(driver.fcm_token)
-                    driver_ids.append(driver.id)
+            # Yeni sistem: BuggyDriver association table kullan
+            from app.models.buggy_driver import BuggyDriver
+            active_assignments = BuggyDriver.query.filter_by(
+                buggy_id=buggy.id,
+                is_active=True
+            ).all()
+            
+            logger.info(f"  - Buggy {buggy.code}: {len(active_assignments)} aktif atama")
+            
+            for assignment in active_assignments:
+                driver = SystemUser.query.get(assignment.driver_id)
+                if driver:
+                    logger.info(f"    - Driver {driver.full_name}: FCM Token={'✅' if driver.fcm_token else '❌'}")
+                    if driver.fcm_token and driver.id not in driver_ids:
+                        tokens.append(driver.fcm_token)
+                        driver_ids.append(driver.id)
         
         if not tokens:
-            print("⚠️ Bildirim gönderilecek sürücü bulunamadı")
+            log_error('FCM_NO_DRIVERS', 'Bildirim gönderilecek sürücü bulunamadı', {
+                'hotel_id': request_obj.hotel_id,
+                'request_id': request_obj.id,
+                'available_buggies': len(available_buggies)
+            })
             return 0
         
         # Bildirim içeriği
@@ -438,7 +630,7 @@ class FCMNotificationService:
                     body=body,
                     status=status,
                     error_message=error,
-                    sent_at=datetime.utcnow()
+                    sent_at=datetime.utcnow().replace(tzinfo=None)  # UTC naive
                 )
                 db.session.add(log)
                 db.session.commit()
@@ -461,9 +653,41 @@ class FCMNotificationService:
             db.session.rollback()
     
     @staticmethod
+    def validate_token(token: str) -> bool:
+        """
+        FCM token formatını doğrula
+        
+        Args:
+            token: FCM device token
+        
+        Returns:
+            bool: Geçerli ise True
+        """
+        if not token or not isinstance(token, str):
+            return False
+        
+        # Token minimum uzunluk kontrolü (FCM tokens genellikle 152+ karakter)
+        if len(token) < 100:
+            logger.warning(f"⚠️ Token çok kısa: {len(token)} karakter")
+            return False
+        
+        # Token maksimum uzunluk kontrolü
+        if len(token) > 500:
+            logger.warning(f"⚠️ Token çok uzun: {len(token)} karakter")
+            return False
+        
+        # Token sadece geçerli karakterler içermeli (alphanumeric, -, _, :)
+        import re
+        if not re.match(r'^[A-Za-z0-9_:-]+$', token):
+            logger.warning(f"⚠️ Token geçersiz karakterler içeriyor")
+            return False
+        
+        return True
+    
+    @staticmethod
     def register_token(user_id: int, token: str) -> bool:
         """
-        Kullanıcı için FCM token kaydet
+        Kullanıcı için FCM token kaydet - Enhanced with validation
         
         Args:
             user_id: Kullanıcı ID
@@ -473,19 +697,35 @@ class FCMNotificationService:
             bool: Başarılı ise True
         """
         try:
-            user = SystemUser.query.get(user_id)
-            if not user:
+            # Validate token format
+            if not FCMNotificationService.validate_token(token):
+                logger.error(f"❌ Geçersiz token formatı: User {user_id}")
                 return False
             
+            user = SystemUser.query.get(user_id)
+            if not user:
+                logger.error(f"❌ Kullanıcı bulunamadı: User {user_id}")
+                return False
+            
+            # Check if token already exists for another user
+            existing_user = SystemUser.query.filter_by(fcm_token=token).first()
+            if existing_user and existing_user.id != user_id:
+                logger.warning(f"⚠️ Token başka bir kullanıcıda kayıtlı: User {existing_user.id}, yeni User {user_id}")
+                # Remove from old user
+                existing_user.fcm_token = None
+                existing_user.fcm_token_date = None
+            
+            # Register token
             user.fcm_token = token
-            user.fcm_token_date = datetime.utcnow()
+            user.fcm_token_date = datetime.utcnow().replace(tzinfo=None)  # UTC naive
             db.session.commit()
             
-            print(f"✅ FCM token kaydedildi: User {user_id}")
+            logger.info(f"✅ FCM token kaydedildi: User {user_id}")
             return True
             
         except Exception as e:
-            print(f"❌ Token kayıt hatası: {str(e)}")
+            logger.error(f"❌ Token kayıt hatası: {str(e)}")
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
             db.session.rollback()
             return False
     
@@ -513,7 +753,7 @@ class FCMNotificationService:
             
             # Yeni token kaydet
             user.fcm_token = new_token
-            user.fcm_token_date = datetime.utcnow()
+            user.fcm_token_date = datetime.utcnow().replace(tzinfo=None)  # UTC naive
             db.session.commit()
             
             print(f"🔄 FCM token yenilendi: User {user_id}")

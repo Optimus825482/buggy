@@ -247,6 +247,134 @@
             </div>
         </div>
     </div>
+
+    <!-- Notification Statistics Widget -->
+    <div class="card" style="
+        border: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-top: 2rem;
+    ">
+        <div class="card-header" style="
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            border-bottom: none;
+            padding: 0.75rem 1.25rem;
+        ">
+            <h3 class="card-title" style="
+                color: white;
+                font-size: 1rem;
+                font-weight: 700;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            ">
+                <i class="fas fa-bell" style="font-size: 1rem;"></i>
+                <span>Bildirim İstatistikleri</span>
+                <span id="notification-stats-time-range" style="
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    opacity: 0.9;
+                    margin-left: auto;
+                ">Son 24 Saat</span>
+            </h3>
+        </div>
+        <div class="card-body" style="padding: 1.5rem; background: white;">
+            <!-- Loading State -->
+            <div id="notification-stats-loading" style="text-align: center; padding: 2rem;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #8b5cf6; margin-bottom: 1rem;"></i>
+                <p style="color: #6B7280; margin: 0;">İstatistikler yükleniyor...</p>
+            </div>
+
+            <!-- Stats Content -->
+            <div id="notification-stats-content" style="display: none;">
+                <!-- Summary Cards -->
+                <div class="grid grid-4" style="gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="
+                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                        border-radius: 12px;
+                        padding: 1rem;
+                        color: white;
+                    ">
+                        <div style="font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.5rem;">Gönderilen</div>
+                        <div style="font-size: 1.75rem; font-weight: 800;" id="notif-total-sent">0</div>
+                    </div>
+                    <div style="
+                        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+                        border-radius: 12px;
+                        padding: 1rem;
+                        color: white;
+                    ">
+                        <div style="font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.5rem;">Teslim Edildi</div>
+                        <div style="font-size: 1.75rem; font-weight: 800;" id="notif-total-delivered">0</div>
+                        <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 0.25rem;" id="notif-delivery-rate">0%</div>
+                    </div>
+                    <div style="
+                        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                        border-radius: 12px;
+                        padding: 1rem;
+                        color: white;
+                    ">
+                        <div style="font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.5rem;">Başarısız</div>
+                        <div style="font-size: 1.75rem; font-weight: 800;" id="notif-total-failed">0</div>
+                    </div>
+                    <div style="
+                        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                        border-radius: 12px;
+                        padding: 1rem;
+                        color: white;
+                    ">
+                        <div style="font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.5rem;">Tıklanan</div>
+                        <div style="font-size: 1.75rem; font-weight: 800;" id="notif-total-clicked">0</div>
+                        <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 0.25rem;" id="notif-click-rate">0%</div>
+                    </div>
+                </div>
+
+                <!-- Priority & Type Stats -->
+                <div class="grid grid-2" style="gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <!-- By Priority -->
+                    <div>
+                        <h4 style="font-size: 0.875rem; color: #6B7280; margin-bottom: 0.75rem; font-weight: 600;">Önceliğe Göre</h4>
+                        <div id="notif-by-priority" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <!-- Dinamik içerik -->
+                        </div>
+                    </div>
+
+                    <!-- By Type -->
+                    <div>
+                        <h4 style="font-size: 0.875rem; color: #6B7280; margin-bottom: 0.75rem; font-weight: 600;">Türe Göre</h4>
+                        <div id="notif-by-type" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <!-- Dinamik içerik -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Failures -->
+                <div id="recent-failures-section" style="display: none;">
+                    <h4 style="font-size: 0.875rem; color: #6B7280; margin-bottom: 0.75rem; font-weight: 600;">
+                        <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
+                        Son Başarısız Bildirimler
+                    </h4>
+                    <div id="notif-recent-failures" style="
+                        background: #fef2f2;
+                        border-radius: 8px;
+                        padding: 0.75rem;
+                        max-height: 200px;
+                        overflow-y: auto;
+                    ">
+                        <!-- Dinamik içerik -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="notification-stats-error" style="display: none; text-align: center; padding: 2rem;">
+                <i class="fas fa-exclamation-circle" style="font-size: 2rem; color: #ef4444; margin-bottom: 1rem;"></i>
+                <p style="color: #6B7280; margin: 0;">İstatistikler yüklenemedi</p>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -262,6 +390,12 @@
     "notificationPermissionStatus": "{% if notification_permission_status %}{{ notification_permission_status }}{% else %}default{% endif %}"
 }
 </script>
+<!-- Platform Detection (iOS kontrolü için) -->
+<script src="{{ url_for('static', filename='js/platform-detection.js') }}"></script>
+
+<!-- iOS Notification Handler (iOS için özel) -->
+<script src="{{ url_for('static', filename='js/ios-notification-handler.js') }}"></script>
+
 <script src="{{ url_for('static', filename='js/notification-permission.js') }}"></script>
 <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 <script>

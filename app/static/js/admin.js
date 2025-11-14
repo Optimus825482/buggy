@@ -195,6 +195,11 @@ const Admin = {
             // Update stats
             this.updateStats();
             
+            // Load notification stats (don't block on error)
+            this.loadNotificationStats().catch(err => {
+                console.error('Failed to load notification stats:', err);
+            });
+            
             BuggyCall.Utils.hideLoading();
         } catch (error) {
             console.error('Error loading dashboard data:', error);
@@ -1050,6 +1055,136 @@ const Admin = {
             this.updateThrottle.clear();
             PENDINGUpdates = [];
         });
+    },
+
+    /**
+     * Load notification statistics
+     */
+    async loadNotificationStats() {
+        const loadingEl = document.getElementById('notification-stats-loading');
+        const contentEl = document.getElementById('notification-stats-content');
+        const errorEl = document.getElementById('notification-stats-error');
+        
+        if (!loadingEl || !contentEl || !errorEl) return;
+        
+        try {
+            // Show loading
+            loadingEl.style.display = 'block';
+            contentEl.style.display = 'none';
+            errorEl.style.display = 'none';
+            
+            // Fetch stats
+            const response = await BuggyCall.API.get('/admin/notifications/stats?hours=24');
+            
+            if (!response || response.error) {
+                throw new Error(response?.error || 'İstatistikler yüklenemedi');
+            }
+            
+            // Update summary cards
+            document.getElementById('notif-total-sent').textContent = response.total_sent || 0;
+            document.getElementById('notif-total-delivered').textContent = response.total_delivered || 0;
+            document.getElementById('notif-total-failed').textContent = response.total_failed || 0;
+            document.getElementById('notif-total-clicked').textContent = response.total_clicked || 0;
+            document.getElementById('notif-delivery-rate').textContent = `${response.delivery_rate || 0}% teslim`;
+            document.getElementById('notif-click-rate').textContent = `${response.click_through_rate || 0}% tıklama`;
+            
+            // Update by priority
+            const priorityContainer = document.getElementById('notif-by-priority');
+            if (priorityContainer && response.by_priority) {
+                priorityContainer.innerHTML = Object.entries(response.by_priority).map(([priority, stats]) => {
+                    const priorityColors = {
+                        'high': '#ef4444',
+                        'normal': '#f59e0b',
+                        'low': '#10b981'
+                    };
+                    const priorityLabels = {
+                        'high': 'Yüksek',
+                        'normal': 'Normal',
+                        'low': 'Düşük'
+                    };
+                    return `
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 0.5rem;
+                            background: #f9fafb;
+                            border-radius: 6px;
+                        ">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="
+                                    width: 8px;
+                                    height: 8px;
+                                    border-radius: 50%;
+                                    background: ${priorityColors[priority] || '#6B7280'};
+                                "></div>
+                                <span style="font-size: 0.875rem; color: #1e293b;">${priorityLabels[priority] || priority}</span>
+                            </div>
+                            <div style="display: flex; gap: 1rem; font-size: 0.875rem;">
+                                <span style="color: #6B7280;">${stats.total} gönderildi</span>
+                                <span style="color: #10b981; font-weight: 600;">${stats.delivery_rate}%</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // Update by type
+            const typeContainer = document.getElementById('notif-by-type');
+            if (typeContainer && response.by_type) {
+                typeContainer.innerHTML = Object.entries(response.by_type).map(([type, stats]) => {
+                    return `
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 0.5rem;
+                            background: #f9fafb;
+                            border-radius: 6px;
+                        ">
+                            <span style="font-size: 0.875rem; color: #1e293b; text-transform: uppercase;">${type}</span>
+                            <div style="display: flex; gap: 1rem; font-size: 0.875rem;">
+                                <span style="color: #6B7280;">${stats.total} gönderildi</span>
+                                <span style="color: #10b981; font-weight: 600;">${stats.delivery_rate}%</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // Update recent failures
+            const failuresSection = document.getElementById('recent-failures-section');
+            const failuresContainer = document.getElementById('notif-recent-failures');
+            if (failuresSection && failuresContainer && response.recent_failures && response.recent_failures.length > 0) {
+                failuresSection.style.display = 'block';
+                failuresContainer.innerHTML = response.recent_failures.map(failure => {
+                    return `
+                        <div style="
+                            padding: 0.5rem;
+                            border-bottom: 1px solid #fee2e2;
+                            font-size: 0.875rem;
+                        ">
+                            <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.25rem;">${failure.title}</div>
+                            <div style="color: #ef4444; font-size: 0.75rem;">${failure.error_message || 'Bilinmeyen hata'}</div>
+                            <div style="color: #6B7280; font-size: 0.75rem; margin-top: 0.25rem;">
+                                ${new Date(failure.sent_at).toLocaleString('tr-TR')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else if (failuresSection) {
+                failuresSection.style.display = 'none';
+            }
+            
+            // Show content
+            loadingEl.style.display = 'none';
+            contentEl.style.display = 'block';
+            
+        } catch (error) {
+            console.error('Error loading notification stats:', error);
+            loadingEl.style.display = 'none';
+            errorEl.style.display = 'block';
+        }
     },
 
     /**

@@ -1,0 +1,250 @@
+rivers.is_active AS buggy_drivers_is_active, buggy_drivers.is_primary AS buggy_drivers_is_primary, buggy_drivers.assigned_at AS buggy_drivers_assigned_at, buggy_drivers.last_active_at AS buggy_drivers_last_active_at
+FROM buggy_drivers
+WHERE buggy_drivers.buggy_id = %(buggy_id_1)s AND buggy_drivers.is_active = true
+ LIMIT %(param_1)s
+2025-11-14 20:35:24,143 INFO sqlalchemy.engine.Engine [cached since 720.8s ago] {'buggy_id_1': 7, 'param_1': 1}
+2025-11-14 20:35:24,146 INFO sqlalchemy.engine.Engine SELECT buggy_drivers.id AS buggy_drivers_id, buggy_drivers.buggy_id AS buggy_drivers_buggy_id, buggy_drivers.driver_id AS buggy_drivers_driver_id, buggy_drivers.is_active AS buggy_drivers_is_active, buggy_drivers.is_primary AS buggy_drivers_is_primary, buggy_drivers.assigned_at AS buggy_drivers_assigned_at, buggy_drivers.last_active_at AS buggy_drivers_last_active_at
+FROM buggy_drivers
+WHERE buggy_drivers.buggy_id = %(buggy_id_1)s AND buggy_drivers.is_primary = true
+ LIMIT %(param_1)s
+2025-11-14 20:35:24,146 INFO sqlalchemy.engine.Engine [cached since 720.8s ago] {'buggy_id_1': 7, 'param_1': 1}
+2025-11-14 20:35:24,148 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [14/Nov/2025 20:35:24] "GET /api/requests?status=completed HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:28] "GET /guest/call?location=2 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/css/fonts.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/css/fontawesome.min.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/css/variables.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/css/main.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/css/professional.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/css/modern.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/css/modal.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/css/responsive-fix.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/css/guest-premium.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/fonts/Inter-Bold.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/fonts/Inter-SemiBold.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/fonts/Inter-Medium.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/fonts/Inter-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/webfonts/fa-solid-900.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/images/Merit_International.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/images/logo.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/images/opti.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:29] "GET /static/js/offline-storage.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/icons/Icon-72.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/js/push-notifications.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/js/network-manager.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/js/common.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/js/modal.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/js/i18n-guest.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "HEAD /static/icons/favicon-16x16.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/js/ios-notification-handler.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/js/guest-notifications.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/flags/tr.svg HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/js/pwa-install.js HTTP/1.1" 200 -
+2025-11-14 20:35:30,510 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-11-14 20:35:30,511 INFO sqlalchemy.engine.Engine SELECT buggies.id AS buggies_id, buggies.hotel_id AS buggies_hotel_id, buggies.current_location_id AS buggies_current_location_id, buggies.driver_id AS buggies_driver_id, buggies.code AS buggies_code, buggies.model AS buggies_model, buggies.license_plate AS buggies_license_plate, buggies.icon AS buggies_icon, buggies.status AS buggies_status, buggies.created_at AS buggies_created_at, buggies.updated_at AS buggies_updated_at
+FROM buggies
+WHERE buggies.hotel_id = %(hotel_id_1)s
+2025-11-14 20:35:30,511 INFO sqlalchemy.engine.Engine [cached since 721.5s ago] {'hotel_id_1': 1}
+
+🔍 [DEBUG] Hotel 1 - Total Buggies: 10
+   Buggy SHUTTLE-04: status=offline, location=None
+   Buggy SHUTTLE-05: status=offline, location=None
+   Buggy SHUTTLE-06: status=offline, location=None
+   Buggy SHUTTLE-07: status=offline, location=None
+   Buggy SHUTTLE-08: status=offline, location=None
+   Buggy SHUTTLE-09: status=offline, location=None
+   Buggy SHUTTLE-10: status=available, location=2
+   Buggy SHUTTLE-11: status=offline, location=None
+   Buggy SHUTTLE-12: status=offline, location=None
+   Buggy SHUTTLE-13: status=offline, location=None
+2025-11-14 20:35:30,513 INFO sqlalchemy.engine.Engine SELECT buggies.id AS buggies_id, buggies.hotel_id AS buggies_hotel_id, buggies.current_location_id AS buggies_current_location_id, buggies.driver_id AS buggies_driver_id, buggies.code AS buggies_code, buggies.model AS buggies_model, buggies.license_plate AS buggies_license_plate, buggies.icon AS buggies_icon, buggies.status AS buggies_status, buggies.created_at AS buggies_created_at, buggies.updated_at AS buggies_updated_at
+FROM buggies
+WHERE buggies.hotel_id = %(hotel_id_1)s AND buggies.status = %(status_1)s
+2025-11-14 20:35:30,514 INFO sqlalchemy.engine.Engine [cached since 721.5s ago] {'hotel_id_1': 1, 'status_1': 'AVAILABLE'}
+🟢 [DEBUG] Available Buggies: 1
+   🔍 Checking Buggy SHUTTLE-10 (ID: 7)
+2025-11-14 20:35:30,516 INFO sqlalchemy.engine.Engine SELECT buggy_drivers.id AS buggy_drivers_id, buggy_drivers.buggy_id AS buggy_drivers_buggy_id, buggy_drivers.driver_id AS buggy_drivers_driver_id, buggy_drivers.is_active AS buggy_drivers_is_active, buggy_drivers.is_primary AS buggy_drivers_is_primary, buggy_drivers.assigned_at AS buggy_drivers_assigned_at, buggy_drivers.last_active_at AS buggy_drivers_last_active_at
+FROM buggy_drivers
+WHERE buggy_drivers.buggy_id = %(buggy_id_1)s
+2025-11-14 20:35:30,516 INFO sqlalchemy.engine.Engine [cached since 721.5s ago] {'buggy_id_1': 7}
+      Total assignments: 1
+         - Driver ID: 14, is_active: True
+2025-11-14 20:35:30,518 INFO sqlalchemy.engine.Engine SELECT buggy_drivers.id AS buggy_drivers_id, buggy_drivers.buggy_id AS buggy_drivers_buggy_id, buggy_drivers.driver_id AS buggy_drivers_driver_id, buggy_drivers.is_active AS buggy_drivers_is_active, buggy_drivers.is_primary AS buggy_drivers_is_primary, buggy_drivers.assigned_at AS buggy_drivers_assigned_at, buggy_drivers.last_active_at AS buggy_drivers_last_active_at
+FROM buggy_drivers
+WHERE buggy_drivers.buggy_id = %(buggy_id_1)s AND buggy_drivers.is_active = true
+2025-11-14 20:35:30,518 INFO sqlalchemy.engine.Engine [cached since 721.5s ago] {'buggy_id_1': 7}
+   ✅ Active assignments: 1
+2025-11-14 20:35:30,519 INFO sqlalchemy.engine.Engine SELECT system_users.id AS system_users_id, system_users.hotel_id AS system_users_hotel_id, system_users.username AS system_users_username, system_users.password_hash AS system_users_password_hash, system_users.role AS system_users_role, system_users.full_name AS system_users_full_name, system_users.email AS system_users_email, system_users.phone AS system_users_phone, system_users.is_active AS system_users_is_active, system_users.must_change_password AS system_users_must_change_password, system_users.fcm_token AS system_users_fcm_token, system_users.fcm_token_date AS system_users_fcm_token_date, system_users.push_subscription AS system_users_push_subscription, system_users.push_subscription_date AS system_users_push_subscription_date, system_users.notification_preferences AS system_users_notification_preferences, system_users.created_at AS system_users_created_at, system_users.last_login AS system_users_last_login
+FROM system_users
+WHERE system_users.id = %(pk_1)s
+2025-11-14 20:35:30,520 INFO sqlalchemy.engine.Engine [cached since 727.2s ago] {'pk_1': 14}
+      ✅ Driver: Ayla KAYA, FCM: True
+👥 [DEBUG] Total Active Drivers: 1
+
+🚨 WebSocket: Guest connected notification sent to hotel_1_drivers
+2025-11-14 20:35:30,522 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /api/drivers/active?hotel_id=1&notify=true&location_id= HTTP/1.1" 200 -
+2025-11-14 20:35:30,785 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-11-14 20:35:30,785 INFO sqlalchemy.engine.Engine SELECT locations.id AS locations_id, locations.hotel_id AS locations_hotel_id, locations.name AS locations_name, locations.description AS locations_description, locations.qr_code_data AS locations_qr_code_data, locations.qr_code_image AS locations_qr_code_image, locations.location_image AS locations_location_image, locations.display_order AS locations_display_order, locations.latitude AS locations_latitude, locations.longitude AS locations_longitude, locations.is_active AS locations_is_active, locations.created_at AS locations_created_at, locations.updated_at AS locations_updated_at
+FROM locations
+WHERE locations.id = %(pk_1)s
+2025-11-14 20:35:30,786 INFO sqlalchemy.engine.Engine [cached since 721.8s ago] {'pk_1': 2}
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/flags/gb-eng.svg HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/flags/de.svg HTTP/1.1" 200 -
+2025-11-14 20:35:30,791 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /api/locations/2 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/flags/ru.svg HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/flags/sa.svg HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:30] "GET /static/fonts/Inter-ExtraBold.woff2 HTTP/1.1" 200 -
+[2025-11-14 20:35:31,112] WARNING in __init__: 404 Not Found: GET /.well-known/appspecific/com.chrome.devtools.json
+2025-11-14 20:35:31 [WARNING] app: 404 Not Found: GET /.well-known/appspecific/com.chrome.devtools.json [in D:\buggycall\app\__init__.py:354]
+2025-11-14 20:35:31 [WARNING] app: 404 Not Found: GET /.well-known/appspecific/com.chrome.devtools.json [in D:\buggycall\app\__init__.py:354]
+2025-11-14 20:35:31 [WARNING] app: 404 Not Found: GET /.well-known/appspecific/com.chrome.devtools.json [in D:\buggycall\app\__init__.py:354]
+2025-11-14 20:35:31 [WARNING] app: 404 Not Found: GET /.well-known/appspecific/com.chrome.devtools.json [in D:\buggycall\app\__init__.py:354]
+127.0.0.1 - - [14/Nov/2025 20:35:31] "GET /static/uploads/locations/c630c15af93542a486b882e7fb6f5f14.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:31] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+127.0.0.1 - - [14/Nov/2025 20:35:31] "GET /static/favicon.ico HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:31] "GET /static/manifest.json HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:31] "GET /static/icons/Icon-144.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:32] "HEAD /static/icons/favicon-16x16.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:36] "HEAD /static/icons/favicon-16x16.png HTTP/1.1" 200 -
+2025-11-14 20:35:45,714 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-11-14 20:35:45,714 INFO sqlalchemy.engine.Engine SELECT locations.id AS locations_id, locations.hotel_id AS locations_hotel_id, locations.name AS locations_name, locations.description AS locations_description, locations.qr_code_data AS locations_qr_code_data, locations.qr_code_image AS locations_qr_code_image, locations.location_image AS locations_location_image, locations.display_order AS locations_display_order, locations.latitude AS locations_latitude, locations.longitude AS locations_longitude, locations.is_active AS locations_is_active, locations.created_at AS locations_created_at, locations.updated_at AS locations_updated_at
+FROM locations
+WHERE locations.id = %(pk_1)s
+2025-11-14 20:35:45,715 INFO sqlalchemy.engine.Engine [cached since 736.7s ago] {'pk_1': 2}
+2025-11-14 20:35:45,717 INFO sqlalchemy.engine.Engine INSERT INTO buggy_requests (hotel_id, location_id, buggy_id, accepted_by_id, guest_name, room_number, has_room, phone, notes, guest_device_id, guest_push_subscription, status, cancelled_by, requested_at, accepted_at, completed_at, cancelled_at, timeout_at, response_time, completion_time) VALUES (%(hotel_id)s, %(location_id)s, %(buggy_id)s, %(accepted_by_id)s, %(guest_name)s, %(room_number)s, %(has_room)s, %(phone)s, %(notes)s, %(guest_device_id)s, %(guest_push_subscription)s, %(status)s, %(cancelled_by)s, %(requested_at)s, %(accepted_at)s, %(completed_at)s, %(cancelled_at)s, %(timeout_at)s, %(response_time)s, %(completion_time)s)
+2025-11-14 20:35:45,717 INFO sqlalchemy.engine.Engine [cached since 713.9s ago] {'hotel_id': 1, 'location_id': 2, 'buggy_id': None, 'accepted_by_id': None, 'guest_name': None, 'room_number': None, 'has_room': 1, 'phone': None, 'notes': None, 'guest_device_id': '127.0.0.1', 'guest_push_subscription': None, 'status': 'PENDING', 'cancelled_by': None, 'requested_at': datetime.datetime(2025, 11, 14, 20, 35, 45, 717127, tzinfo=<DstTzInfo 'Europe/Istanbul' +03+3:00:00 STD>), 'accepted_at': None, 'completed_at': None, 'cancelled_at': None, 'timeout_at': None, 'response_time': None, 'completion_time': None}
+2025-11-14 20:35:45,722 INFO sqlalchemy.engine.Engine COMMIT
+2025-11-14 20:35:45,732 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-11-14 20:35:45,732 INFO sqlalchemy.engine.Engine SELECT buggy_requests.id AS buggy_requests_id, buggy_requests.hotel_id AS buggy_requests_hotel_id, buggy_requests.location_id AS buggy_requests_location_id, buggy_requests.buggy_id AS buggy_requests_buggy_id, buggy_requests.accepted_by_id AS buggy_requests_accepted_by_id, buggy_requests.guest_name AS buggy_requests_guest_name, buggy_requests.room_number AS buggy_requests_room_number, buggy_requests.has_room AS buggy_requests_has_room, buggy_requests.phone AS buggy_requests_phone, buggy_requests.notes AS buggy_requests_notes, buggy_requests.guest_device_id AS buggy_requests_guest_device_id, buggy_requests.guest_push_subscription AS buggy_requests_guest_push_subscription, buggy_requests.status AS buggy_requests_status, buggy_requests.cancelled_by AS buggy_requests_cancelled_by, buggy_requests.requested_at AS buggy_requests_requested_at, buggy_requests.accepted_at AS buggy_requests_accepted_at, buggy_requests.completed_at AS buggy_requests_completed_at, buggy_requests.cancelled_at AS buggy_requests_cancelled_at, buggy_requests.timeout_at AS buggy_requests_timeout_at, buggy_requests.response_time AS buggy_requests_response_time, buggy_requests.completion_time AS buggy_requests_completion_time
+FROM buggy_requests
+WHERE buggy_requests.id = %(pk_1)s
+2025-11-14 20:35:45,732 INFO sqlalchemy.engine.Engine [cached since 713.8s ago] {'pk_1': 96}
+2025-11-14 20:35:45,734 INFO sqlalchemy.engine.Engine SELECT locations.id AS locations_id, locations.hotel_id AS locations_hotel_id, locations.name AS locations_name, locations.description AS locations_description, locations.qr_code_data AS locations_qr_code_data, locations.qr_code_image AS locations_qr_code_image, locations.location_image AS locations_location_image, locations.display_order AS locations_display_order, locations.latitude AS locations_latitude, locations.longitude AS locations_longitude, locations.is_active AS locations_is_active, locations.created_at AS locations_created_at, locations.updated_at AS locations_updated_at
+FROM locations
+WHERE locations.id = %(pk_1)s
+2025-11-14 20:35:45,734 INFO sqlalchemy.engine.Engine [cached since 713.8s ago] {'pk_1': 2}
+2025-11-14 20:35:45,736 INFO sqlalchemy.engine.Engine SELECT buggy_drivers.id AS buggy_drivers_id, buggy_drivers.buggy_id AS buggy_drivers_buggy_id, buggy_drivers.driver_id AS buggy_drivers_driver_id, buggy_drivers.is_active AS buggy_drivers_is_active, buggy_drivers.is_primary AS buggy_drivers_is_primary, buggy_drivers.assigned_at AS buggy_drivers_assigned_at, buggy_drivers.last_active_at AS buggy_drivers_last_active_at
+FROM buggy_drivers INNER JOIN system_users ON system_users.id = buggy_drivers.driver_id
+WHERE buggy_drivers.is_active = true AND system_users.hotel_id = %(hotel_id_1)s AND system_users.role = %(role_1)s
+2025-11-14 20:35:45,736 INFO sqlalchemy.engine.Engine [cached since 713.8s ago] {'hotel_id_1': 1, 'role_1': 'DRIVER'}
+✅ SSE: Sent new_request to 0 drivers in hotel 1
+✅ SSE: Sent new_request to 0 drivers
+✅ WebSocket: Sent to admin room hotel_1_admin
+2025-11-14 20:35:45,738 INFO sqlalchemy.engine.Engine SELECT buggies.id AS buggies_id, buggies.hotel_id AS buggies_hotel_id, buggies.current_location_id AS buggies_current_location_id, buggies.driver_id AS buggies_driver_id, buggies.code AS buggies_code, buggies.model AS buggies_model, buggies.license_plate AS buggies_license_plate, buggies.icon AS buggies_icon, buggies.status AS buggies_status, buggies.created_at AS buggies_created_at, buggies.updated_at AS buggies_updated_at
+FROM buggies
+WHERE buggies.hotel_id = %(hotel_id_1)s AND buggies.status = %(status_1)s
+2025-11-14 20:35:45,739 INFO sqlalchemy.engine.Engine [cached since 736.8s ago] {'hotel_id_1': 1, 'status_1': 'AVAILABLE'}
+2025-11-14 20:35:45,740 INFO sqlalchemy.engine.Engine SELECT buggy_drivers.id AS buggy_drivers_id, buggy_drivers.buggy_id AS buggy_drivers_buggy_id, buggy_drivers.driver_id AS buggy_drivers_driver_id, buggy_drivers.is_active AS buggy_drivers_is_active, buggy_drivers.is_primary AS buggy_drivers_is_primary, buggy_drivers.assigned_at AS buggy_drivers_assigned_at, buggy_drivers.last_active_at AS buggy_drivers_last_active_at
+FROM buggy_drivers
+WHERE buggy_drivers.buggy_id = %(buggy_id_1)s AND buggy_drivers.is_active = true
+2025-11-14 20:35:45,740 INFO sqlalchemy.engine.Engine [cached since 736.7s ago] {'buggy_id_1': 7}
+2025-11-14 20:35:45,742 INFO sqlalchemy.engine.Engine SELECT system_users.id AS system_users_id, system_users.hotel_id AS system_users_hotel_id, system_users.username AS system_users_username, system_users.password_hash AS system_users_password_hash, system_users.role AS system_users_role, system_users.full_name AS system_users_full_name, system_users.email AS system_users_email, system_users.phone AS system_users_phone, system_users.is_active AS system_users_is_active, system_users.must_change_password AS system_users_must_change_password, system_users.fcm_token AS system_users_fcm_token, system_users.fcm_token_date AS system_users_fcm_token_date, system_users.push_subscription AS system_users_push_subscription, system_users.push_subscription_date AS system_users_push_subscription_date, system_users.notification_preferences AS system_users_notification_preferences, system_users.created_at AS system_users_created_at, system_users.last_login AS system_users_last_login
+FROM system_users
+WHERE system_users.id = %(pk_1)s
+2025-11-14 20:35:45,742 INFO sqlalchemy.engine.Engine [cached since 742.4s ago] {'pk_1': 14}
+✅ FCM notifications sent: 1 success, 0 failed
+2025-11-14 20:35:46,428 INFO sqlalchemy.engine.Engine INSERT INTO audit_trail (hotel_id, user_id, action, entity_type, entity_id, old_values, new_values, ip_address, user_agent, created_at) VALUES (%(hotel_id)s, %(user_id)s, %(action)s, %(entity_type)s, %(entity_id)s, %(old_values)s, %(new_values)s, %(ip_address)s, %(user_agent)s, %(created_at)s)
+2025-11-14 20:35:46,429 INFO sqlalchemy.engine.Engine [cached since 46.2s ago] {'hotel_id': 1, 'user_id': 14, 'action': 'fcm_notification_sent', 'entity_type': 'request', 'entity_id': 96, 'old_values': None, 'new_values': '{"notification_type": "new_request", "priority": "high", "recipient_count": 1, "driver_ids": [14]}', 'ip_address': '127.0.0.1', 'user_agent': None, 'created_at': datetime.datetime(2025, 11, 14, 20, 35, 46, 428813, tzinfo=<DstTzInfo 'Europe/Istanbul' +03+3:00:00 STD>)}
+2025-11-14 20:35:46,432 INFO sqlalchemy.engine.Engine COMMIT
+✅ FCM notifications sent to 1 driver(s)
+2025-11-14 20:35:46,439 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-11-14 20:35:46,439 INFO sqlalchemy.engine.Engine SELECT buggy_requests.id AS buggy_requests_id, buggy_requests.hotel_id AS buggy_requests_hotel_id, buggy_requests.location_id AS buggy_requests_location_id, buggy_requests.buggy_id AS buggy_requests_buggy_id, buggy_requests.accepted_by_id AS buggy_requests_accepted_by_id, buggy_requests.guest_name AS buggy_requests_guest_name, buggy_requests.room_number AS buggy_requests_room_number, buggy_requests.has_room AS buggy_requests_has_room, buggy_requests.phone AS buggy_requests_phone, buggy_requests.notes AS buggy_requests_notes, buggy_requests.guest_device_id AS buggy_requests_guest_device_id, buggy_requests.guest_push_subscription AS buggy_requests_guest_push_subscription, buggy_requests.status AS buggy_requests_status, buggy_requests.cancelled_by AS buggy_requests_cancelled_by, buggy_requests.requested_at AS buggy_requests_requested_at, buggy_requests.accepted_at AS buggy_requests_accepted_at, buggy_requests.completed_at AS buggy_requests_completed_at, buggy_requests.cancelled_at AS buggy_requests_cancelled_at, buggy_requests.timeout_at AS buggy_requests_timeout_at, buggy_requests.response_time AS buggy_requests_response_time, buggy_requests.completion_time AS buggy_requests_completion_time
+FROM buggy_requests
+WHERE buggy_requests.id = %(pk_1)s
+2025-11-14 20:35:46,440 INFO sqlalchemy.engine.Engine [cached since 714.5s ago] {'pk_1': 96}
+2025-11-14 20:35:46,443 INFO sqlalchemy.engine.Engine SELECT locations.id AS locations_id, locations.hotel_id AS locations_hotel_id, locations.name AS locations_name, locations.description AS locations_description, locations.qr_code_data AS locations_qr_code_data, locations.qr_code_image AS locations_qr_code_image, locations.location_image AS locations_location_image, locations.display_order AS locations_display_order, locations.latitude AS locations_latitude, locations.longitude AS locations_longitude, locations.is_active AS locations_is_active, locations.created_at AS locations_created_at, locations.updated_at AS locations_updated_at
+FROM locations
+WHERE locations.id = %(pk_1)s
+2025-11-14 20:35:46,443 INFO sqlalchemy.engine.Engine [cached since 714.5s ago] {'pk_1': 2}
+2025-11-14 20:35:46,445 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [14/Nov/2025 20:35:46] "POST /api/requests HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2025 20:35:46] "GET /static/icons/Icon-192.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:46] "GET /static/icons/Icon-96.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:49] "GET /guest/status/96 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:49] "GET /static/css/fonts.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/css/fontawesome.min.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/css/main.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/css/variables.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/css/modern.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/css/professional.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/css/modal.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/css/responsive-fix.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/images/Merit_International.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/icons/Icon-72.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/images/opti.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/js/offline-storage.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/js/network-manager.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "HEAD /static/icons/favicon-16x16.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/js/push-notifications.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/js/common.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/js/modal.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/js/i18n-guest.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/js/ios-notification-handler.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:50] "GET /static/js/guest-notifications.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "GET /static/js/pwa-install.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "GET /static/flags/tr.svg HTTP/1.1" 200 -
+2025-11-14 20:35:51,192 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-11-14 20:35:51,193 INFO sqlalchemy.engine.Engine SELECT buggy_requests.id AS buggy_requests_id, buggy_requests.hotel_id AS buggy_requests_hotel_id, buggy_requests.location_id AS buggy_requests_location_id, buggy_requests.buggy_id AS buggy_requests_buggy_id, buggy_requests.accepted_by_id AS buggy_requests_accepted_by_id, buggy_requests.guest_name AS buggy_requests_guest_name, buggy_requests.room_number AS buggy_requests_room_number, buggy_requests.has_room AS buggy_requests_has_room, buggy_requests.phone AS buggy_requests_phone, buggy_requests.notes AS buggy_requests_notes, buggy_requests.guest_device_id AS buggy_requests_guest_device_id, buggy_requests.guest_push_subscription AS buggy_requests_guest_push_subscription, buggy_requests.status AS buggy_requests_status, buggy_requests.cancelled_by AS buggy_requests_cancelled_by, buggy_requests.requested_at AS buggy_requests_requested_at, buggy_requests.accepted_at AS buggy_requests_accepted_at, buggy_requests.completed_at AS buggy_requests_completed_at, buggy_requests.cancelled_at AS buggy_requests_cancelled_at, buggy_requests.timeout_at AS buggy_requests_timeout_at, buggy_requests.response_time AS buggy_requests_response_time, buggy_requests.completion_time AS buggy_requests_completion_time
+FROM buggy_requests
+WHERE buggy_requests.id = %(pk_1)s
+2025-11-14 20:35:51,193 INFO sqlalchemy.engine.Engine [cached since 747.9s ago] {'pk_1': 96}
+2025-11-14 20:35:51,196 INFO sqlalchemy.engine.Engine SELECT locations.id AS locations_id, locations.hotel_id AS locations_hotel_id, locations.name AS locations_name, locations.description AS locations_description, locations.qr_code_data AS locations_qr_code_data, locations.qr_code_image AS locations_qr_code_image, locations.location_image AS locations_location_image, locations.display_order AS locations_display_order, locations.latitude AS locations_latitude, locations.longitude AS locations_longitude, locations.is_active AS locations_is_active, locations.created_at AS locations_created_at, locations.updated_at AS locations_updated_at
+FROM locations
+WHERE locations.id = %(pk_1)s
+2025-11-14 20:35:51,197 INFO sqlalchemy.engine.Engine [cached since 747.9s ago] {'pk_1': 2}
+2025-11-14 20:35:51,198 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [14/Nov/2025 20:35:51] "GET /api/requests/96 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "GET /static/fonts/Inter-Bold.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "GET /static/fonts/Inter-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "GET /socket.io/?EIO=4&transport=polling&t=Pg3S161 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "GET /static/fonts/Inter-SemiBold.woff2 HTTP/1.1" 200 -
+[2025-11-14 20:35:51,494] INFO in guest_notification_api: ✅ Guest FCM token registered for request 96
+2025-11-14 20:35:51 [INFO] app.routes.guest_notification_api: ✅ Guest FCM token registered for request 96 [in D:\buggycall\app\routes\guest_notification_api.py:59]
+2025-11-14 20:35:51 [INFO] app.routes.guest_notification_api: ✅ Guest FCM token registered for request 96 [in D:\buggycall\app\routes\guest_notification_api.py:59]
+2025-11-14 20:35:51 [INFO] app.routes.guest_notification_api: ✅ Guest FCM token registered for request 96 [in D:\buggycall\app\routes\guest_notification_api.py:59]
+2025-11-14 20:35:51 [INFO] app.routes.guest_notification_api: ✅ Guest FCM token registered for request 96 [in D:\buggycall\app\routes\guest_notification_api.py:59]
+127.0.0.1 - - [14/Nov/2025 20:35:51] "POST /api/guest/register-fcm-token HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "GET /static/fonts/Inter-Medium.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "POST /socket.io/?EIO=4&transport=polling&t=Pg3S1B0&sid=n3GY5HfnZz3fhIPZAAAI HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "GET /socket.io/?EIO=4&transport=polling&t=Pg3S1B2&sid=n3GY5HfnZz3fhIPZAAAI HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "POST /socket.io/?EIO=4&transport=polling&t=Pg3S1FX&sid=n3GY5HfnZz3fhIPZAAAI HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "GET /socket.io/?EIO=4&transport=polling&t=Pg3S1FV&sid=n3GY5HfnZz3fhIPZAAAI HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "GET /static/flags/gb-eng.svg HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:51] "GET /static/flags/de.svg HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:52] "GET /static/flags/ru.svg HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:52] "GET /static/flags/sa.svg HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:52] "GET /static/manifest.json HTTP/1.1" 200 -
+[2025-11-14 20:35:52,121] WARNING in __init__: 404 Not Found: GET /.well-known/appspecific/com.chrome.devtools.json
+2025-11-14 20:35:52 [WARNING] app: 404 Not Found: GET /.well-known/appspecific/com.chrome.devtools.json [in D:\buggycall\app\__init__.py:354]
+2025-11-14 20:35:52 [WARNING] app: 404 Not Found: GET /.well-known/appspecific/com.chrome.devtools.json [in D:\buggycall\app\__init__.py:354]
+2025-11-14 20:35:52 [WARNING] app: 404 Not Found: GET /.well-known/appspecific/com.chrome.devtools.json [in D:\buggycall\app\__init__.py:354]
+2025-11-14 20:35:52 [WARNING] app: 404 Not Found: GET /.well-known/appspecific/com.chrome.devtools.json [in D:\buggycall\app\__init__.py:354]
+127.0.0.1 - - [14/Nov/2025 20:35:52] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+127.0.0.1 - - [14/Nov/2025 20:35:52] "GET /static/icons/Icon-144.png HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:35:53] "GET /sw.js HTTP/1.1" 304 -
+127.0.0.1 - - [14/Nov/2025 20:36:01] "HEAD /static/icons/favicon-16x16.png HTTP/1.1" 200 -
+2025-11-14 20:36:02,256 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-11-14 20:36:02,257 INFO sqlalchemy.engine.Engine SELECT buggy_requests.id AS buggy_requests_id, buggy_requests.hotel_id AS buggy_requests_hotel_id, buggy_requests.location_id AS buggy_requests_location_id, buggy_requests.buggy_id AS buggy_requests_buggy_id, buggy_requests.accepted_by_id AS buggy_requests_accepted_by_id, buggy_requests.guest_name AS buggy_requests_guest_name, buggy_requests.room_number AS buggy_requests_room_number, buggy_requests.has_room AS buggy_requests_has_room, buggy_requests.phone AS buggy_requests_phone, buggy_requests.notes AS buggy_requests_notes, buggy_requests.guest_device_id AS buggy_requests_guest_device_id, buggy_requests.guest_push_subscription AS buggy_requests_guest_push_subscription, buggy_requests.status AS buggy_requests_status, buggy_requests.cancelled_by AS buggy_requests_cancelled_by, buggy_requests.requested_at AS buggy_requests_requested_at, buggy_requests.accepted_at AS buggy_requests_accepted_at, buggy_requests.completed_at AS buggy_requests_completed_at, buggy_requests.cancelled_at AS buggy_requests_cancelled_at, buggy_requests.timeout_at AS buggy_requests_timeout_at, buggy_requests.response_time AS buggy_requests_response_time, buggy_requests.completion_time AS buggy_requests_completion_time
+FROM buggy_requests
+WHERE buggy_requests.id = %(pk_1)s
+2025-11-14 20:36:02,257 INFO sqlalchemy.engine.Engine [cached since 759s ago] {'pk_1': 96}
+2025-11-14 20:36:02,259 INFO sqlalchemy.engine.Engine SELECT locations.id AS locations_id, locations.hotel_id AS locations_hotel_id, locations.name AS locations_name, locations.description AS locations_description, locations.qr_code_data AS locations_qr_code_data, locations.qr_code_image AS locations_qr_code_image, locations.location_image AS locations_location_image, locations.display_order AS locations_display_order, locations.latitude AS locations_latitude, locations.longitude AS locations_longitude, locations.is_active AS locations_is_active, locations.created_at AS locations_created_at, locations.updated_at AS locations_updated_at
+FROM locations
+WHERE locations.id = %(pk_1)s
+2025-11-14 20:36:02,260 INFO sqlalchemy.engine.Engine [cached since 759s ago] {'pk_1': 2}
+2025-11-14 20:36:02,262 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [14/Nov/2025 20:36:02] "GET /api/requests/96 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2025 20:36:06] "HEAD /static/icons/favicon-16x16.png HTTP/1.1" 200 -
+2025-11-14 20:36:12,568 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-11-14 20:36:12,569 INFO sqlalchemy.engine.Engine SELECT buggy_requests.id AS buggy_requests_id, buggy_requests.hotel_id AS buggy_requests_hotel_id, buggy_requests.location_id AS buggy_requests_location_id, buggy_requests.buggy_id AS buggy_requests_buggy_id, buggy_requests.accepted_by_id AS buggy_requests_accepted_by_id, buggy_requests.guest_name AS buggy_requests_guest_name, buggy_requests.room_number AS buggy_requests_room_number, buggy_requests.has_room AS buggy_requests_has_room, buggy_requests.phone AS buggy_requests_phone, buggy_requests.notes AS buggy_requests_notes, buggy_requests.guest_device_id AS buggy_requests_guest_device_id, buggy_requests.guest_push_subscription AS buggy_requests_guest_push_subscription, buggy_requests.status AS buggy_requests_status, buggy_requests.cancelled_by AS buggy_requests_cancelled_by, buggy_requests.requested_at AS buggy_requests_requested_at, buggy_requests.accepted_at AS buggy_requests_accepted_at, buggy_requests.completed_at AS buggy_requests_completed_at, buggy_requests.cancelled_at AS buggy_requests_cancelled_at, buggy_requests.timeout_at AS buggy_requests_timeout_at, buggy_requests.response_time AS buggy_requests_response_time, buggy_requests.completion_time AS buggy_requests_completion_time
+FROM buggy_requests
+WHERE buggy_requests.id = %(pk_1)s
+2025-11-14 20:36:12,569 INFO sqlalchemy.engine.Engine [cached since 769.3s ago] {'pk_1': 96}
+2025-11-14 20:36:12,571 INFO sqlalchemy.engine.Engine SELECT locations.id AS locations_id, locations.hotel_id AS locations_hotel_id, locations.name AS locations_name, locations.description AS locations_description, locations.qr_code_data AS locations_qr_code_data, locations.qr_code_image AS locations_qr_code_image, locations.location_image AS locations_location_image, locations.display_order AS locations_display_order, locations.latitude AS locations_latitude, locations.longitude AS locations_longitude, locations.is_active AS locations_is_active, locations.created_at AS locations_created_at, locations.updated_at AS locations_updated_at
+FROM locations
+WHERE locations.id = %(pk_1)s
+2025-11-14 20:36:12,571 INFO sqlalchemy.engine.Engine [cached since 769.3s ago] {'pk_1': 2}
+2025-11-14 20:36:12,573 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [14/Nov/2025 20:36:12] "GET /api/requests/96 HTTP/1.1" 200 -

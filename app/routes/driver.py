@@ -108,6 +108,20 @@ def dashboard():
             session['needs_location_setup'] = True
             return redirect(url_for('driver.select_location'))
         
+        # ✅ Set driver as active when dashboard loads
+        from app.models.buggy_driver import BuggyDriver
+        from app import db
+        assignment = BuggyDriver.query.filter_by(
+            buggy_id=user.buggy.id,
+            driver_id=user.id
+        ).first()
+        
+        if assignment and not assignment.is_active:
+            assignment.is_active = True
+            assignment.last_active_at = user.buggy.updated_at  # Use existing timestamp
+            db.session.commit()
+            print(f'✅ [DRIVER_DASHBOARD] Driver {user.full_name} set to active')
+        
         return render_template('driver/dashboard.html', 
                              user=user,
                              notification_permission_asked=session.get('notification_permission_asked', False),

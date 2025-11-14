@@ -44,6 +44,7 @@ def auth_headers(client, test_hotel):
     user = SystemUser(
         username='test_driver',
         email='driver@test.com',
+        full_name='Test Driver',
         role=UserRole.DRIVER,
         hotel_id=test_hotel.id,
         is_active=True
@@ -80,10 +81,12 @@ def test_hotel():
 @pytest.fixture
 def test_location(test_hotel):
     """Create test location"""
+    import uuid
     location = Location(
         hotel_id=test_hotel.id,
         name='Test Location',
         description='Test Description',
+        qr_code_data=f'test_qr_{uuid.uuid4().hex[:8]}',  # Unique QR code
         is_active=True
     )
     db.session.add(location)
@@ -97,6 +100,7 @@ def test_driver(test_hotel):
     driver = SystemUser(
         username='test_driver',
         email='driver@test.com',
+        full_name='Test Driver',
         role=UserRole.DRIVER,
         hotel_id=test_hotel.id,
         is_active=True,
@@ -388,6 +392,7 @@ class TestAdminStatsAPI:
         admin = SystemUser(
             username='admin',
             email='admin@test.com',
+            full_name='Admin User',
             role=UserRole.ADMIN,
             hotel_id=test_hotel.id,
             is_active=True
@@ -602,6 +607,212 @@ class TestFCMIntegration:
                 # Complete request
                 request_obj.status = RequestStatus.COMPLETED
                 db.session.commit()
+
+
+# ============================================================================
+# Timestamp Management Tests (NEW - Requirement 7)
+# ============================================================================
+
+class TestTimestampManagement:
+    """Test accurate timestamp recording and calculations"""
+    
+    def test_request_created_timestamp(self, app, test_location, test_buggy):
+        """Test requested_at timestamp is recorded correctly"""
+        with app.app_context():
+            from app.services.request_service import RequestService
+            
+            before_create = datetime.utcnow()
+            request_obj = RequestService.create_request(
+                location_id=test_location.id,
+                room_number='101',
+                guest_name='Test Guest'
+            )
+            after_create = datetime.utcnow()
+            
+            assert request_obj.requested_at is not None
+            assert before_create <= request_obj.requested_at <= after_create
+            assert request_obj.accepted_at is None
+            assert request_obj.completed_at is None
+    
+    def test_request_accepted_timestamp_and_response_time(self, app, test_location, test_driver):
+        """Test accepted_at timestamp and response_time calculation"""
+        with app.app_context():
+            from app.services.request_service import RequestService
+            import time
+            
+            # Create buggy for this test
+            buggy = Buggy(
+                hotel_id=test_location.hotel_id,
+                code='B99',
+                icon='🚗',
+                driver_id=test_driver.id,
+                status=BuggyStatus.AVAILABLE
+            )
+            db.session.add(buggy)
+            db.session.commit()
+            
+            # Create request
+            request_obj = RequestService.create_request(
+                location_id=test_location.id,
+                room_number='101'
+            )
+            
+            # Wait 2 seconds
+            time.sleep(2)
+            
+            # Accept request
+            before_accept = datetime.utcnow()
+            request_obj = RequestService.accept_request(
+                request_id=request_obj.id,
+                buggy_id=buggy.id,
+                driver_id=test_driver.id
+            )
+            after_accept = datetime.utcnow()
+            
+            assert request_obj.accepted_at is not None
+            assert before_accept <= request_obj.accepted_at <= after_accept
+            assert request_obj.response_time is not None
+            assert request_obj.response_time >= 2  # At least 2 seconds
+            assert request_obj.completed_at is None
+    
+    def test_request_completed_timestamp_and_completion_time(self, app, test_location, test_driver):
+        """Test completed_at timestamp and completion_time calculation"""
+        with app.app_context():
+            from app.services.request_service import RequestService
+            import time
+            
+            # Create buggy for this test
+            buggy = Buggy(
+                hotel_id=test_location.hotel_id,
+                code='B98',
+                icon='🚗',
+                driver_id=test_driver.id,
+                status=BuggyStatus.AVAILABLE
+            )
+            db.session.add(buggy)
+            db.session.commit()
+            
+            # Create and accept request
+            request_obj = RequestService.create_request(
+                location_id=test_location.id,
+                room_number='101'
+            )
+            request_obj = RequestService.accept_request(
+                request_id=request_obj.id,
+                buggy_id=buggy.id,
+                driver_id=test_driver.id
+            )
+            
+            # Wait 2 seconds
+            time.sleep(2)
+            
+            # Complete request
+            before_complete = datetime.utcnow()
+            request_obj = RequestService.complete_request(
+                request_id=request_obj.id,
+                driver_id=test_driver.id,
+                current_location_id=test_location.id
+            )
+            after_complete = datetime.utcnow()
+            
+            assert request_obj.completed_at is not None
+            assert before_complete <= request_obj.completed_at <= after_complete
+            assert request_obj.completion_time is not None
+            assert request_obj.completion_time >= 2  # At least 2 seconds
+
+
+# ============================================================================
+# Token Refresh Tests (NEW - Requirement 10)
+# ============================================================================
+
+class TestTokenRefresh:
+    """Test FCM token refresh functionality"""
+    
+    def test_token_refresh_success(self, app, test_driver):
+        """Test successful token refresh"""
+        with app.app_context():
+            old_token = test_driver.fcm_token
+            new_token = 'refreshed_token_xyz_789'
+            
+            success = FCMNotificationService.refresh_token(
+                user_id=test_driver.id,
+                old_token=old_token,
+                new_token=new_token
+            )
+            
+            assert success is True
+            
+            # Verify token updated
+            user = SystemUser.query.get(test_driver.id)
+            assert user.fcm_token == new_token
+            assert user.fcm_token_date is not None
+    
+    def test_token_validation(self, app):
+        """Test token format validation"""
+        with app.app_context():
+            # Valid token (long alphanumeric string)
+            valid_token = 'a' * 152 + ':' + 'b' * 50
+            assert FCMNotificationService.validate_token(valid_token) is True
+            
+            # Invalid: too short
+            assert FCMNotificationService.validate_token('short') is False
+            
+            # Invalid: too long
+            assert FCMNotificationService.validate_token('x' * 600) is False
+            
+            # Invalid: None
+            assert FCMNotificationService.validate_token(None) is False
+            
+            # Invalid: empty string
+            assert FCMNotificationService.validate_token('') is False
+
+
+# ============================================================================
+# Retry Logic Tests (NEW - Requirement 18)
+# ============================================================================
+
+class TestRetryLogic:
+    """Test exponential backoff retry mechanism"""
+    
+    @patch('firebase_admin.messaging.send')
+    def test_retry_on_transient_error(self, mock_send, app, test_driver):
+        """Test retry on transient errors"""
+        with app.app_context():
+            with patch.object(FCMNotificationService, 'initialize', return_value=True):
+                # First 2 attempts fail, 3rd succeeds
+                mock_send.side_effect = [
+                    Exception('Network error'),
+                    Exception('Timeout'),
+                    'message_id_success'
+                ]
+                
+                success = FCMNotificationService.send_to_token(
+                    token=test_driver.fcm_token,
+                    title='Test',
+                    body='Test',
+                    retry=True
+                )
+                
+                assert success is True
+                assert mock_send.call_count == 3
+    
+    @patch('firebase_admin.messaging.send')
+    def test_no_retry_on_invalid_token(self, mock_send, app, test_driver):
+        """Test no retry on invalid token error"""
+        with app.app_context():
+            with patch.object(FCMNotificationService, 'initialize', return_value=True):
+                from firebase_admin import messaging
+                mock_send.side_effect = messaging.UnregisteredError('Invalid token')
+                
+                success = FCMNotificationService.send_to_token(
+                    token=test_driver.fcm_token,
+                    title='Test',
+                    body='Test',
+                    retry=True
+                )
+                
+                assert success is False
+                assert mock_send.call_count == 1  # No retry
 
 
 if __name__ == '__main__':

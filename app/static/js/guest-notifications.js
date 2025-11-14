@@ -1,178 +1,165 @@
 /**
  * Guest Notification Manager
- * Guest kullanıcıları için push notification yönetimi
+ * FCM (Firebase Cloud Messaging) for Guest Users
  * Powered by Erkan ERDEM
  */
 
 class GuestNotificationManager {
     constructor() {
-        this.fcmToken = null;
-        this.requestId = null;
-        this.isSupported = false;
         this.messaging = null;
+        this.token = null;
+        this.initialized = false;
     }
 
     /**
-     * Initialize
+     * Initialize FCM for guest
      */
     async init() {
         try {
-            // iOS kontrolü
-            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-            const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+            console.log('🔔 [Guest FCM] Initializing...');
 
-            // iOS'ta PWA değilse bildirim desteklenmiyor
-            if (isIOS && !isPWA) {
-                console.log('[Guest Notifications] iOS - PWA required for notifications');
-                this.isSupported = false;
+            // Check if FCM is supported
+            if (!('serviceWorker' in navigator)) {
+                console.warn('⚠️ [Guest FCM] Service Worker not supported');
                 return false;
             }
 
-            // Firebase kontrolü
+            if (!('PushManager' in window)) {
+                console.warn('⚠️ [Guest FCM] Push notifications not supported');
+                return false;
+            }
+
+            // Check if firebase is loaded
             if (typeof firebase === 'undefined') {
-                console.warn('[Guest Notifications] Firebase SDK not loaded');
-                this.isSupported = false;
+                console.error('❌ [Guest FCM] Firebase SDK not loaded');
                 return false;
             }
 
-            // Messaging desteği kontrolü
-            if (!firebase.messaging.isSupported()) {
-                console.warn('[Guest Notifications] FCM not supported');
-                this.isSupported = false;
-                return false;
-            }
+            // Get Firebase config from window
 
-            this.isSupported = true;
+            const firebaseConfig = window.firebaseConfig || {
+                apiKey: "AIzaSyD5brCkHqSPVCtt0XJmUMqZizrjK_HX9dc",
+                authDomain: "shuttle-call-835d9.firebaseapp.com",
+                projectId: "shuttle-call-835d9",
+                storageBucket: "shuttle-call-835d9.firebasestorage.app",
+                messagingSenderId: "1044072191950",
+                appId: "1:1044072191950:web:dc780e1832d3a4ee5afd9f",
+                measurementId: "G-DCP7FTRM9Q",
+                vapidKey: "BBrNGl2-VPA-iuLasrj8jpS2Sj2FrYr-FQq57GET6ofRV4QOljRwyLg--HMI-bV7m-lmdBk5NJxSyy3nVpNLzA4"
+            };
 
-            // Firebase'i başlat (eğer başlatılmamışsa)
+            // Initialize Firebase
             if (!firebase.apps.length) {
-                firebase.initializeApp({
-                    apiKey: "AIzaSyDyjVSgW8j4wY-wF0G9uUJpY_Iv-5uQx1I",
-                    authDomain: "buggy-call-a5785.firebaseapp.com",
-                    projectId: "buggy-call-a5785",
-                    storageBucket: "buggy-call-a5785.firebasestorage.app",
-                    messagingSenderId: "141355725901",
-                    appId: "1:141355725901:web:a2c08a67a489ba82ca1804"
-                });
+                firebase.initializeApp(firebaseConfig);
             }
 
             this.messaging = firebase.messaging();
+            this.initialized = true;
 
-            // Foreground mesajları dinle
-            this.setupForegroundListener();
-
+            console.log('✅ [Guest FCM] Initialized successfully');
             return true;
 
         } catch (error) {
-            console.error('❌ [FCM] Init error:', error);
-            this.isSupported = false;
+            console.error('❌ [Guest FCM] Initialization error:', error);
             return false;
         }
     }
 
     /**
-     * Bildirim izni iste ve token al
+     * Request permission and get FCM token
      */
-    async requestPermissionAndGetToken(requestId) {
+    async requestPermissionAndGetToken(requestId = null) {
         try {
-            if (!this.isSupported) {
-                console.log('[Guest Notifications] Not supported');
+            if (!this.initialized) {
+                console.warn('⚠️ [Guest FCM] Not initialized');
                 return null;
             }
 
-            this.requestId = requestId;
-
-            // iOS özel kontrolü
-            if (window.iosNotificationHandler && window.iosNotificationHandler.isIOSDevice()) {
-                const permission = await window.iosNotificationHandler.requestPermission();
-                if (permission !== 'granted') {
-                    this.showPermissionInfo('denied');
-                    return null;
-                }
-            } else {
-                // Önce mevcut izin durumunu kontrol et
-                if (Notification.permission === 'denied') {
-                    console.warn('[Guest Notifications] Permission permanently denied');
-                    this.showPermissionInfo('blocked');
-                    return null;
-                }
-                
-                // Bildirim izni iste
-                const permission = await Notification.requestPermission();
-                if (permission !== 'granted') {
-                    console.log('[Guest Notifications] Permission denied');
-                    this.showPermissionInfo('denied');
-                    return null;
-                }
+            // Request notification permission
+            const permission = await Notification.requestPermission();
+            
+            if (permission !== 'granted') {
+                console.warn('⚠️ [Guest FCM] Permission denied');
+                return null;
             }
 
-            // Service Worker kaydı
-            const registration = await this.registerServiceWorker();
+            console.log('✅ [Guest FCM] Permission granted');
+
+            // Get service worker registration
+            const registration = await navigator.serviceWorker.ready;
+            
             if (!registration) {
-                console.error('❌ [FCM] Service Worker registration failed');
+                console.error('❌ [Guest FCM] Service Worker not ready');
                 return null;
             }
 
-            // FCM token al
-            const token = await this.messaging.getToken({
-                vapidKey: 'BB2-xRCo75G7j3UVqhbeUjv5G55uTN11XCnMt2iZD0w718faVYUZpsGxfAGzqM5Eftw8xN_PVee6X7jRAgoFeAY',
+            console.log('✅ [Guest FCM] Service Worker ready');
+
+            // Get FCM token with VAPID key from config
+            const firebaseConfig = window.firebaseConfig || {
+                apiKey: "AIzaSyD5brCkHqSPVCtt0XJmUMqZizrjK_HX9dc",
+                authDomain: "shuttle-call-835d9.firebaseapp.com",
+                projectId: "shuttle-call-835d9",
+                storageBucket: "shuttle-call-835d9.firebasestorage.app",
+                messagingSenderId: "1044072191950",
+                appId: "1:1044072191950:web:dc780e1832d3a4ee5afd9f",
+                measurementId: "G-DCP7FTRM9Q",
+                vapidKey: "BBrNGl2-VPA-iuLasrj8jpS2Sj2FrYr-FQq57GET6ofRV4QOljRwyLg--HMI-bV7m-lmdBk5NJxSyy3nVpNLzA4"
+            };
+            
+            const vapidKey = firebaseConfig.vapidKey;
+            
+            if (!vapidKey) {
+                console.error('❌ [Guest FCM] VAPID key not found in config');
+                return null;
+            }
+
+            console.log('🔑 [Guest FCM] Using VAPID key from config');
+
+            this.token = await this.messaging.getToken({
+                vapidKey: vapidKey,
                 serviceWorkerRegistration: registration
             });
 
-            if (token) {
-                console.log('🔑 [FCM] Token alındı:', token.substring(0, 20) + '...');
-                this.fcmToken = token;
-
-                // Token'ı backend'e kaydet
-                await this.registerTokenToBackend(token, requestId);
-
-                return token;
+            if (this.token) {
+                console.log('🔑 [Guest FCM] Token received:', this.token.substring(0, 20) + '...');
+                
+                // Register token to backend if requestId provided
+                if (requestId) {
+                    await this.registerToken(requestId);
+                }
+                
+                return this.token;
             } else {
+                console.warn('⚠️ [Guest FCM] No token received');
                 return null;
             }
 
         } catch (error) {
-            console.error('❌ [FCM] Token alma hatası:', error);
+            console.error('❌ [Guest FCM] Token error:', error);
             return null;
         }
     }
 
     /**
-     * Service Worker kaydet
+     * Register FCM token to backend
      */
-    async registerServiceWorker() {
+    async registerToken(requestId) {
         try {
-            if (!('serviceWorker' in navigator)) {
-                console.error('[Guest Notifications] Service Worker not supported');
-                return null;
+            if (!this.token) {
+                console.warn('⚠️ [Guest FCM] No token to register');
+                return false;
             }
 
-            // Firebase Messaging Service Worker'ı kaydet
-            const registration = await navigator.serviceWorker.register('/static/firebase-messaging-sw.js');
+            console.log('💾 [Guest FCM] Registering token for request:', requestId);
 
-            // Service Worker'ın hazır olmasını bekle
-            await navigator.serviceWorker.ready;
-
-            return registration;
-
-        } catch (error) {
-            console.error('❌ [FCM] SW registration error:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Token'ı backend'e kaydet
-     */
-    async registerTokenToBackend(token, requestId) {
-        try {
             const response = await fetch('/api/guest/register-fcm-token', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    token: token,
+                    token: this.token,
                     request_id: requestId
                 })
             });
@@ -180,164 +167,67 @@ class GuestNotificationManager {
             const data = await response.json();
 
             if (data.success) {
-                console.log('✅ [FCM] Token backend\'e kaydedildi');
-                
-                // Local storage'a kaydet
-                localStorage.setItem('guest_fcm_token', token);
-                localStorage.setItem('guest_fcm_token_date', new Date().toISOString());
-                
+                console.log('✅ [Guest FCM] Token registered successfully');
                 return true;
             } else {
-                console.error('❌ [FCM] Token kaydedilemedi:', data.message);
+                console.error('❌ [Guest FCM] Token registration failed:', data.message);
                 return false;
             }
 
         } catch (error) {
-            console.error('❌ [FCM] Backend kayıt hatası:', error);
+            console.error('❌ [Guest FCM] Token registration error:', error);
             return false;
         }
     }
 
     /**
-     * Foreground mesajları dinle
+     * Setup foreground message listener
      */
-    setupForegroundListener() {
-        if (!this.messaging) return;
+    setupMessageListener(callback) {
+        if (!this.messaging) {
+            console.warn('⚠️ [Guest FCM] Messaging not initialized');
+            return;
+        }
 
         this.messaging.onMessage((payload) => {
-            console.log('🔔 [FCM] Bildirim alındı:', payload.notification?.title);
+            console.log('📬 [Guest FCM] Foreground message received:', payload);
+            
+            if (callback && typeof callback === 'function') {
+                callback(payload);
+            }
 
-            // Bildirim göster
-            this.showForegroundNotification(payload);
-
-            // Özel event tetikle (status güncellemesi için)
-            const event = new CustomEvent('guest-fcm-message', { detail: payload });
-            window.dispatchEvent(event);
+            // Show notification
+            this.showNotification(payload);
         });
     }
 
     /**
-     * Foreground bildirim göster
+     * Show notification
      */
-    showForegroundNotification(payload) {
-        const title = payload.notification?.title || 'Shuttle Call';
-        const options = {
-            body: payload.notification?.body || 'Yeni bildirim',
-            icon: payload.notification?.icon || '/static/icons/Icon-192.png',
-            badge: '/static/icons/Icon-96.png',
-            tag: payload.data?.type || 'guest-notification',
-            data: payload.data || {},
-            requireInteraction: payload.data?.priority === 'high',
-            vibrate: [200, 100, 200, 100, 200]
-        };
-
-        // Tarayıcı bildirimi göster
-        if (Notification.permission === 'granted') {
-            new Notification(title, options);
-        }
-
-        // Ses çal
-        if (payload.data?.type === 'request_accepted') {
-            this.playNotificationSound();
-        }
-    }
-
-    /**
-     * Bildirim sesi çal
-     */
-    playNotificationSound() {
+    showNotification(payload) {
         try {
-            // Web Audio API ile ses oluştur
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // Başarı melodisi (C-E-G akor)
-            const frequencies = [523.25, 659.25, 783.99];
-            
-            frequencies.forEach((freq, index) => {
-                setTimeout(() => {
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    
-                    oscillator.frequency.value = freq;
-                    oscillator.type = 'sine';
-                    
-                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-                    
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.4);
-                }, index * 150);
-            });
+            const title = payload.notification?.title || 'Shuttle Call';
+            const options = {
+                body: payload.notification?.body || 'Yeni bildirim',
+                icon: payload.notification?.icon || '/static/icons/Icon-192.png',
+                badge: '/static/icons/Icon-96.png',
+                vibrate: [200, 100, 200],
+                tag: 'shuttle-notification',
+                requireInteraction: false,
+                data: payload.data || {}
+            };
 
-            // Vibrate
-            if (window.navigator && window.navigator.vibrate) {
-                window.navigator.vibrate([200, 100, 200, 100, 200]);
+            if (Notification.permission === 'granted') {
+                new Notification(title, options);
             }
 
         } catch (error) {
-            console.warn('[Guest Notifications] Sound play error:', error);
-        }
-    }
-
-    /**
-     * Bildirim durumunu kontrol et
-     */
-    getStatus() {
-        return {
-            isSupported: this.isSupported,
-            permission: this.isSupported ? Notification.permission : 'denied',
-            hasToken: !!this.fcmToken
-        };
-    }
-
-    /**
-     * İzin bilgisi göster
-     */
-    showPermissionInfo(status) {
-        let message = '';
-        let icon = '';
-        
-        if (status === 'blocked') {
-            icon = '🔒';
-            message = `
-                <strong>Bildirimler Engellenmiş</strong>
-                <p style="margin: 10px 0;">Shuttle durumu hakkında bildirim almak için:</p>
-                <ol style="text-align: left; margin: 10px 0; padding-left: 20px;">
-                    <li>Adres çubuğundaki 🔒 simgesine tıklayın</li>
-                    <li>"Site ayarları" seçeneğine tıklayın</li>
-                    <li>"Bildirimler" bölümünde "İzin ver" seçin</li>
-                    <li>Sayfayı yenileyin</li>
-                </ol>
-            `;
-        } else {
-            icon = 'ℹ️';
-            message = `
-                <strong>Bildirim İzni Gerekli</strong>
-                <p style="margin: 10px 0;">Shuttle durumu hakkında bildirim almak isterseniz, tarayıcı ayarlarından bildirimleri etkinleştirin.</p>
-                <p style="margin: 10px 0; font-size: 0.9em; color: #666;">Talebiniz başarıyla oluşturuldu. Durum güncellemelerini bu sayfadan takip edebilirsiniz.</p>
-            `;
-        }
-        
-        // Toast göster
-        if (typeof showToast === 'function') {
-            showToast(icon + ' ' + message.replace(/<[^>]*>/g, ' ').trim(), 'info', 8000);
-        } else {
-            // Fallback - console log
-            console.log(icon, message.replace(/<[^>]*>/g, ' ').trim());
+            console.error('❌ [Guest FCM] Show notification error:', error);
         }
     }
 }
 
-// Global instance
-window.guestNotificationManager = new GuestNotificationManager();
+// Export to global scope
+window.GuestNotificationManager = GuestNotificationManager;
 
-// Export
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = GuestNotificationManager;
-}
-
-// Guest Notifications Manager loaded
+console.log('✅ [Guest FCM] GuestNotificationManager loaded');

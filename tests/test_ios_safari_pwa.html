@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>iOS Safari PWA Test Suite</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .test-section h2 {
+            color: #007AFF;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .test-item {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #ddd;
+        }
+
+        .test-item.pass {
+            border-left-color: #34C759;
+        }
+
+        .test-item.fail {
+            border-left-color: #FF3B30;
+        }
+
+        .test-item.pending {
+            border-left-color: #FF9500;
+        }
+
+        .test-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .test-result {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-badge.pass {
+            background: #34C759;
+            color: white;
+        }
+
+        .status-badge.fail {
+            background: #FF3B30;
+            color: white;
+        }
+
+        .status-badge.pending {
+            background: #FF9500;
+            color: white;
+        }
+
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        button:active {
+            opacity: 0.8;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .info-box {
+            background: #E3F2FD;
+            border-left: 4px solid #2196F3;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: #1976D2;
+        }
+
+        .log {
+            background: #1E1E1E;
+            color: #D4D4D4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-entry.success {
+            color: #4EC9B0;
+        }
+
+        .log-entry.error {
+            color: #F48771;
+        }
+
+        .log-entry.info {
+            color: #9CDCFE;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 iOS Safari PWA Test Suite</h1>
+        <p class="subtitle">Production Ready System - iOS Compatibility Tests</p>
+
+        <div class="info-box">
+            <strong>Test Environment:</strong><br>
+            <span id="device-info">Detecting...</span>
+        </div>
+
+        <!-- Detection Tests -->
+        <div class="test-section">
+            <h2>1. Device Detection Tests</h2>
+            <div id="detection-tests"></div>
+        </div>
+
+        <!-- PWA Tests -->
+        <div class="test-section">
+            <h2>2. PWA Installation Tests</h2>
+            <div id="pwa-tests"></div>
+            <button onclick="testPWAInstallation()">Test PWA Installation</button>
+        </div>
+
+        <!-- Notification Tests -->
+        <div class="test-section">
+            <h2>3. Notification Tests</h2>
+            <div id="notification-tests"></div>
+            <button onclick="testNotificationPermission()">Request Notification Permission</button>
+            <button onclick="testNotificationDisplay()">Test Notification Display</button>
+        </div>
+
+        <!-- Service Worker Tests -->
+        <div class="test-section">
+            <h2>4. Service Worker Tests</h2>
+            <div id="sw-tests"></div>
+            <button onclick="testServiceWorker()">Test Service Worker</button>
+        </div>
+
+        <!-- FCM Tests -->
+        <div class="test-section">
+            <h2>5. FCM Integration Tests</h2>
+            <div id="fcm-tests"></div>
+            <button onclick="testFCMIntegration()">Test FCM Integration</button>
+        </div>
+
+        <!-- Console Log -->
+        <div class="log" id="console-log"></div>
+    </div>
+
+    <script>
+        // Logging utility
+        const log = {
+            entries: [],
+            add(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = { timestamp, message, type };
+                this.entries.push(entry);
+                this.render();
+            },
+            success(message) { this.add(message, 'success'); },
+            error(message) { this.add(message, 'error'); },
+            info(message) { this.add(message, 'info'); },
+            render() {
+                const logEl = document.getElementById('console-log');
+                logEl.innerHTML = this.entries.map(e => 
+                    `<div class="log-entry ${e.type}">[${e.timestamp}] ${e.message}</div>`
+                ).join('');
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+        };
+
+        // Test result renderer
+        function renderTest(containerId, testName, result, message) {
+            const container = document.getElementById(containerId);
+            const status = result ? 'pass' : (result === null ? 'pending' : 'fail');
+            const statusText = result ? 'PASS' : (result === null ? 'PENDING' : 'FAIL');
+            
+            const testItem = document.createElement('div');
+            testItem.className = `test-item ${status}`;
+            testItem.innerHTML = `
+                <div class="test-name">
+                    ${testName}
+                    <span class="status-badge ${status}">${statusText}</span>
+                </div>
+                <div class="test-result">${message}</div>
+            `;
+            container.appendChild(testItem);
+        }
+
+        // iOS Detection
+        class IOSDetector {
+            static isIOSDevice() {
+                const ua = navigator.userAgent;
+                return /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+            }
+
+            static getIOSVersion() {
+                const match = navigator.userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
+                if (match) {
+                    return {
+                        major: parseInt(match[1]),
+                        minor: parseInt(match[2]),
+                        patch: parseInt(match[3] || 0),
+                        string: `${match[1]}.${match[2]}.${match[3] || 0}`
+                    };
+                }
+                return null;
+            }
+
+            static isPWA() {
+                return window.navigator.standalone === true || 
+                       window.matchMedia('(display-mode: standalone)').matches;
+            }
+
+            static supportsWebPush() {
+                const version = this.getIOSVersion();
+                if (!version) return false;
+                return version.major >= 16 && version.minor >= 4;
+            }
+
+            static supportsServiceWorker() {
+                return 'serviceWorker' in navigator;
+            }
+
+            static supportsNotifications() {
+                return 'Notification' in window;
+            }
+        }
+
+        // Run detection tests on load
+        function runDetectionTests() {
+            const isIOS = IOSDetector.isIOSDevice();
+            const version = IOSDetector.getIOSVersion();
+            const isPWA = IOSDetector.isPWA();
+            const supportsWebPush = IOSDetector.supportsWebPush();
+            const supportsSW = IOSDetector.supportsServiceWorker();
+            const supportsNotif = IOSDetector.supportsNotifications();
+
+            // Update device info
+            document.getElementById('device-info').innerHTML = `
+                Device: ${isIOS ? 'iOS' : 'Non-iOS'}<br>
+                Version: ${version ? version.string : 'Unknown'}<br>
+                PWA Mode: ${isPWA ? 'Yes' : 'No'}<br>
+                User Agent: ${navigator.userAgent}
+            `;
+
+            // Render tests
+            renderTest('detection-tests', 'iOS Device Detection', isIOS, 
+                isIOS ? 'Device is iOS' : 'Device is not iOS');
+            
+            renderTest('detection-tests', 'iOS Version Detection', version !== null, 
+                version ? `iOS ${version.string}` : 'Could not detect iOS version');
+            
+            renderTest('detection-tests', 'PWA Mode Detection', true, 
+                isPWA ? 'Running in PWA mode' : 'Running in browser');
+            
+            renderTest('detection-tests', 'Web Push Support', supportsWebPush, 
+                supportsWebPush ? 'Web Push supported (iOS 16.4+)' : 'Web Push not supported');
+            
+            renderTest('detection-tests', 'Service Worker Support', supportsSW, 
+                supportsSW ? 'Service Worker API available' : 'Service Worker not supported');
+            
+            renderTest('detection-tests', 'Notification API Support', supportsNotif, 
+                supportsNotif ? 'Notification API available' : 'Notification API not supported');
+
+            log.info('Detection tests completed');
+        }
+
+        // PWA Installation Test
+        function testPWAInstallation() {
+            log.info('Testing PWA installation...');
+            
+            const isPWA = IOSDetector.isPWA();
+            renderTest('pwa-tests', 'PWA Installation Status', isPWA, 
+                isPWA ? 'App is installed as PWA' : 'App is running in browser');
+            
+            if (!isPWA && IOSDetector.isIOSDevice()) {
+                log.info('Showing iOS installation instructions');
+                alert('To install as PWA:\n1. Tap Share button\n2. Tap "Add to Home Screen"\n3. Tap "Add"');
+            }
+            
+            log.success('PWA installation test completed');
+        }
+
+        // Notification Permission Test
+        async function testNotificationPermission() {
+            log.info('Testing notification permission...');
+            
+            if (!('Notification' in window)) {
+                renderTest('notification-tests', 'Notification Permission', false, 
+                    'Notification API not supported');
+                log.error('Notification API not supported');
+                return;
+            }
+
+            const currentPermission = Notification.permission;
+            log.info(`Current permission: ${currentPermission}`);
+
+            if (currentPermission === 'granted') {
+                renderTest('notification-tests', 'Notification Permission', true, 
+                    'Permission already granted');
+                log.success('Notification permission already granted');
+                return;
+            }
+
+            try {
+                const permission = await Notification.requestPermission();
+                const granted = permission === 'granted';
+                
+                renderTest('notification-tests', 'Notification Permission', granted, 
+                    `Permission ${permission}`);
+                
+                if (granted) {
+                    log.success('Notification permission granted');
+                } else {
+                    log.error(`Notification permission ${permission}`);
+                }
+            } catch (error) {
+                renderTest('notification-tests', 'Notification Permission', false, 
+                    `Error: ${error.message}`);
+                log.error(`Permission request failed: ${error.message}`);
+            }
+        }
+
+        // Notification Display Test
+        async function testNotificationDisplay() {
+            log.info('Testing notification display...');
+            
+            if (Notification.permission !== 'granted') {
+                alert('Please grant notification permission first');
+                log.error('Notification permission not granted');
+                return;
+            }
+
+            try {
+                const notification = new Notification('Test Notification', {
+                    body: 'This is a test notification from iOS PWA Test Suite',
+                    icon: '/static/icons/Icon-192.png',
+                    badge: '/static/icons/Icon-96.png',
+                    vibrate: [200, 100, 200],
+                    tag: 'test-notification'
+                });
+
+                notification.onclick = () => {
+                    log.success('Notification clicked');
+                    notification.close();
+                };
+
+                renderTest('notification-tests', 'Notification Display', true, 
+                    'Test notification displayed');
+                log.success('Test notification displayed successfully');
+            } catch (error) {
+                renderTest('notification-tests', 'Notification Display', false, 
+                    `Error: ${error.message}`);
+                log.error(`Notification display failed: ${error.message}`);
+            }
+        }
+
+        // Service Worker Test
+        async function testServiceWorker() {
+            log.info('Testing Service Worker...');
+            
+            if (!('serviceWorker' in navigator)) {
+                renderTest('sw-tests', 'Service Worker Support', false, 
+                    'Service Worker not supported');
+                log.error('Service Worker not supported');
+                return;
+            }
+
+            try {
+                // Check if already registered
+                const registration = await navigator.serviceWorker.getRegistration();
+                
+                if (registration) {
+                    renderTest('sw-tests', 'Service Worker Registration', true, 
+                        `Registered: ${registration.active ? 'Active' : 'Installing'}`);
+                    log.success('Service Worker already registered');
+                    
+                    // Test update
+                    await registration.update();
+                    renderTest('sw-tests', 'Service Worker Update', true, 
+                        'Update check completed');
+                    log.success('Service Worker update check completed');
+                } else {
+                    renderTest('sw-tests', 'Service Worker Registration', false, 
+                        'No Service Worker registered');
+                    log.error('No Service Worker registered');
+                }
+            } catch (error) {
+                renderTest('sw-tests', 'Service Worker Test', false, 
+                    `Error: ${error.message}`);
+                log.error(`Service Worker test failed: ${error.message}`);
+            }
+        }
+
+        // FCM Integration Test
+        async function testFCMIntegration() {
+            log.info('Testing FCM integration...');
+            
+            // This is a placeholder - actual FCM test requires Firebase config
+            renderTest('fcm-tests', 'FCM Configuration', null, 
+                'Manual test required - Check Firebase console');
+            
+            renderTest('fcm-tests', 'FCM Token Generation', null, 
+                'Manual test required - Check browser console');
+            
+            log.info('FCM integration test requires manual verification');
+            alert('FCM Integration Test:\n\n1. Check browser console for FCM token\n2. Verify token in Firebase console\n3. Send test notification from Firebase');
+        }
+
+        // Run tests on load
+        window.addEventListener('load', () => {
+            log.info('iOS Safari PWA Test Suite loaded');
+            runDetectionTests();
+        });
+
+        // Log errors
+        window.addEventListener('error', (event) => {
+            log.error(`Global error: ${event.message}`);
+        });
+
+        // Log unhandled promise rejections
+        window.addEventListener('unhandledrejection', (event) => {
+            log.error(`Unhandled promise rejection: ${event.reason}`);
+        });
+    </script>
+</body>
+</html>

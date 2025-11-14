@@ -20,6 +20,59 @@ csrf.exempt(guest_notification_api_bp)
 # Production'da Redis veya database kullanılmalı
 GUEST_FCM_TOKENS = {}
 
+# Token TTL configuration (1 hour)
+GUEST_TOKEN_TTL_SECONDS = 3600
+
+
+def cleanup_expired_guest_tokens():
+    """
+    Expired guest FCM token'larını temizle
+    TTL'i dolmuş token'ları sil
+    """
+    try:
+        current_time = datetime.utcnow().replace(tzinfo=None).timestamp()
+        expired_tokens = []
+        
+        for request_id, token_data in list(GUEST_FCM_TOKENS.items()):
+            if token_data.get('expires_at', 0) < current_time:
+                expired_tokens.append(request_id)
+        
+        # Remove expired tokens
+        for request_id in expired_tokens:
+            del GUEST_FCM_TOKENS[request_id]
+            logger.info(f'🗑️ Expired guest FCM token removed: Request {request_id}')
+        
+        if expired_tokens:
+            logger.info(f'🧹 Cleaned up {len(expired_tokens)} expired guest FCM tokens')
+            
+    except Exception as e:
+        logger.error(f'❌ Error cleaning up expired tokens: {str(e)}')
+
+
+def get_guest_token(request_id: int) -> str:
+    """
+    Guest FCM token'ını al (TTL kontrolü ile)
+    
+    Args:
+        request_id: Request ID
+    
+    Returns:
+        str: FCM token veya None
+    """
+    token_data = GUEST_FCM_TOKENS.get(request_id)
+    
+    if not token_data:
+        return None
+    
+    # Check if expired
+    current_time = datetime.utcnow().replace(tzinfo=None).timestamp()
+    if token_data.get('expires_at', 0) < current_time:
+        logger.warning(f'⚠️ Guest FCM token expired for request {request_id}')
+        del GUEST_FCM_TOKENS[request_id]
+        return None
+    
+    return token_data.get('token')
+
 
 @guest_notification_api_bp.route('/guest/register-fcm-token', methods=['POST'])
 def register_guest_fcm_token():
@@ -50,13 +103,18 @@ def register_guest_fcm_token():
                 'message': 'Request ID gerekli'
             }), 400
         
-        # Token'ı kaydet (request_id ile ilişkilendir)
+        # Token'ı kaydet (request_id ile ilişkilendir) with TTL
+        current_utc = datetime.utcnow().replace(tzinfo=None)
         GUEST_FCM_TOKENS[request_id] = {
             'token': token,
-            'registered_at': datetime.utcnow().isoformat()
+            'registered_at': current_utc,
+            'expires_at': current_utc.timestamp() + GUEST_TOKEN_TTL_SECONDS
         }
         
-        logger.info(f'✅ Guest FCM token registered for request {request_id}')
+        logger.info(f'✅ Guest FCM token registered for request {request_id} (TTL: {GUEST_TOKEN_TTL_SECONDS}s)')
+        
+        # Cleanup expired tokens
+        cleanup_expired_guest_tokens()
         
         return jsonify({
             'success': True,

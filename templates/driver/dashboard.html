@@ -47,6 +47,102 @@
         color: white;
         font-size: 1.5rem;
         font-weight: bold;
+        position: relative;
+    }
+
+    /* Connection Status Indicator */
+    .connection-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .connection-status.connected {
+        background: linear-gradient(135deg, #E8F8F0 0%, #D4F1E8 100%);
+        color: #27AE60;
+        border: 2px solid #27AE60;
+    }
+
+    .connection-status.disconnected {
+        background: linear-gradient(135deg, #FEE 0%, #FDD 100%);
+        color: #E74C3C;
+        border: 2px solid #E74C3C;
+    }
+
+    .connection-status.connecting {
+        background: linear-gradient(135deg, #FEF3E2 0%, #FCE8C8 100%);
+        color: #E67E22;
+        border: 2px solid #E67E22;
+    }
+
+    .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    .connection-status.connected .status-dot {
+        background: #27AE60;
+        box-shadow: 0 0 8px rgba(39, 174, 96, 0.6);
+    }
+
+    .connection-status.disconnected .status-dot {
+        background: #E74C3C;
+        box-shadow: 0 0 8px rgba(231, 76, 60, 0.6);
+        animation: none;
+    }
+
+    .connection-status.connecting .status-dot {
+        background: #E67E22;
+        box-shadow: 0 0 8px rgba(230, 126, 34, 0.6);
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.2);
+            opacity: 0.8;
+        }
+    }
+
+    @keyframes blink {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.6;
+        }
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
     }
 
     .stats-grid {
@@ -262,10 +358,16 @@
             margin-bottom: 1rem;
         }
 
+        .dashboard-header > div {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+
         .driver-info {
             flex-direction: column;
             text-align: center;
             gap: 0.75rem;
+            width: 100%;
         }
 
         .driver-avatar {
@@ -280,6 +382,13 @@
 
         .driver-info p {
             font-size: 0.875rem;
+        }
+
+        .connection-status {
+            width: 100%;
+            justify-content: center;
+            font-size: 0.8125rem;
+            padding: 0.4rem 0.75rem;
         }
 
         .stats-grid {
@@ -545,6 +654,11 @@
                     </div>
                 </div>
 
+                <!-- Connection Status Indicator -->
+                <div id="connection-status" class="connection-status connecting">
+                    <span class="status-dot"></span>
+                    <span id="connection-text">Bağlanıyor...</span>
+                </div>
             </div>
         </div>
 
@@ -552,8 +666,8 @@
         <!-- Stats Cards -->
 
 
-        <!-- Pending Requests -->
-        <div class="section-card">
+        <!-- Pending Requests (Hidden when there's an active request) -->
+        <div class="section-card" id="pending-requests-section">
             <div class="section-header">
                 <div class="section-icon" style="background: linear-gradient(135deg, #E67E22 0%, #D35400 100%);">
                     <i class="fas fa-list"></i>
@@ -575,12 +689,12 @@
                 <div class="section-icon" style="background: linear-gradient(135deg, #27AE60 0%, #229954 100%);">
                     <i class="fas fa-route"></i>
                 </div>
-                <h3 class="section-title">Aktif Talep</h3>
+                <h3 class="section-title">Aktif Görev</h3>
             </div>
             <div id="current-request">
                 <div class="empty-state">
                     <i class="fas fa-inbox"></i>
-                    <p>Aktif talep yok</p>
+                    <p>Aktif görev yok</p>
                 </div>
             </div>
         </div>
@@ -607,11 +721,16 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
 
+<!-- Platform Detection (iOS kontrolü için) -->
+<script src="{{ url_for('static', filename='js/platform-detection.js') }}"></script>
+
+<!-- iOS Notification Handler (iOS için özel) -->
+<script src="{{ url_for('static', filename='js/ios-notification-handler.js') }}"></script>
+
 <!-- FCM Notifications -->
 <script src="{{ url_for('static', filename='js/fcm-notifications.js') }}"></script>
 
 <!-- Existing Scripts -->
-<script src="{{ url_for('static', filename='js/sse-client.js') }}"></script>
 <script src="{{ url_for('static', filename='js/notification-permission.js') }}"></script>
 <script src="{{ url_for('static', filename='js/driver-dashboard.js') }}"></script>
 <script>

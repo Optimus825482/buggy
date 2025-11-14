@@ -475,15 +475,6 @@ class GuestI18n {
      * Sistemi başlat
      */
     init() {
-    console.log(`
-╔════════════════════════════════════════════════════════════╗
-║  🌍 Guest i18n System Initializing                        ║
-╠════════════════════════════════════════════════════════════╣
-║  Detected Language: ${this.currentLang.toUpperCase().padEnd(37)} ║
-║  Supported Languages: TR, EN, DE, RU, AR                  ║
-╚════════════════════════════════════════════════════════════╝
-        `);
-        
         // Çevirileri doğrula (sadece development'ta)
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             this.validateTranslations();
@@ -492,12 +483,10 @@ class GuestI18n {
         // Sayfa yüklendiğinde çevir
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
-                console.log('[i18n] 📄 DOM loaded, starting translation...');
                 this.translatePage();
                 this.setupMutationObserver();
             });
         } else {
-            console.log('[i18n] 📄 DOM already loaded, starting translation...');
             this.translatePage();
             this.setupMutationObserver();
         }
@@ -509,13 +498,10 @@ class GuestI18n {
         if (this.currentLang === 'ar') {
             document.documentElement.setAttribute('dir', 'rtl');
             document.documentElement.setAttribute('lang', 'ar');
-            console.log('[i18n] 🔄 RTL mode enabled for Arabic');
         } else {
             document.documentElement.setAttribute('dir', 'ltr');
             document.documentElement.setAttribute('lang', this.currentLang);
         }
-        
-        console.log('[i18n] ✅ Initialization complete');
     }*
 
     /**
@@ -533,14 +519,12 @@ class GuestI18n {
                             const key = node.getAttribute('data-i18n');
                             const translation = this.t(key);
                             node.textContent = translation;
-                            console.log(`[i18n] 🆕 New element translated: ${key}`);
                         }
                         
                         // İçinde data-i18n elementleri var mı?
                         if (node.querySelectorAll) {
                             const i18nElements = node.querySelectorAll('[data-i18n]');
                             if (i18nElements.length > 0) {
-                                console.log(`[i18n] 🆕 Found ${i18nElements.length} new i18n elements`);
                                 i18nElements.forEach(el => {
                                     const key = el.getAttribute('data-i18n');
                                     const translation = this.t(key);
@@ -558,8 +542,6 @@ class GuestI18n {
             childList: true,
             subtree: true
         });
-
-        console.log('[i18n] 👁️ MutationObserver active - watching for dynamic content');
     }
 
     /**
@@ -568,24 +550,19 @@ class GuestI18n {
     t(key) {
         // Key validation
         if (!key || typeof key !== 'string') {
-            console.error(`[i18n] Invalid translation key:`, key);
             return key || '';
         }
         
         const translation = this.translations[this.currentLang]?.[key];
         
         if (!translation) {
-            console.warn(`[i18n] ⚠️ Translation not found: "${key}" for language "${this.currentLang}"`);
-            
             // Fallback to English
             const englishTranslation = this.translations['en']?.[key];
             if (englishTranslation) {
-                console.log(`[i18n] 📝 Using English fallback for "${key}"`);
                 return englishTranslation;
             }
             
             // Son çare: key'in kendisini döndür
-            console.error(`[i18n] ❌ No translation found in any language for "${key}"`);
             return key;
         }
         
@@ -596,8 +573,6 @@ class GuestI18n {
      * Tüm çevirileri doğrula
      */
     validateTranslations() {
-        console.log('[i18n] 🔍 Validating translations...');
-        
         const languages = Object.keys(this.translations);
         const allKeys = new Set();
         const report = {};
@@ -625,17 +600,6 @@ class GuestI18n {
             };
         });
         
-        console.table(report);
-        
-        // Eksik çeviriler varsa uyar
-        Object.entries(report).forEach(([lang, data]) => {
-            if (data.missing > 0) {
-                console.warn(`[i18n] ⚠️ ${lang.toUpperCase()}: ${data.missing} missing translations`, data.missingKeys);
-            } else {
-                console.log(`[i18n] ✅ ${lang.toUpperCase()}: Complete (${data.total} translations)`);
-            }
-        });
-        
         return report;
     }
 
@@ -657,7 +621,6 @@ class GuestI18n {
                     
                     // Key validation
                     if (!key || key.trim() === '') {
-                        console.warn(`[i18n] Empty key at element ${index}:`, element);
                         errorCount++;
                         return;
                     }
@@ -666,7 +629,6 @@ class GuestI18n {
                     
                     // Translation validation
                     if (!translation || translation === key) {
-                        console.warn(`[i18n] Missing translation for key: ${key}`);
                         errors.push({ key, element });
                         errorCount++;
                         return;
@@ -674,43 +636,31 @@ class GuestI18n {
                     
                     // Placeholder attribute
                     if (element.hasAttribute('placeholder')) {
-                        const oldValue = element.getAttribute('placeholder');
                         element.setAttribute('placeholder', translation);
-                        console.log(`[i18n] ✓ Placeholder: "${oldValue}" → "${translation}"`);
                         successCount++;
                     } 
                     // Value attribute (input fields)
                     else if (element.hasAttribute('value') && element.tagName === 'INPUT') {
-                        const oldValue = element.getAttribute('value');
                         element.setAttribute('value', translation);
-                        console.log(`[i18n] ✓ Input value: "${oldValue}" → "${translation}"`);
                         successCount++;
                     }
                     // Title attribute
                     else if (element.hasAttribute('title')) {
-                        const oldValue = element.getAttribute('title');
                         element.setAttribute('title', translation);
-                        console.log(`[i18n] ✓ Title: "${oldValue}" → "${translation}"`);
                         successCount++;
                     }
                     // Alt attribute (images)
                     else if (element.hasAttribute('alt') && element.tagName === 'IMG') {
-                        const oldValue = element.getAttribute('alt');
                         element.setAttribute('alt', translation);
-                        console.log(`[i18n] ✓ Alt text: "${oldValue}" → "${translation}"`);
                         successCount++;
                     }
                     // Aria-label attribute
                     else if (element.hasAttribute('aria-label')) {
-                        const oldValue = element.getAttribute('aria-label');
                         element.setAttribute('aria-label', translation);
-                        console.log(`[i18n] ✓ Aria-label: "${oldValue}" → "${translation}"`);
                         successCount++;
                     }
                     // Normal text content
                     else {
-                        const oldText = element.textContent.trim();
-                        
                         // Element içinde child elementler var mı?
                         if (element.children.length === 0) {
                             // Basit element - direkt textContent
@@ -720,26 +670,20 @@ class GuestI18n {
                             element.style.display = 'none';
                             element.offsetHeight; // Force reflow
                             element.style.display = '';
-                            
-                            console.log(`[i18n] ✓ Text: "${oldText}" → "${translation}"`);
                         } else {
                             // İçinde child elementler var
                             // innerHTML kullan (daha güvenilir)
-                            const originalHTML = element.innerHTML;
                             element.innerHTML = translation;
                             
                             // DOM'u zorla güncelle
                             element.style.display = 'none';
                             element.offsetHeight; // Force reflow
                             element.style.display = '';
-                            
-                            console.log(`[i18n] ✓ innerHTML: "${oldText}" → "${translation}"`);
                         }
                         successCount++;
                     }
                     
                 } catch (error) {
-                    console.error(`[i18n] Error translating element ${index}:`, error, element);
                     errorCount++;
                     errors.push({ element, error: error.message });
                 }
@@ -747,33 +691,9 @@ class GuestI18n {
 
             // Page title'ı güncelle
             this.updatePageTitle();
-
-            // Özet rapor
-            console.log(`
-╔════════════════════════════════════════════════════════════╗
-║  🌍 Translation Report - ${this.currentLang.toUpperCase()}                           ║
-╠════════════════════════════════════════════════════════════╣
-║  ✅ Success: ${successCount.toString().padEnd(3)} elements translated                  ║
-║  ❌ Errors:  ${errorCount.toString().padEnd(3)} elements failed                       ║
-║  📊 Total:   ${elements.length.toString().padEnd(3)} elements processed                   ║
-╚════════════════════════════════════════════════════════════╝
-            `);
-            
-            // Hata varsa detaylı göster
-            if (errors.length > 0) {
-                console.warn('[i18n] ⚠️ Translation errors:', errors);
-            }
-            
-            // Başarı oranı
-            const successRate = elements.length > 0 ? (successCount / elements.length * 100).toFixed(1) : 0;
-            if (successRate < 100) {
-                console.warn(`[i18n] ⚠️ Success rate: ${successRate}% - Some translations may be missing!`);
-            } else {
-                console.log(`[i18n] ✅ Perfect! 100% translation success rate`);
-            }
             
         } catch (error) {
-            console.error('[i18n] ❌ Critical error in translatePage:', error);
+            // Silent fail
         }
     }
 
@@ -802,7 +722,6 @@ class GuestI18n {
      */
     changeLanguage(lang) {
         if (!this.isSupported(lang)) {
-            console.warn(`[i18n] Language not supported: ${lang}`);
             return;
         }
 
@@ -820,8 +739,6 @@ class GuestI18n {
 
         // Sayfayı yeniden çevir (title dahil)
         this.translatePage();
-
-        console.log(`[i18n] Language changed to: ${lang}`);
     }
 
     /**
@@ -987,8 +904,6 @@ window.guestI18n = new GuestI18n();
 
 // Global test fonksiyonu
 window.testI18n = function() {
- 
-    
     const languages = ['tr', 'en', 'de', 'ru', 'ar'];
     const testKeys = [
         'brand.name',
@@ -998,20 +913,14 @@ window.testI18n = function() {
         'confirm.title'
     ];
     
-    
     languages.forEach(lang => {
-        console.log(`\n📍 ${lang.toUpperCase()}:`);
         window.guestI18n.currentLang = lang;
-        
         testKeys.forEach(key => {
             const translation = window.guestI18n.t(key);
-            const status = translation !== key ? '✅' : '❌';
         });
     });
     
     const report = window.guestI18n.validateTranslations();
-    
-
     return report;
 };
 
@@ -1022,7 +931,6 @@ window.forceTranslate = function() {
 
 // Dil değiştir ve zorla yenile
 window.switchLanguage = function(lang) {
-    console.log(`🌍 Switching to ${lang.toUpperCase()}...`);
     window.guestI18n.changeLanguage(lang);
     
     // Biraz bekle ve zorla yenile
