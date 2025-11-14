@@ -2,24 +2,38 @@
 Buggy Call - Admin Notification Monitoring API
 Provides endpoints for monitoring notification delivery and performance
 """
-from flask import Blueprint, jsonify, request
-from flask_login import login_required, current_user
+from flask import Blueprint, jsonify, request, session
 from functools import wraps
 from app import db
 from app.models.notification_log import NotificationLog
-from app.models.user import SystemUser
+from app.models.user import SystemUser, UserRole
 from datetime import datetime, timedelta
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, case
 
 admin_notification_api = Blueprint('admin_notification_api', __name__)
+
+
+def login_required(f):
+    """Decorator to require authentication"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'error': 'Authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def admin_required(f):
     """Decorator to require admin role"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.role.value != 'admin':
+        if 'user_id' not in session:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        user = SystemUser.query.get(session['user_id'])
+        if not user or user.role != UserRole.ADMIN:
             return jsonify({'error': 'Admin access required'}), 403
+        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -218,9 +232,9 @@ def get_notification_timeline_stats():
         results = db.session.query(
             group_by.label('date'),
             func.count(NotificationLog.id).label('total'),
-            func.sum(func.if_(NotificationLog.status == 'sent', 1, 0)).label('delivered'),
-            func.sum(func.if_(NotificationLog.status == 'failed', 1, 0)).label('failed'),
-            func.sum(func.if_(NotificationLog.clicked_at.isnot(None), 1, 0)).label('clicked')
+            func.sum(case((NotificationLog.status == 'sent', 1), else_=0)).label('delivered'),
+            func.sum(case((NotificationLog.status == 'failed', 1), else_=0)).label('failed'),
+            func.sum(case((NotificationLog.clicked_at.isnot(None), 1), else_=0)).label('clicked')
         ).filter(
             NotificationLog.sent_at >= since
         ).group_by(group_by).order_by(group_by).all()
@@ -365,8 +379,8 @@ def get_stats_by_priority(since=None):
     query = db.session.query(
         NotificationLog.priority,
         func.count(NotificationLog.id).label('count'),
-        func.sum(func.if_(NotificationLog.status == 'delivered', 1, 0)).label('delivered'),
-        func.sum(func.if_(NotificationLog.status == 'failed', 1, 0)).label('failed')
+        func.sum(case((NotificationLog.status == 'delivered', 1), else_=0)).label('delivered'),
+        func.sum(case((NotificationLog.status == 'failed', 1), else_=0)).label('failed')
     ).group_by(NotificationLog.priority)
     
     if since:
@@ -392,8 +406,8 @@ def get_stats_by_type(since=None):
     query = db.session.query(
         NotificationLog.notification_type,
         func.count(NotificationLog.id).label('count'),
-        func.sum(func.if_(NotificationLog.status == 'delivered', 1, 0)).label('delivered'),
-        func.sum(func.if_(NotificationLog.status == 'failed', 1, 0)).label('failed')
+        func.sum(case((NotificationLog.status == 'delivered', 1), else_=0)).label('delivered'),
+        func.sum(case((NotificationLog.status == 'failed', 1), else_=0)).label('failed')
     ).group_by(NotificationLog.notification_type)
     
     if since:
@@ -496,9 +510,16 @@ def get_fcm_stats(since=None):
         SystemUser.role == 'driver'
     ).count()
     
-    guest_tokens_count = db.session.execute(
-        db.text("SELECT COUNT(DISTINCT request_id) FROM guest_fcm_tokens")
-    ).scalar() if db.engine.dialect.has_table(db.engine, 'guest_fcm_tokens') else 0
+    # Check if guest_fcm_tokens table exists
+    from sqlalchemy import inspect
+    inspector = inspect(db.engine)
+    has_guest_tokens_table = 'guest_fcm_tokens' in inspector.get_table_names()
+    
+    guest_tokens_count = 0
+    if has_guest_tokens_table:
+        guest_tokens_count = db.session.execute(
+            db.text("SELECT COUNT(DISTINCT request_id) FROM guest_fcm_tokens")
+        ).scalar()
     
     return {
         'total_tokens': total_fcm_tokens,

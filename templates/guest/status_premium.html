@@ -781,12 +781,18 @@ function updateToCompleted(request) {
         timeline.style.display = 'none';
     }
 
-    // Update status with null checks
+    // Hide status icon, title and message
     const statusIcon = document.getElementById('status-icon');
-    if (statusIcon) {
-        statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
-        statusIcon.style.background = 'linear-gradient(135deg, #27AE60, #2ECC71)';
-    }
+    const statusTitle = document.getElementById('status-title');
+    const statusMessage = document.getElementById('status-message');
+    
+    if (statusIcon) statusIcon.style.display = 'none';
+    if (statusTitle) statusTitle.style.display = 'none';
+    if (statusMessage) statusMessage.style.display = 'none';
+    
+    // Hide driver info
+    const driverInfo = document.getElementById('driver-info');
+    if (driverInfo) driverInfo.style.display = 'none';
     
     // Show completed message
     const completedBox = document.getElementById('completed-box');
