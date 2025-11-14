@@ -310,6 +310,7 @@ def register_blueprints(app):
 
     @app.before_request
     def block_suspicious_requests():
+        from flask import request, abort
         suspicious_paths = [
             '/wp-admin', '/wordpress', '/wp-content',
             '/.env', '/phpMyAdmin', '/admin.php', '/config.php'
