@@ -97,47 +97,77 @@ class FCMNotificationService:
         except ValueError:
             # Not initialized, proceed with initialization
             try:
-                service_account_path = os.getenv(
-                    'FIREBASE_SERVICE_ACCOUNT_PATH', 
-                    'firebase-service-account.json'
-                )
-                
-                # Validate service account file exists
-                if not os.path.exists(service_account_path):
-                    error_msg = f'Service account dosyası bulunamadı: {service_account_path}'
-                    logger.error(f"❌ FCM_INIT: {error_msg}")
-                    log_error('FCM_INIT', error_msg, {
-                        'path': service_account_path,
-                        'cwd': os.getcwd()
+                # ✅ ÖNCE ENV VARIABLE'DAN JSON OKUMAYA ÇALIŞ
+                service_account_json = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
+
+                if service_account_json:
+                    # Environment variable'dan JSON string olarak geldi
+                    logger.info("🔧 Firebase credentials from FIREBASE_SERVICE_ACCOUNT_JSON env variable")
+                    try:
+                        service_account_dict = json.loads(service_account_json)
+                        cred = credentials.Certificate(service_account_dict)
+                        firebase_admin.initialize_app(cred)
+                        FCMNotificationService._initialized = True
+
+                        logger.info("✅ Firebase Admin SDK başarıyla başlatıldı (ENV variable)")
+                        log_fcm_event('SDK_INITIALIZED', {
+                            'source': 'environment_variable',
+                            'timestamp': datetime.utcnow().isoformat()
+                        })
+                        return True
+
+                    except json.JSONDecodeError as e:
+                        error_msg = f'FIREBASE_SERVICE_ACCOUNT_JSON geçersiz JSON: {str(e)}'
+                        logger.error(f"❌ FCM_INIT: {error_msg}")
+                        log_error('FCM_INIT', error_msg, {'error': str(e)})
+                        return False
+
+                # ✅ ENV VARIABLE YOKSA DOSYADAN OKUMAYA ÇALIŞ
+                else:
+                    logger.info("🔧 Firebase credentials from file (fallback)")
+                    service_account_path = os.getenv(
+                        'FIREBASE_SERVICE_ACCOUNT_PATH',
+                        'firebase-service-account.json'
+                    )
+
+                    # Validate service account file exists
+                    if not os.path.exists(service_account_path):
+                        error_msg = f'Service account dosyası bulunamadı: {service_account_path}'
+                        logger.error(f"❌ FCM_INIT: {error_msg}")
+                        logger.error(f"💡 TIP: FIREBASE_SERVICE_ACCOUNT_JSON env variable kullanabilirsiniz")
+                        log_error('FCM_INIT', error_msg, {
+                            'path': service_account_path,
+                            'cwd': os.getcwd()
+                        })
+                        return False
+
+                    # Validate service account file is readable
+                    try:
+                        with open(service_account_path, 'r') as f:
+                            json.load(f)
+                    except json.JSONDecodeError as e:
+                        error_msg = f'Service account dosyası geçersiz JSON: {str(e)}'
+                        logger.error(f"❌ FCM_INIT: {error_msg}")
+                        log_error('FCM_INIT', error_msg, {'path': service_account_path})
+                        return False
+                    except Exception as e:
+                        error_msg = f'Service account dosyası okunamadı: {str(e)}'
+                        logger.error(f"❌ FCM_INIT: {error_msg}")
+                        log_error('FCM_INIT', error_msg, {'path': service_account_path})
+                        return False
+
+                    # Initialize Firebase Admin SDK
+                    cred = credentials.Certificate(service_account_path)
+                    firebase_admin.initialize_app(cred)
+                    FCMNotificationService._initialized = True
+
+                    logger.info("✅ Firebase Admin SDK başarıyla başlatıldı (dosyadan)")
+                    log_fcm_event('SDK_INITIALIZED', {
+                        'source': 'file',
+                        'service_account': service_account_path,
+                        'timestamp': datetime.utcnow().isoformat()
                     })
-                    return False
-                
-                # Validate service account file is readable
-                try:
-                    with open(service_account_path, 'r') as f:
-                        json.load(f)
-                except json.JSONDecodeError as e:
-                    error_msg = f'Service account dosyası geçersiz JSON: {str(e)}'
-                    logger.error(f"❌ FCM_INIT: {error_msg}")
-                    log_error('FCM_INIT', error_msg, {'path': service_account_path})
-                    return False
-                except Exception as e:
-                    error_msg = f'Service account dosyası okunamadı: {str(e)}'
-                    logger.error(f"❌ FCM_INIT: {error_msg}")
-                    log_error('FCM_INIT', error_msg, {'path': service_account_path})
-                    return False
-                
-                # Initialize Firebase Admin SDK
-                cred = credentials.Certificate(service_account_path)
-                firebase_admin.initialize_app(cred)
-                FCMNotificationService._initialized = True
-                
-                logger.info("✅ Firebase Admin SDK başarıyla başlatıldı")
-                log_fcm_event('SDK_INITIALIZED', {
-                    'service_account': service_account_path,
-                    'timestamp': datetime.utcnow().isoformat()
-                })
-                return True
+                    return True
                 
             except Exception as e:
                 error_msg = f'Firebase Admin SDK başlatma hatası: {str(e)}'
