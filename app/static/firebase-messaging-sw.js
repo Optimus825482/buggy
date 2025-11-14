@@ -25,6 +25,47 @@ try {
   console.log('[FCM SW] Firebase Messaging initialized');
   
   // ============================================================================
+  // CACHE MANAGEMENT - Sound files için
+  // ============================================================================
+  
+  const CACHE_NAME = 'fcm-sounds-v1';
+  const SOUND_FILES = [
+    '/static/sounds/notification.mp3',
+    '/static/sounds/notification.ogg'
+  ];
+  
+  // Install event - Sound dosyalarını cache'le
+  self.addEventListener('install', (event) => {
+    console.log('[FCM SW] Installing and caching sound files');
+    event.waitUntil(
+      caches.open(CACHE_NAME)
+        .then((cache) => {
+          return cache.addAll(SOUND_FILES).catch((err) => {
+            console.warn('[FCM SW] Some sound files could not be cached:', err);
+          });
+        })
+        .then(() => self.skipWaiting())
+    );
+  });
+  
+  // Activate event - Eski cache'leri temizle
+  self.addEventListener('activate', (event) => {
+    console.log('[FCM SW] Activating');
+    event.waitUntil(
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME && cacheName.startsWith('fcm-sounds-')) {
+              console.log('[FCM SW] Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }).then(() => self.clients.claim())
+    );
+  });
+  
+  // ============================================================================
   // BACKGROUND MESSAGE HANDLER
   // ============================================================================
   
@@ -44,12 +85,13 @@ try {
       actions: []
     };
     
-    // Bildirim tipine göre özel ayarlar
+    // Bildirim tipine göre özel ayarlar ve action buttons
     if (payload.data?.type === 'new_request') {
       notificationOptions.requireInteraction = true;
       notificationOptions.vibrate = [200, 100, 200, 100, 200, 100, 200];
       notificationOptions.actions = [
-        { action: 'view', title: '👁️ Görüntüle', icon: '/static/icons/Icon-96.png' },
+        { action: 'accept', title: '✅ Kabul Et', icon: '/static/icons/Icon-96.png' },
+        { action: 'details', title: '👁️ Detaylar', icon: '/static/icons/Icon-96.png' },
         { action: 'dismiss', title: '❌ Kapat', icon: '/static/icons/Icon-96.png' }
       ];
     }
@@ -68,7 +110,7 @@ try {
   // ============================================================================
   
   self.addEventListener('notificationclick', (event) => {
-    console.log('[FCM SW] Notification clicked:', event.notification.tag);
+    console.log('[FCM SW] Notification clicked:', event.notification.tag, 'Action:', event.action);
     
     event.notification.close();
     
@@ -81,6 +123,18 @@ try {
     // Get notification data
     const notificationData = event.notification.data || {};
     let targetUrl = notificationData.url || '/driver/dashboard';
+    
+    // Handle "Kabul Et" action
+    if (event.action === 'accept' && notificationData.type === 'new_request') {
+      console.log('[FCM SW] Accept action clicked for request:', notificationData.request_id);
+      targetUrl = `/driver/dashboard?auto_accept=${notificationData.request_id}`;
+    }
+    
+    // Handle "Detaylar" action
+    if (event.action === 'details' && notificationData.type === 'new_request') {
+      console.log('[FCM SW] Details action clicked for request:', notificationData.request_id);
+      targetUrl = `/driver/dashboard?highlight=${notificationData.request_id}`;
+    }
     
     // Bildirim tipine göre URL belirle
     if (notificationData.type === 'new_request') {

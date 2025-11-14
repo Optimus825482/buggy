@@ -27,11 +27,7 @@ class NotificationPermissionHandler {
             this.alreadyAsked = alreadyAsked;
             this.currentStatus = currentStatus;
 
-            console.log('[NotificationPermission] Initializing...', {
-                userRole,
-                alreadyAsked,
-                currentStatus
-            });
+            // Notification Permission Initializing
 
             // Browser support check
             if (!('Notification' in window)) {
@@ -63,14 +59,14 @@ class NotificationPermissionHandler {
         try {
             // Check browser permission status first
             const browserStatus = await this.getBrowserPermissionStatus();
-            console.log('[NotificationPermission] Browser status:', browserStatus);
+            // Browser status checked
 
             // Show dialog if permission is 'default' (not decided yet)
             if (browserStatus === 'default') {
                 console.log('[NotificationPermission] Permission is default, showing dialog');
                 this.showDialog();
             } else if (browserStatus === 'granted') {
-                console.log('[NotificationPermission] Permission already granted');
+                // Permission already granted
                 // Update session with current status
                 await this.updateSessionStatus(browserStatus);
             } else if (browserStatus === 'denied') {
@@ -417,7 +413,7 @@ class NotificationPermissionHandler {
             });
 
             if (response.ok) {
-                console.log('[NotificationPermission] Session updated:', status);
+                // Session updated
             } else {
                 const errorText = await response.text().catch(() => 'Unknown error');
                 console.error('[NotificationPermission] Failed to update session:', response.status, errorText);
@@ -545,4 +541,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = notificationPermissionHandler;
 }
 
-console.log('[NotificationPermission] Handler loaded');
+// Notification Permission Handler loaded

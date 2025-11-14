@@ -475,7 +475,7 @@ class GuestI18n {
      * Sistemi başlat
      */
     init() {
-        console.log(`
+    console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║  🌍 Guest i18n System Initializing                        ║
 ╠════════════════════════════════════════════════════════════╣
@@ -516,7 +516,7 @@ class GuestI18n {
         }
         
         console.log('[i18n] ✅ Initialization complete');
-    }
+    }*
 
     /**
      * Dinamik içerik için MutationObserver kur
@@ -987,7 +987,7 @@ window.guestI18n = new GuestI18n();
 
 // Global test fonksiyonu
 window.testI18n = function() {
-    console.log('🧪 Starting i18n test...\n');
+ 
     
     const languages = ['tr', 'en', 'de', 'ru', 'ar'];
     const testKeys = [
@@ -998,7 +998,6 @@ window.testI18n = function() {
         'confirm.title'
     ];
     
-    console.log('Testing translations for each language:\n');
     
     languages.forEach(lang => {
         console.log(`\n📍 ${lang.toUpperCase()}:`);
@@ -1007,22 +1006,18 @@ window.testI18n = function() {
         testKeys.forEach(key => {
             const translation = window.guestI18n.t(key);
             const status = translation !== key ? '✅' : '❌';
-            console.log(`  ${status} ${key}: "${translation}"`);
         });
     });
     
-    console.log('\n🔍 Running validation...');
     const report = window.guestI18n.validateTranslations();
     
-    console.log('\n✅ Test complete!');
+
     return report;
 };
 
 // Force refresh fonksiyonu
 window.forceTranslate = function() {
-    console.log('🔄 Force translating all elements...');
     window.guestI18n.translatePage();
-    console.log('✅ Force translation complete!');
 };
 
 // Dil değiştir ve zorla yenile
@@ -1040,6 +1035,4 @@ window.switchLanguage = function(lang) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = GuestI18n;
 }
-
-console.log('[i18n] ✅ Guest multi-language support loaded');
-console.log('[i18n] 💡 Run window.testI18n() to test all translations');
+  

@@ -5,12 +5,16 @@ Simple and reliable push notifications to drivers
 from flask import Blueprint, Response, stream_with_context, request, session
 from app.models.user import SystemUser, UserRole
 from app.utils.decorators import require_login, require_role
+from app import csrf
 import json
 import time
 import queue
 from datetime import datetime
 
 sse_bp = Blueprint('sse', __name__)
+
+# CSRF exempt for SSE endpoints
+csrf.exempt(sse_bp)
 
 # Store active SSE connections per driver
 # Key: user_id, Value: queue

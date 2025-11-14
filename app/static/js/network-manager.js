@@ -30,7 +30,7 @@ class NetworkManager {
         // Initialize Service Worker communication
         this.initServiceWorker();
 
-        console.log('[Network] Network manager initialized');
+        // Network manager initialized
     }
 
     /**
@@ -47,11 +47,11 @@ class NetworkManager {
                     this.handleServiceWorkerMessage(event.data);
                 });
 
-                console.log('[Network] Service Worker communication initialized');
+                // Service Worker communication initialized
 
                 // Get initial network status from SW
                 const status = await this.getServiceWorkerNetworkStatus();
-                console.log('[Network] SW network status:', status);
+                // SW network status checked
             } catch (error) {
                 console.error('[Network] Service Worker initialization error:', error);
             }
@@ -562,4 +562,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = networkManager;
 }
 
-console.log('[Network] Network manager loaded');
+// Network manager loaded

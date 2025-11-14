@@ -69,7 +69,14 @@ class FCMNotificationManager {
      */
     async requestPermissionAndGetToken() {
         try {
-            // Bildirim izni kontrolü
+            // Önce mevcut izin durumunu kontrol et
+            if (Notification.permission === 'denied') {
+                console.warn('⚠️ Bildirim izni kalıcı olarak reddedilmiş');
+                alert('⚠️ Bildirim izni engellenmiş!\n\nBildirimleri etkinleştirmek için:\n1. Adres çubuğundaki 🔒 simgesine tıklayın\n2. "Site ayarları" seçeneğine tıklayın\n3. "Bildirimler" bölümünde "İzin ver" seçeneğini işaretleyin\n4. Sayfayı yenileyin');
+                return null;
+            }
+            
+            // Bildirim izni iste
             const permission = await Notification.requestPermission();
             
             if (permission !== 'granted') {
@@ -192,6 +199,71 @@ class FCMNotificationManager {
             const event = new CustomEvent('fcm-message', { detail: payload });
             window.dispatchEvent(event);
         });
+        
+        // Token refresh artık otomatik - manuel kontrol için periyodik check
+        this.startTokenRefreshCheck();
+    }
+    
+    /**
+     * Token'ı periyodik olarak kontrol et ve gerekirse yenile
+     */
+    startTokenRefreshCheck() {
+        // Her 24 saatte bir token'ı kontrol et
+        setInterval(async () => {
+            try {
+                console.log('🔄 FCM token kontrolü yapılıyor...');
+                
+                const registration = await navigator.serviceWorker.ready;
+                const newToken = await this.messaging.getToken({
+                    vapidKey: 'BB2-xRCo75G7j3UVqhbeUjv5G55uTN11XCnMt2iZD0w718faVYUZpsGxfAGzqM5Eftw8xN_PVee6X7jRAgoFeAY',
+                    serviceWorkerRegistration: registration
+                });
+                
+                // Token değiştiyse güncelle
+                if (newToken && newToken !== this.currentToken) {
+                    console.log('✅ Token değişti, güncelleniyor...');
+                    const oldToken = this.currentToken;
+                    this.currentToken = newToken;
+                    await this.refreshTokenOnBackend(oldToken, newToken);
+                }
+            } catch (error) {
+                console.error('❌ Token kontrol hatası:', error);
+            }
+        }, 24 * 60 * 60 * 1000); // 24 saat
+    }
+    
+    /**
+     * Token'ı backend'de yenile
+     */
+    async refreshTokenOnBackend(oldToken, newToken) {
+        try {
+            const response = await fetch('/api/fcm/refresh-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    old_token: oldToken,
+                    new_token: newToken 
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('✅ Token backend\'de yenilendi');
+                localStorage.setItem('fcm_token', newToken);
+                localStorage.setItem('fcm_token_date', new Date().toISOString());
+                return true;
+            } else {
+                console.error('❌ Token yenileme hatası:', data.message);
+                return false;
+            }
+            
+        } catch (error) {
+            console.error('❌ Backend token yenileme hatası:', error);
+            return false;
+        }
     }
     
     /**
@@ -239,11 +311,32 @@ class FCMNotificationManager {
      * İzin reddedildi mesajı
      */
     showPermissionDeniedMessage() {
+        // Eğer mesaj zaten varsa tekrar ekleme
+        if (document.getElementById('fcm-permission-alert')) {
+            console.log('⚠️ İzin mesajı zaten gösteriliyor');
+            return;
+        }
+        
         const message = `
-            <div class="alert alert-warning" style="margin: 20px;">
-                <strong>⚠️ Bildirim İzni Gerekli</strong>
-                <p>Yeni talepleri anında almak için bildirim iznini açmanız gerekiyor.</p>
-                <p>Tarayıcı ayarlarından bildirimleri etkinleştirin.</p>
+            <div class="alert alert-warning" id="fcm-permission-alert" style="margin: 20px; padding: 20px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px;">
+                <strong style="display: block; margin-bottom: 10px;">⚠️ Bildirim İzni Gerekli</strong>
+                <p style="margin-bottom: 15px;">Yeni talepleri anında almak için bildirim iznini açmanız gerekiyor.</p>
+                <button id="fcm-request-permission-btn" style="
+                    background: #1BA5A8;
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                    margin-right: 10px;
+                ">
+                    🔔 İzin Ver
+                </button>
+                <small style="color: #666; display: block; margin-top: 10px;">
+                    <strong>Not:</strong> Eğer tarayıcı izin penceresi açılmazsa, adres çubuğundaki 🔒 simgesine tıklayıp "Site ayarları" → "Bildirimler" → "İzin ver" seçeneğini işaretleyin.
+                </small>
             </div>
         `;
         
@@ -252,6 +345,47 @@ class FCMNotificationManager {
         const div = document.createElement('div');
         div.innerHTML = message;
         container.insertBefore(div, container.firstChild);
+        
+        // Butona tıklama eventi ekle
+        const button = document.getElementById('fcm-request-permission-btn');
+        if (button) {
+            button.addEventListener('click', async () => {
+                button.disabled = true;
+                button.textContent = '⏳ İzin isteniyor...';
+                
+                try {
+                    const token = await this.requestPermissionAndGetToken();
+                    
+                    if (token) {
+                        // Başarılı - Mesajı kaldır
+                        const alert = document.getElementById('fcm-permission-alert');
+                        if (alert) {
+                            alert.style.background = '#d4edda';
+                            alert.style.borderColor = '#28a745';
+                            alert.innerHTML = `
+                                <strong style="color: #155724;">✅ Bildirimler Etkinleştirildi!</strong>
+                                <p style="color: #155724; margin-top: 10px;">Artık yeni talepleri anında alacaksınız.</p>
+                            `;
+                            
+                            // 3 saniye sonra kaldır
+                            setTimeout(() => {
+                                alert.remove();
+                            }, 3000);
+                        }
+                    } else {
+                        // Başarısız
+                        button.disabled = false;
+                        button.textContent = '🔔 Tekrar Dene';
+                        button.style.background = '#dc3545';
+                    }
+                } catch (error) {
+                    console.error('❌ İzin hatası:', error);
+                    button.disabled = false;
+                    button.textContent = '🔔 Tekrar Dene';
+                    button.style.background = '#dc3545';
+                }
+            });
+        }
     }
     
     /**
@@ -329,6 +463,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 console.log('✅ Kayıtlı FCM token bulundu');
                 window.fcmManager.currentToken = savedToken;
+                
+                // Backend'e sync et (token validation)
+                console.log('🔄 Token backend ile senkronize ediliyor...');
+                await window.fcmManager.registerTokenToBackend(savedToken);
             }
         }
     }

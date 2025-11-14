@@ -14,7 +14,7 @@ class OfflineStorage {
     async init() {
         try {
             this.db = await this.openDatabase();
-            console.log('[Storage] IndexedDB initialized successfully');
+            // IndexedDB initialized
         } catch (error) {
             console.error('[Storage] Failed to initialize IndexedDB:', error.message || error);
             // Fallback: Uygulama çalışmaya devam edebilir, sadece offline özellikler devre dışı kalır
@@ -473,4 +473,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = offlineStorage;
 }
 
-console.log('[Storage] Offline storage handler loaded');
+// Offline storage handler loaded

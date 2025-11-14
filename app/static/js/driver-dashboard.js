@@ -15,7 +15,9 @@ const DriverDashboard = {
      * Initialize driver dashboard
      */
     async init() {
+        /**
         console.log('Driver dashboard initializing...');
+        **/
         
         // Get data from dashboard container or body
         const container = document.querySelector('.driver-dashboard') || document.body;
@@ -24,11 +26,7 @@ const DriverDashboard = {
         this.buggyId = parseInt(container.dataset.buggyId) || 0;
         const needsLocationSetup = container.dataset.needsLocationSetup === 'true';
         
-        console.log('📊 Driver data:', {
-            hotelId: this.hotelId,
-            userId: this.userId,
-            buggyId: this.buggyId
-        });
+        // Driver data loaded
         
         // Check if driver has buggy assigned
         if (!this.buggyId || this.buggyId === '0') {
@@ -41,11 +39,9 @@ const DriverDashboard = {
         
         // Initialize real-time connection (SSE or WebSocket)
         if (typeof sseClient !== 'undefined') {
-            console.log('✅ Using SSE for real-time notifications');
             this.useSSE = true;
             this.initSSE();
         } else if (typeof io !== 'undefined') {
-            console.log('⚠️ SSE not available, using WebSocket');
             this.useSSE = false;
             this.initSocket();
         } else {
@@ -61,10 +57,7 @@ const DriverDashboard = {
         // FCM sistemi kullanılıyor, eski push notification devre dışı
         // this.requestPushNotificationPermission();
         
-        console.log('✅ Driver dashboard initialized', {
-            buggyId: this.buggyId,
-            hasBuggy: !!this.buggyId
-        });
+        // Driver dashboard initialized
     },
 
     /**
@@ -361,19 +354,18 @@ const DriverDashboard = {
         
         // Listen to new requests
         sseClient.on('new_request', (data) => {
-            console.log('🎉 [SSE] NEW REQUEST RECEIVED:', data);
+            console.log('🎉 [DRIVER] Yeni talep:', data.request_id);
             this.handleNewRequest(data);
         });
         
         // Listen to request taken
         sseClient.on('request_taken', (data) => {
-            console.log('[SSE] Request taken:', data);
             this.removeRequest(data.request_id);
         });
         
         // Connection status
         sseClient.on('connected', () => {
-            console.log('✅ [SSE] Connected successfully');
+            // SSE connected
         });
         
         sseClient.on('error', (error) => {
@@ -392,12 +384,10 @@ const DriverDashboard = {
         
         // Use common Socket helper for consistency with admin panel
         if (typeof BuggyCall !== 'undefined' && BuggyCall.Socket) {
-            console.log('✅ Using BuggyCall.Socket helper');
             this.socket = BuggyCall.Socket.init();
             this.socket.connect();
         } else {
             // Fallback to direct io()
-            console.log('⚠️ Using fallback io() connection');
             this.socket = io({
                 transports: ['polling', 'websocket'],
                 reconnection: true,
@@ -408,8 +398,6 @@ const DriverDashboard = {
         
         // Join hotel drivers room and user-specific room
         this.socket.on('connect', () => {
-            console.log('✅ Socket connected - SID:', this.socket.id);
-            console.log('📡 Joining hotel room:', this.hotelId, 'as driver');
             this.socket.emit('join_hotel', {
                 hotel_id: this.hotelId,
                 role: 'driver'
@@ -421,27 +409,22 @@ const DriverDashboard = {
         });
         
         this.socket.on('joined_hotel', (data) => {
-            console.log('✅ Successfully joined hotel room:', data);
+            // Joined hotel room
         });
         
         // Listen to new requests
         this.socket.on('new_request', (data) => {
-            console.log('🎉 NEW REQUEST RECEIVED:', data);
-            console.log('   Request ID:', data.request_id);
-            console.log('   Location:', data.location?.name);
-            console.log('   Guest:', data.guest_name);
+            console.log('🎉 [DRIVER] Yeni talep:', data.request_id);
             this.handleNewRequest(data);
         });
         
         // Listen to request taken by another driver
         this.socket.on('request_taken', (data) => {
-            console.log('Request taken:', data);
             this.removeRequest(data.request_id);
         });
         
         // Listen to request cancelled
         this.socket.on('request_cancelled', (data) => {
-            console.log('Request cancelled:', data);
             if (this.currentRequest && this.currentRequest.id === data.request_id) {
                 this.currentRequest = null;
             }
@@ -450,7 +433,6 @@ const DriverDashboard = {
         
         // Listen to force logout
         this.socket.on('force_logout', async (data) => {
-            console.log('Force logout received:', data);
             
             // Create custom modal content with theme styling
             const modalContent = `
@@ -506,7 +488,6 @@ const DriverDashboard = {
         });
         
         this.socket.on('disconnect', () => {
-            console.log('🔌 Socket disconnected');
             // Backend will handle setting buggy to offline
         });
     },
@@ -536,18 +517,16 @@ const DriverDashboard = {
         try {
             // Check if driver has buggy assigned
             if (!this.buggyId || this.buggyId === 0) {
-                console.log('No buggy assigned - skipping pending requests load');
+            
                 this.pendingRequests = [];
                 this.renderPendingRequests();
                 this.updatePendingCount();
                 return;
             }
             
-            console.log('🔄 Fetching pending requests from /api/driver/pending-requests');
+         
             const response = await fetch('/api/driver/pending-requests');
             const data = await response.json();
-            
-            console.log('📥 Pending requests response:', data);
             
             if (!response.ok || !data.success) {
                 console.warn('❌ Failed to load pending requests:', data.error);
@@ -558,7 +537,6 @@ const DriverDashboard = {
             }
             
             this.pendingRequests = data.requests || [];
-            console.log('✅ Pending requests loaded:', this.pendingRequests.length, 'requests');
             this.renderPendingRequests();
             this.updatePendingCount();
         } catch (error) {
@@ -576,7 +554,6 @@ const DriverDashboard = {
         try {
             // Check if driver has buggy assigned
             if (!this.buggyId || this.buggyId === 0) {
-                console.log('No buggy assigned - skipping current request load');
                 this.currentRequest = null;
                 this.renderCurrentRequest();
                 return;
@@ -593,7 +570,6 @@ const DriverDashboard = {
             }
             
             this.currentRequest = data.request;
-            console.log('Current request loaded:', this.currentRequest);
             this.renderCurrentRequest();
         } catch (error) {
             console.error('Error loading current request:', error);
@@ -654,9 +630,8 @@ const DriverDashboard = {
         if (badge) badge.textContent = this.pendingRequests.length;
         
         container.innerHTML = this.pendingRequests.map(req => {
-            console.log('Rendering request:', req);
             if (!req.id) {
-                console.error('Request missing ID:', req);
+                console.error('❌ [DRIVER] Request missing ID:', req);
                 return '';
             }
             
@@ -1088,7 +1063,6 @@ const DriverDashboard = {
         // Check if request already exists
         const exists = this.pendingRequests.some(r => r.id === data.request_id);
         if (exists) {
-            console.log('Request already in list, skipping');
             return;
         }
         
@@ -1155,9 +1129,9 @@ const DriverDashboard = {
                 ]
             });
             
-            console.log('✅ Push notification sent for request:', data.request_id);
+            console.log('🔔 [DRIVER] Bildirim gönderildi:', data.request_id);
         } catch (error) {
-            console.error('❌ Error showing push notification:', error);
+            console.error('❌ [DRIVER] Bildirim hatası:', error);
         }
     },
 
@@ -1339,7 +1313,6 @@ const DriverDashboard = {
 
         // Check current permission
         if (Notification.permission === 'granted') {
-            console.log('[Push] Permission already granted');
             // Subscribe to push notifications
             await this.subscribeToPushNotifications();
             return;
@@ -1347,7 +1320,6 @@ const DriverDashboard = {
 
         // notification-permission.js handler will show dialog automatically
         // based on permission status (default/denied)
-        console.log('[Push] Notification permission handler will manage permission request');
     },
 
     /**
@@ -1357,9 +1329,8 @@ const DriverDashboard = {
         if (typeof pushNotifications !== 'undefined') {
             try {
                 await pushNotifications.subscribe();
-                console.log('[Push] Subscribed successfully');
             } catch (error) {
-                console.error('[Push] Subscription error:', error);
+                console.error('❌ [DRIVER] Push subscription error:', error);
             }
         }
     },
@@ -1505,7 +1476,6 @@ const DriverDashboard = {
     setupEventListeners() {
         // WebSocket disconnect handler will automatically cleanup
         // No need for beforeunload - backend handles it via WebSocket disconnect
-        console.log('✅ Event listeners setup complete');
     },
 
     /**

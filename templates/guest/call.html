@@ -197,6 +197,14 @@
 {% block extra_js %}
 <!-- HTML5 QR Code Scanner -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<!-- Firebase SDK for FCM -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
+
+<!-- FCM Notification Manager -->
+<script src="{{ url_for('static', filename='js/fcm-notifications.js') }}"></script>
+
 <script src="{{ url_for('static', filename='js/guest.js') }}"></script>
 <script>
     // Set hotel ID from session or URL

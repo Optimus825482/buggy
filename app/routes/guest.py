@@ -15,11 +15,13 @@ def call():
     
     # VAPID public key'i gönder (push notifications için)
     vapid_public_key = current_app.config.get('VAPID_PUBLIC_KEY', '')
+    firebase_vapid_key = current_app.config.get('FIREBASE_VAPID_KEY', '')
     
     return render_template('guest/call_premium.html', 
                          location_id=location_id, 
                          hotel_id=hotel_id,
-                         vapid_public_key=vapid_public_key)
+                         vapid_public_key=vapid_public_key,
+                         firebase_vapid_key=firebase_vapid_key)
 
 
 @guest_bp.route('/status/<int:request_id>')

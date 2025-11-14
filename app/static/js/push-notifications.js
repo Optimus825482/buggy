@@ -23,7 +23,7 @@ class PushNotificationManager {
             // Get service worker registration
             if ('serviceWorker' in navigator) {
                 this.registration = await navigator.serviceWorker.ready;
-                console.log('[Push] Service worker ready');
+                // Service worker ready
 
                 // Check for existing subscription
                 this.subscription = await this.registration.pushManager.getSubscription();
@@ -367,4 +367,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = pushNotifications;
 }
 
-console.log('[Push] Push notification manager loaded');
+// Push notification manager loaded

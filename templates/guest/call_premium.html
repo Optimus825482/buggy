@@ -1344,88 +1344,25 @@ const GuestCall = (() => {
 
     // ==================== PUSH NOTIFICATIONS ====================
     const requestNotificationPermissionForGuest = async (requestId) => {
-        // Tarayıcı bildirimleri destekliyor mu?
-        if (!('Notification' in window)) {
-            console.log('Bu tarayıcı bildirimleri desteklemiyor');
+        // Guest Notification Manager kullan (Firebase Admin SDK)
+        if (!window.guestNotificationManager) {
+            console.log('[Guest] Notification manager not available');
             return;
         }
 
-        // Zaten izin verilmiş mi?
-        if (Notification.permission === 'granted') {
-            console.log('Bildirim izni zaten verilmiş');
-            await subscribeGuestToPush(requestId);
-            return;
-        }
-
-        // Zaten reddedilmiş mi?
-        if (Notification.permission === 'denied') {
-            console.log('Bildirim izni reddedilmiş');
-            return;
-        }
-
-        // İzin iste
         try {
-            const permission = await Notification.requestPermission();
+            // FCM token al ve kaydet
+            const token = await window.guestNotificationManager.requestPermissionAndGetToken(requestId);
             
-            if (permission === 'granted') {
-                console.log('Bildirim izni verildi');
-                await subscribeGuestToPush(requestId);
+            if (token) {
                 showToast('✅ Shuttle yola çıktığında bildirim alacaksınız!', 'success');
-            } else {
-                console.log('Bildirim izni reddedildi');
             }
         } catch (error) {
-            console.error('Bildirim izni hatası:', error);
+            console.error('❌ [FCM] Notification error:', error);
         }
     };
 
-    const subscribeGuestToPush = async (requestId) => {
-        try {
-            if (!('serviceWorker' in navigator)) {
-                console.log('Service Worker desteklenmiyor');
-                return;
-            }
-
-            const registration = await navigator.serviceWorker.ready;
-            
-            // Push subscription oluştur
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array('{{ vapid_public_key }}')
-            });
-
-            // Backend'e kaydet
-            await fetch('/api/guest/subscribe-push', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    request_id: requestId,
-                    subscription: subscription.toJSON()
-                })
-            });
-
-            console.log('Guest push subscription kaydedildi');
-        } catch (error) {
-            console.error('Push subscription hatası:', error);
-        }
-    };
-
-    const urlBase64ToUint8Array = (base64String) => {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding)
-            .replace(/\-/g, '+')
-            .replace(/_/g, '/');
-
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-
-        for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
-        }
-        return outputArray;
-    };
+    // Eski push subscription kodu kaldırıldı - Firebase Admin SDK kullanıyoruz
 
     const showSuccessNotification = (requestId) => {
         const overlay = document.createElement('div');
@@ -1711,27 +1648,17 @@ document.head.appendChild(animationStyles);
     const initialized = await window.guestNotificationManager.init();
     
     if (initialized) {
-        console.log('[Guest] Notification manager initialized');
-        
         // Request oluşturulduğunda bildirim izni iste
         window.addEventListener('request-created', async (event) => {
             const requestId = event.detail.requestId;
-            console.log('[Guest] Request created, requesting notification permission:', requestId);
             
             // Bildirim izni iste ve token al
-            const token = await window.guestNotificationManager.requestPermissionAndGetToken(requestId);
-            
-            if (token) {
-                console.log('[Guest] FCM token registered successfully');
-            } else {
-                console.log('[Guest] FCM token registration failed or permission denied');
-            }
+            await window.guestNotificationManager.requestPermissionAndGetToken(requestId);
         });
         
         // FCM mesajlarını dinle ve UI'ı güncelle
         window.addEventListener('guest-fcm-message', (event) => {
             const payload = event.detail;
-            console.log('[Guest] FCM message received:', payload);
             
             // Status güncellemesi varsa UI'ı güncelle
             if (payload.data?.type === 'status_update' && payload.data?.status) {
@@ -1741,8 +1668,6 @@ document.head.appendChild(animationStyles);
                 }
             }
         });
-    } else {
-        console.log('[Guest] Notification manager initialization failed');
     }
 })();
 </script>

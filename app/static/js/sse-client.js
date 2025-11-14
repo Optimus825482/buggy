@@ -17,18 +17,18 @@ class SSEClient {
      */
     connect(url = '/sse/stream') {
         if (this.eventSource) {
-            console.log('[SSE] Already connected');
+            // Already connected
             return;
         }
 
-        console.log('[SSE] Connecting to:', url);
+        // Connecting to SSE
         
         try {
             this.eventSource = new EventSource(url);
             
             // Connection opened
             this.eventSource.onopen = () => {
-                console.log('✅ [SSE] Connected');
+                // SSE Connected
                 this.reconnectAttempts = 0;
                 this.reconnectDelay = 3000;
                 this.trigger('connected', {});
@@ -38,7 +38,7 @@ class SSEClient {
             this.eventSource.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    console.log('[SSE] Message received:', data);
+                    // SSE Message received (ping/pong silenced)
                     
                     if (data.event) {
                         this.trigger(data.event, data.data || data);
@@ -154,4 +154,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = sseClient;
 }
 
-console.log('[SSE] Client loaded');
+// SSE Client loaded

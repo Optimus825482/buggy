@@ -1,6 +1,6 @@
 """
 Buggy Call - Firebase Cloud Messaging (FCM) Notification Service
-Gelişmiş push notification sistemi
+Priority-based & Rich Media Support - Optimize edilmiş
 """
 import firebase_admin
 from firebase_admin import credentials, messaging
@@ -14,33 +14,39 @@ from typing import List, Dict, Optional
 
 
 class FCMNotificationService:
-    """Firebase Cloud Messaging servisi"""
+    """Firebase Cloud Messaging servisi - Optimize edilmiş"""
     
     _initialized = False
     
     @staticmethod
     def initialize():
-        """Firebase Admin SDK'yı başlat"""
+        """Firebase Admin SDK'yı başlat - Error handling ile"""
         if FCMNotificationService._initialized:
-            return
+            return True
         
         try:
-            # Eğer zaten başlatılmışsa tekrar başlatma
             firebase_admin.get_app()
             FCMNotificationService._initialized = True
             print("✅ Firebase Admin SDK zaten başlatılmış")
+            return True
         except ValueError:
-            # İlk kez başlatılıyor
-            service_account_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH', 'firebase-service-account.json')
-            
-            if os.path.exists(service_account_path):
+            try:
+                service_account_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH', 'firebase-service-account.json')
+                
+                if not os.path.exists(service_account_path):
+                    print(f"❌ Firebase service account dosyası bulunamadı: {service_account_path}")
+                    return False
+                
                 cred = credentials.Certificate(service_account_path)
                 firebase_admin.initialize_app(cred)
                 FCMNotificationService._initialized = True
                 print("✅ Firebase Admin SDK başlatıldı")
-            else:
-                print(f"⚠️ Firebase service account dosyası bulunamadı: {service_account_path}")
-    
+                return True
+                
+            except Exception as e:
+                print(f"❌ Firebase Admin SDK başlatma hatası: {str(e)}")
+                return False
+
     @staticmethod
     def send_to_token(
         token: str,
@@ -54,25 +60,23 @@ class FCMNotificationService:
         click_action: Optional[str] = None
     ) -> bool:
         """
-        Tek bir token'a bildirim gönder
+        Tek bir token'a bildirim gönder - Priority-based
         
         Args:
             token: FCM device token
             title: Bildirim başlığı
             body: Bildirim içeriği
             data: Ek veri (dict)
-            priority: Öncelik (high/normal)
+            priority: Öncelik (high/normal/low)
             sound: Ses dosyası
             badge: Badge sayısı
-            image: Görsel URL
+            image: Görsel URL (Rich media)
             click_action: Tıklama aksiyonu
         
         Returns:
             bool: Başarılı ise True
         """
-        FCMNotificationService.initialize()
-        
-        if not FCMNotificationService._initialized:
+        if not FCMNotificationService.initialize():
             print("❌ Firebase başlatılamadı, bildirim gönderilemedi")
             return False
         
@@ -84,29 +88,38 @@ class FCMNotificationService:
                 image=image
             )
             
-            # Android config
+            # Android config - Priority-based
+            android_priority = 'high' if priority == 'high' else 'normal'
             android_config = messaging.AndroidConfig(
-                priority=priority,
+                priority=android_priority,
                 notification=messaging.AndroidNotification(
-                    sound=sound,
+                    sound=sound if priority == 'high' else None,
                     click_action=click_action,
                     icon='/static/icons/Icon-192.png',
-                    color='#4CAF50'
+                    color='#4CAF50',
+                    channel_id='buggy_notifications'
                 )
             )
             
-            # APNS (iOS) config
+            # APNS (iOS) config - Priority-based
+            apns_priority = '10' if priority == 'high' else '5'
             apns_config = messaging.APNSConfig(
+                headers={'apns-priority': apns_priority},
                 payload=messaging.APNSPayload(
                     aps=messaging.Aps(
-                        sound=sound,
+                        sound=sound if priority == 'high' else None,
                         badge=badge,
                         content_available=True
                     )
                 )
             )
             
-            # Web push config
+            # Web push config - Rich media support
+            # fcm_options sadece HTTPS URL'ler için kullanılabilir
+            webpush_fcm_options = None
+            if click_action and click_action.startswith('https://'):
+                webpush_fcm_options = messaging.WebpushFCMOptions(link=click_action)
+            
             webpush_config = messaging.WebpushConfig(
                 notification=messaging.WebpushNotification(
                     title=title,
@@ -114,12 +127,11 @@ class FCMNotificationService:
                     icon='/static/icons/Icon-192.png',
                     badge='/static/icons/Icon-96.png',
                     image=image,
-                    vibrate=[200, 100, 200],
-                    data=data or {}
+                    vibrate=[200, 100, 200] if priority == 'high' else None,
+                    data=data or {},
+                    require_interaction=priority == 'high'
                 ),
-                fcm_options=messaging.WebpushFCMOptions(
-                    link=click_action
-                )
+                fcm_options=webpush_fcm_options
             )
             
             # Message oluştur
@@ -134,7 +146,7 @@ class FCMNotificationService:
             
             # Gönder
             response = messaging.send(message)
-            print(f"✅ FCM bildirimi gönderildi: {response}")
+            print(f"✅ FCM bildirimi gönderildi (Priority: {priority}): {response}")
             
             # Log kaydet
             FCMNotificationService._log_notification(
@@ -142,6 +154,7 @@ class FCMNotificationService:
                 title=title,
                 body=body,
                 status='sent',
+                priority=priority,
                 response=response
             )
             
@@ -159,6 +172,7 @@ class FCMNotificationService:
                 title=title,
                 body=body,
                 status='failed',
+                priority=priority,
                 error=str(e)
             )
             return False
@@ -173,22 +187,20 @@ class FCMNotificationService:
         image: Optional[str] = None
     ) -> Dict[str, int]:
         """
-        Birden fazla token'a bildirim gönder (Multicast)
+        Birden fazla token'a bildirim gönder (Multicast) - Priority-based
         
         Args:
             tokens: FCM token listesi
             title: Bildirim başlığı
             body: Bildirim içeriği
             data: Ek veri
-            priority: Öncelik
-            image: Görsel URL
+            priority: Öncelik (high/normal/low)
+            image: Görsel URL (Rich media)
         
         Returns:
             dict: {'success': başarılı_sayısı, 'failure': başarısız_sayısı}
         """
-        FCMNotificationService.initialize()
-        
-        if not FCMNotificationService._initialized:
+        if not FCMNotificationService.initialize():
             print("❌ Firebase başlatılamadı")
             return {'success': 0, 'failure': len(tokens)}
         
@@ -203,13 +215,15 @@ class FCMNotificationService:
                 image=image
             )
             
-            # Android config
+            # Android config - Priority-based
+            android_priority = 'high' if priority == 'high' else 'normal'
             android_config = messaging.AndroidConfig(
-                priority=priority,
+                priority=android_priority,
                 notification=messaging.AndroidNotification(
-                    sound='default',
+                    sound='default' if priority == 'high' else None,
                     icon='/static/icons/Icon-192.png',
-                    color='#4CAF50'
+                    color='#4CAF50',
+                    channel_id='buggy_notifications'
                 )
             )
             
@@ -224,7 +238,7 @@ class FCMNotificationService:
             # Gönder
             response = messaging.send_multicast(message)
             
-            print(f"✅ Multicast: {response.success_count} başarılı, {response.failure_count} başarısız")
+            print(f"✅ Multicast (Priority: {priority}): {response.success_count} başarılı, {response.failure_count} başarısız")
             
             # Başarısız token'ları temizle
             if response.failure_count > 0:
@@ -243,11 +257,12 @@ class FCMNotificationService:
         except Exception as e:
             print(f"❌ Multicast hatası: {str(e)}")
             return {'success': 0, 'failure': len(tokens)}
-    
+
     @staticmethod
     def notify_new_request(request_obj) -> int:
         """
-        Yeni talep bildirimi - Tüm müsait sürücülere gönder
+        Yeni talep bildirimi - HIGH PRIORITY + Rich Media
+        Tüm müsait sürücülere gönder
         
         Args:
             request_obj: BuggyRequest nesnesi
@@ -282,10 +297,10 @@ class FCMNotificationService:
         room_info = f"Oda {request_obj.room_number}" if request_obj.room_number else "Misafir"
         guest_info = f" - {request_obj.guest_name}" if request_obj.guest_name else ""
         
-        title = "🚗 Yeni Buggy Talebi!"
+        title = "🚗 Yeni Shuttle Talebi!"
         body = f"📍 {request_obj.location.name}\n🏨 {room_info}{guest_info}"
         
-        # Data payload
+        # Data payload - Action buttons için
         data = {
             'type': 'new_request',
             'request_id': str(request_obj.id),
@@ -293,45 +308,61 @@ class FCMNotificationService:
             'location_name': request_obj.location.name,
             'room_number': request_obj.room_number or '',
             'guest_name': request_obj.guest_name or '',
-            'url': '/driver/dashboard'
+            'url': '/driver/dashboard',
+            'actions': json.dumps([
+                {'action': 'accept', 'title': 'Kabul Et'},
+                {'action': 'details', 'title': 'Detaylar'}
+            ])
         }
         
-        # Görsel (harita varsa)
+        # Rich media - Harita thumbnail
         image = None
-        if hasattr(request_obj.location, 'latitude') and request_obj.location.latitude:
-            image = f"/api/map/thumbnail?lat={request_obj.location.latitude}&lng={request_obj.location.longitude}"
+        try:
+            if hasattr(request_obj.location, 'latitude') and request_obj.location.latitude:
+                lat = request_obj.location.latitude
+                lng = request_obj.location.longitude
+                google_maps_key = os.getenv('GOOGLE_MAPS_API_KEY', '')
+                if google_maps_key:
+                    image = f"https://maps.googleapis.com/maps/api/staticmap?center={lat},{lng}&zoom=15&size=400x200&markers=color:red%7C{lat},{lng}&key={google_maps_key}"
+        except Exception as e:
+            print(f"⚠️ Harita thumbnail oluşturulamadı: {str(e)}")
         
-        # Gönder
+        # HIGH PRIORITY ile gönder
         result = FCMNotificationService.send_to_multiple(
             tokens=tokens,
             title=title,
             body=body,
             data=data,
-            priority='high',
+            priority='high',  # Yeni talep = HIGH priority
             image=image
         )
         
         # Audit log
         if result['success'] > 0:
-            from app.services.audit_service import AuditService
-            AuditService.log_action(
-                action='fcm_notification_sent',
-                entity_type='request',
-                entity_id=request_obj.id,
-                new_values={
-                    'notification_type': 'new_request',
-                    'recipient_count': result['success'],
-                    'driver_ids': driver_ids
-                },
-                hotel_id=request_obj.hotel_id
-            )
+            try:
+                from app.services.audit_service import AuditService
+                AuditService.log_action(
+                    action='fcm_notification_sent',
+                    entity_type='request',
+                    entity_id=request_obj.id,
+                    new_values={
+                        'notification_type': 'new_request',
+                        'priority': 'high',
+                        'recipient_count': result['success'],
+                        'driver_ids': driver_ids
+                    },
+                    hotel_id=request_obj.hotel_id
+                )
+            except Exception as e:
+                print(f"⚠️ Audit log hatası: {str(e)}")
         
         return result['success']
     
     @staticmethod
     def notify_request_accepted(request_obj) -> bool:
         """
-        Talep kabul edildi bildirimi - Misafire gönder
+        Talep kabul edildi bildirimi - NORMAL PRIORITY
+        Misafire gönder
         
         Args:
             request_obj: BuggyRequest nesnesi
@@ -339,13 +370,12 @@ class FCMNotificationService:
         Returns:
             bool: Başarılı ise True
         """
-        # Misafir token'ı varsa gönder
         if not hasattr(request_obj, 'guest_fcm_token') or not request_obj.guest_fcm_token:
             print("⚠️ Misafir FCM token'ı yok")
             return False
         
-        title = "✅ Buggy Kabul Edildi"
-        body = f"Buggy'niz yola çıktı! Sürücü: {request_obj.buggy.code}"
+        title = "✅ Shuttle Kabul Edildi"
+        body = f"Shuttle'ınız yola çıktı! Sürücü: {request_obj.buggy.code}"
         
         data = {
             'type': 'request_accepted',
@@ -359,13 +389,14 @@ class FCMNotificationService:
             title=title,
             body=body,
             data=data,
-            priority='high'
+            priority='normal'  # Kabul = NORMAL priority
         )
     
     @staticmethod
     def notify_request_completed(request_obj) -> bool:
         """
-        Talep tamamlandı bildirimi - Misafire gönder
+        Talep tamamlandı bildirimi - LOW PRIORITY
+        Misafire gönder
         
         Args:
             request_obj: BuggyRequest nesnesi
@@ -376,8 +407,8 @@ class FCMNotificationService:
         if not hasattr(request_obj, 'guest_fcm_token') or not request_obj.guest_fcm_token:
             return False
         
-        title = "🎉 Buggy Geldi!"
-        body = "Buggy'niz konumunuza ulaştı. İyi yolculuklar!"
+        title = "🎉 Shuttle Geldi!"
+        body = "Shuttle'ınız konumunuza ulaştı. İyi yolculuklar!"
         
         data = {
             'type': 'request_completed',
@@ -389,21 +420,20 @@ class FCMNotificationService:
             title=title,
             body=body,
             data=data,
-            priority='high'
+            priority='low'  # Tamamlandı = LOW priority
         )
-    
+
     @staticmethod
-    def _log_notification(token: str, title: str, body: str, status: str, response: str = None, error: str = None):
-        """Bildirim logla"""
+    def _log_notification(token: str, title: str, body: str, status: str, priority: str = 'normal', response: str = None, error: str = None):
+        """Bildirim logla - Priority tracking ile"""
         try:
-            # Token'dan user_id bul
             user = SystemUser.query.filter_by(fcm_token=token).first()
             
             if user:
                 log = NotificationLog(
                     user_id=user.id,
                     notification_type='fcm',
-                    priority='high',
+                    priority=priority,
                     title=title,
                     body=body,
                     status=status,
@@ -418,7 +448,7 @@ class FCMNotificationService:
     
     @staticmethod
     def _remove_invalid_token(token: str):
-        """Geçersiz token'ı temizle"""
+        """Geçersiz token'ı temizle - Automatic cleanup"""
         try:
             user = SystemUser.query.filter_by(fcm_token=token).first()
             if user:
@@ -456,5 +486,40 @@ class FCMNotificationService:
             
         except Exception as e:
             print(f"❌ Token kayıt hatası: {str(e)}")
+            db.session.rollback()
+            return False
+    
+    @staticmethod
+    def refresh_token(user_id: int, old_token: str, new_token: str) -> bool:
+        """
+        FCM token'ı yenile - Automatic token refresh
+        
+        Args:
+            user_id: Kullanıcı ID
+            old_token: Eski token
+            new_token: Yeni token
+        
+        Returns:
+            bool: Başarılı ise True
+        """
+        try:
+            user = SystemUser.query.get(user_id)
+            if not user:
+                return False
+            
+            # Eski token kontrolü
+            if user.fcm_token != old_token:
+                print(f"⚠️ Token uyuşmazlığı: User {user_id}")
+            
+            # Yeni token kaydet
+            user.fcm_token = new_token
+            user.fcm_token_date = datetime.utcnow()
+            db.session.commit()
+            
+            print(f"🔄 FCM token yenilendi: User {user_id}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Token yenileme hatası: {str(e)}")
             db.session.rollback()
             return False

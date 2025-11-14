@@ -80,7 +80,7 @@ body {
     margin-bottom: 32px;
 }
 
-/* Timeline Steps */
+/* Timeline Steps - Renkli ve Dikkat Çekici */
 .timeline {
     margin: 32px 0;
 }
@@ -91,6 +91,7 @@ body {
     gap: 16px;
     margin-bottom: 24px;
     position: relative;
+    transition: all 0.3s ease;
 }
 
 .timeline-step:not(:last-child)::after {
@@ -98,18 +99,26 @@ body {
     position: absolute;
     left: 19px;
     top: 40px;
-    width: 2px;
+    width: 3px;
     height: calc(100% + 8px);
-    background: #E5E7EB;
+    background: linear-gradient(180deg, #E5E7EB 0%, #F3F4F6 100%);
+    transition: all 0.5s ease;
 }
 
 .timeline-step.completed::after {
-    background: var(--royal-gold);
+    background: linear-gradient(180deg, #10B981 0%, #059669 100%);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.timeline-step.active::after {
+    background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+    animation: pulse-line 2s ease-in-out infinite;
 }
 
 .timeline-dot {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: #E5E7EB;
     display: flex;
@@ -117,29 +126,112 @@ body {
     justify-content: center;
     flex-shrink: 0;
     z-index: 1;
+    font-size: 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Talep Oluşturuldu - Yeşil */
 .timeline-step.completed .timeline-dot {
-    background: linear-gradient(135deg, var(--royal-gold), #E4BF47);
+    background: linear-gradient(135deg, #10B981, #059669);
     color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    animation: bounce-in 0.5s ease;
+}
+
+/* İşleme Alındı - Turuncu (Aktif) */
+.timeline-step.active .timeline-dot {
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: white;
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Shuttle Yolda - Mavi (Aktif) */
+#step-onway.active .timeline-dot {
+    background: linear-gradient(135deg, #3B82F6, #2563EB);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.5);
+}
+
+/* Geldi - Altın */
+#step-arrived.completed .timeline-dot {
+    background: linear-gradient(135deg, #FBBF24, #F59E0B);
+    box-shadow: 0 4px 16px rgba(251, 191, 36, 0.5);
 }
 
 .timeline-content {
     flex: 1;
     text-align: left;
     padding-top: 8px;
+    transition: all 0.3s ease;
+}
+
+.timeline-step.active .timeline-content {
+    transform: translateX(4px);
 }
 
 .timeline-label {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 600;
     color: var(--text-dark);
     margin-bottom: 4px;
+    transition: all 0.3s ease;
+}
+
+.timeline-step.completed .timeline-label {
+    color: #059669;
+}
+
+.timeline-step.active .timeline-label {
+    color: #D97706;
+    font-size: 18px;
 }
 
 .timeline-time {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--text-muted);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.timeline-step.active .timeline-time {
+    color: #F59E0B;
+    font-weight: 600;
+}
+
+/* Animasyonlar */
+@keyframes pulse-dot {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.7);
+    }
+}
+
+@keyframes pulse-line {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes bounce-in {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 /* Info Grid */
@@ -493,10 +585,27 @@ body {
 const requestId = {{ request_id }};
 let socket;
 
+// Initialize Guest Notification Manager
+let guestNotificationManager;
+
 // Check notification permission on load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     loadRequestStatus();
     connectWebSocket();
+    
+    // Guest Notification Manager'ı başlat
+    try {
+        guestNotificationManager = new GuestNotificationManager();
+        const initialized = await guestNotificationManager.init();
+        
+        if (initialized && Notification.permission === 'granted') {
+            // Bildirim izni varsa, token'ı kaydet
+            await guestNotificationManager.requestPermissionAndGetToken(requestId);
+        }
+    } catch (error) {
+        console.error('❌ [FCM] Init error:', error);
+    }
+    
     checkNotificationPermission();
     setInterval(loadRequestStatus, 10000); // Poll every 10 seconds
 });
@@ -532,8 +641,8 @@ async function requestNotificationPermission() {
                 showSuccessToast('Bildirimler aktif edildi! 🔔');
                 
                 // Guest notification manager varsa token al
-                if (window.guestNotificationManager && requestId) {
-                    await window.guestNotificationManager.requestPermissionAndGetToken(requestId);
+                if (guestNotificationManager && requestId) {
+                    await guestNotificationManager.requestPermissionAndGetToken(requestId);
                 }
                 
                 new Notification('Bildirimler Aktif', {
@@ -577,7 +686,7 @@ function showSuccessToast(message) {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
-}
+
 
 function loadRequestStatus() {
     fetch(`/api/requests/${requestId}`)
@@ -613,15 +722,23 @@ function updateStatus(request) {
 }
 
 function updateToPending() {
+    // Talep oluşturuldu completed, işleme alındı active
+    document.getElementById('step-requested').classList.add('completed');
+    document.getElementById('step-accepted').classList.add('active');
+    document.getElementById('step-accepted').classList.remove('completed');
+    
     document.getElementById('status-title').textContent = 'Sürücü Aranıyor...';
     document.getElementById('status-message').textContent = 
         'Talebiniz yakındaki sürücülere iletildi. En kısa sürede yanıtlanacaktır.';
 }
 
 function updateToAccepted(request) {
-    // Mark steps as completed
+    // Talep oluşturuldu ve işleme alındı completed, shuttle yolda active
+    document.getElementById('step-requested').classList.add('completed');
     document.getElementById('step-accepted').classList.add('completed');
-    document.getElementById('step-onway').classList.add('completed');
+    document.getElementById('step-accepted').classList.remove('active');
+    document.getElementById('step-onway').classList.add('active');
+    document.getElementById('step-onway').classList.remove('completed');
 
     if (request.accepted_at) {
         document.getElementById('time-accepted').textContent = 

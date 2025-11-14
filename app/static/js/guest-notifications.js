@@ -57,7 +57,6 @@ class GuestNotificationManager {
             }
 
             this.messaging = firebase.messaging();
-            console.log('[Guest Notifications] Initialized successfully');
 
             // Foreground mesajları dinle
             this.setupForegroundListener();
@@ -65,7 +64,7 @@ class GuestNotificationManager {
             return true;
 
         } catch (error) {
-            console.error('[Guest Notifications] Init error:', error);
+            console.error('❌ [FCM] Init error:', error);
             this.isSupported = false;
             return false;
         }
@@ -87,23 +86,30 @@ class GuestNotificationManager {
             if (window.iosNotificationHandler && window.iosNotificationHandler.isIOSDevice()) {
                 const permission = await window.iosNotificationHandler.requestPermission();
                 if (permission !== 'granted') {
+                    this.showPermissionInfo('denied');
                     return null;
                 }
             } else {
-                // Normal bildirim izni
+                // Önce mevcut izin durumunu kontrol et
+                if (Notification.permission === 'denied') {
+                    console.warn('[Guest Notifications] Permission permanently denied');
+                    this.showPermissionInfo('blocked');
+                    return null;
+                }
+                
+                // Bildirim izni iste
                 const permission = await Notification.requestPermission();
                 if (permission !== 'granted') {
                     console.log('[Guest Notifications] Permission denied');
+                    this.showPermissionInfo('denied');
                     return null;
                 }
             }
 
-            console.log('[Guest Notifications] Permission granted');
-
             // Service Worker kaydı
             const registration = await this.registerServiceWorker();
             if (!registration) {
-                console.error('[Guest Notifications] Service Worker registration failed');
+                console.error('❌ [FCM] Service Worker registration failed');
                 return null;
             }
 
@@ -114,7 +120,7 @@ class GuestNotificationManager {
             });
 
             if (token) {
-                console.log('[Guest Notifications] Token received:', token.substring(0, 20) + '...');
+                console.log('🔑 [FCM] Token alındı:', token.substring(0, 20) + '...');
                 this.fcmToken = token;
 
                 // Token'ı backend'e kaydet
@@ -122,12 +128,11 @@ class GuestNotificationManager {
 
                 return token;
             } else {
-                console.warn('[Guest Notifications] No token received');
                 return null;
             }
 
         } catch (error) {
-            console.error('[Guest Notifications] Error getting token:', error);
+            console.error('❌ [FCM] Token alma hatası:', error);
             return null;
         }
     }
@@ -144,7 +149,6 @@ class GuestNotificationManager {
 
             // Firebase Messaging Service Worker'ı kaydet
             const registration = await navigator.serviceWorker.register('/static/firebase-messaging-sw.js');
-            console.log('[Guest Notifications] Service Worker registered');
 
             // Service Worker'ın hazır olmasını bekle
             await navigator.serviceWorker.ready;
@@ -152,7 +156,7 @@ class GuestNotificationManager {
             return registration;
 
         } catch (error) {
-            console.error('[Guest Notifications] Service Worker registration error:', error);
+            console.error('❌ [FCM] SW registration error:', error);
             return null;
         }
     }
@@ -176,7 +180,7 @@ class GuestNotificationManager {
             const data = await response.json();
 
             if (data.success) {
-                console.log('[Guest Notifications] Token registered to backend');
+                console.log('✅ [FCM] Token backend\'e kaydedildi');
                 
                 // Local storage'a kaydet
                 localStorage.setItem('guest_fcm_token', token);
@@ -184,12 +188,12 @@ class GuestNotificationManager {
                 
                 return true;
             } else {
-                console.error('[Guest Notifications] Token registration failed:', data.message);
+                console.error('❌ [FCM] Token kaydedilemedi:', data.message);
                 return false;
             }
 
         } catch (error) {
-            console.error('[Guest Notifications] Backend registration error:', error);
+            console.error('❌ [FCM] Backend kayıt hatası:', error);
             return false;
         }
     }
@@ -201,7 +205,7 @@ class GuestNotificationManager {
         if (!this.messaging) return;
 
         this.messaging.onMessage((payload) => {
-            console.log('[Guest Notifications] Foreground message received:', payload);
+            console.log('🔔 [FCM] Bildirim alındı:', payload.notification?.title);
 
             // Bildirim göster
             this.showForegroundNotification(payload);
@@ -289,6 +293,43 @@ class GuestNotificationManager {
             hasToken: !!this.fcmToken
         };
     }
+
+    /**
+     * İzin bilgisi göster
+     */
+    showPermissionInfo(status) {
+        let message = '';
+        let icon = '';
+        
+        if (status === 'blocked') {
+            icon = '🔒';
+            message = `
+                <strong>Bildirimler Engellenmiş</strong>
+                <p style="margin: 10px 0;">Shuttle durumu hakkında bildirim almak için:</p>
+                <ol style="text-align: left; margin: 10px 0; padding-left: 20px;">
+                    <li>Adres çubuğundaki 🔒 simgesine tıklayın</li>
+                    <li>"Site ayarları" seçeneğine tıklayın</li>
+                    <li>"Bildirimler" bölümünde "İzin ver" seçin</li>
+                    <li>Sayfayı yenileyin</li>
+                </ol>
+            `;
+        } else {
+            icon = 'ℹ️';
+            message = `
+                <strong>Bildirim İzni Gerekli</strong>
+                <p style="margin: 10px 0;">Shuttle durumu hakkında bildirim almak isterseniz, tarayıcı ayarlarından bildirimleri etkinleştirin.</p>
+                <p style="margin: 10px 0; font-size: 0.9em; color: #666;">Talebiniz başarıyla oluşturuldu. Durum güncellemelerini bu sayfadan takip edebilirsiniz.</p>
+            `;
+        }
+        
+        // Toast göster
+        if (typeof showToast === 'function') {
+            showToast(icon + ' ' + message.replace(/<[^>]*>/g, ' ').trim(), 'info', 8000);
+        } else {
+            // Fallback - console log
+            console.log(icon, message.replace(/<[^>]*>/g, ' ').trim());
+        }
+    }
 }
 
 // Global instance
@@ -299,4 +340,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = GuestNotificationManager;
 }
 
-console.log('[Guest Notifications] Manager loaded');
+// Guest Notifications Manager loaded

@@ -408,14 +408,16 @@
     <script>
         if ( 'serviceWorker' in navigator ) {
             let refreshing = false;
+            let updateNotificationShown = false;
 
             // Reload page when new service worker takes control
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!refreshing) {
+                if (!refreshing && !updateNotificationShown) {
                     refreshing = true;
+                    updateNotificationShown = true;
                     console.log('[SW] New service worker activated, reloading page...');
 
-                    // Show update notification
+                    // Show update notification (sadece bir kez)
                     showUpdateNotification();
                 }
             });
@@ -430,29 +432,24 @@
                             registration.update();
                         }, 1800000); // Check every 30 minutes
 
-                        // Check for updates when page becomes visible (throttled)
-                        let lastUpdateCheck = 0;
-                        document.addEventListener('visibilitychange', () => {
-                            if (!document.hidden) {
-                                const now = Date.now();
-                                // En az 5 dakika bekle
-                                if (now - lastUpdateCheck > 300000) {
-                                    lastUpdateCheck = now;
-                                    registration.update();
-                                }
-                            }
-                        });
+                        // Visibility change update kaldırıldı - sadece 30 dakikada bir kontrol
 
                         // Listen for waiting service worker
                         registration.addEventListener('updatefound', () => {
                             const newWorker = registration.installing;
-                            console.log('[SW] New service worker found, installing...');
+                            let updateShown = false;
 
                             newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New service worker installed and waiting
-                                    console.log('[SW] New service worker waiting to activate');
-                                    showUpdatePrompt(newWorker);
+                                if (newWorker.state === 'installed' && 
+                                    navigator.serviceWorker.controller && 
+                                    !updateShown) {
+                                    
+                                    updateShown = true;
+                                    
+                                    // Wait a bit to ensure it's a real update
+                                    setTimeout(() => {
+                                        showUpdatePrompt(newWorker);
+                                    }, 1000);
                                 }
                             });
                         });
@@ -636,6 +633,9 @@
 
             // Show update notification after reload
             function showUpdateNotification() {
+                // Mevcut toast'ları kaldır
+                document.querySelectorAll('.update-toast, .pwa-update-toast').forEach(t => t.remove());
+                
                 const toast = document.createElement('div');
                 toast.className = 'update-toast';
                 toast.innerHTML = `

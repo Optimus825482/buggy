@@ -1,8 +1,8 @@
 // Service Worker for Shuttle Call PWA - Optimized Version
-// Version 5.0.0 - PWA Optimized
+// Version 5.1.0 - Cache Fixed
 // Powered by Erkan ERDEM
 
-const CACHE_VERSION = 'shuttlecall-v5.0.0';
+const CACHE_VERSION = 'shuttlecall-v5.1.0';
 const CACHE_NAME = `${CACHE_VERSION}-cache`;
 
 // Offline sayfası için cache
@@ -13,21 +13,33 @@ const OFFLINE_URL = '/offline';
 // ============================================================================
 
 self.addEventListener('install', (event) => {
-  console.log('[SW v5.0] Installing Service Worker');
+  console.log('[SW v5.1] Installing Service Worker');
   
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching offline page');
-      return cache.addAll([
-        OFFLINE_URL,
+    caches.open(CACHE_NAME).then(async (cache) => {
+      console.log('[SW] Caching offline resources');
+      
+      // Her dosyayı tek tek cache'le - hata olursa devam et
+      const urlsToCache = [
         '/static/icons/Icon-192.png',
         '/static/css/main.css'
-      ]).catch(err => {
-        console.warn('[SW] Failed to cache some resources:', err);
-      });
-    }).then(() => {
-      return self.skipWaiting();
+      ];
+      
+      for (const url of urlsToCache) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) {
+            await cache.put(url, response);
+            console.log('[SW] Cached:', url);
+          }
+        } catch (err) {
+          console.warn('[SW] Failed to cache:', url, err.message);
+        }
+      }
+      
+      console.log('[SW] Installation complete');
     })
+    // skipWaiting() kaldırıldı - sadece mesaj geldiğinde aktif olacak
   );
 });
 
@@ -36,7 +48,7 @@ self.addEventListener('install', (event) => {
 // ============================================================================
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW v5.0] Activating Service Worker');
+  console.log('[SW v5.1] Activating Service Worker');
   
   event.waitUntil(
     Promise.all([
@@ -76,10 +88,14 @@ self.addEventListener('fetch', (event) => {
     fetch(event.request)
       .then((response) => {
         // Başarılı response'u cache'e kaydet
-        if (response && response.status === 200) {
+        // Sadece http/https URL'leri cache'le (chrome-extension, data: vb. hariç)
+        if (response && response.status === 200 && 
+            (event.request.url.startsWith('http://') || event.request.url.startsWith('https://'))) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
+            cache.put(event.request, responseClone).catch((err) => {
+              console.warn('[SW] Cache put error:', err.message);
+            });
           });
         }
         return response;
@@ -187,6 +203,41 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.action === 'skipWaiting') {
     self.skipWaiting();
   }
+  
+  // Badge reset handler
+  if (event.data && event.data.action === 'resetBadgeCount') {
+    // Badge API desteği varsa sıfırla
+    if ('setAppBadge' in self.navigator) {
+      self.navigator.clearAppBadge()
+        .then(() => {
+          // MessageChannel ile cevap gönder
+          if (event.ports && event.ports[0]) {
+            event.ports[0].postMessage({ success: true, count: 0 });
+          }
+        })
+        .catch((error) => {
+          console.warn('[SW] Badge clear error:', error);
+          if (event.ports && event.ports[0]) {
+            event.ports[0].postMessage({ success: false, count: 0 });
+          }
+        });
+    } else {
+      // Badge API desteklenmiyorsa direkt cevap gönder
+      if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ success: true, count: 0 });
+      }
+    }
+  }
+  
+  // Network status handler
+  if (event.data && event.data.action === 'getNetworkStatus') {
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({ 
+        online: self.navigator.onLine,
+        type: self.navigator.connection?.effectiveType || 'unknown'
+      });
+    }
+  }
 });
 
-console.log('[SW v5.0] Service Worker loaded successfully - PWA Ready!');
+console.log('[SW v5.1] Service Worker loaded successfully - PWA Ready!');

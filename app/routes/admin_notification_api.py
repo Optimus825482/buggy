@@ -40,7 +40,7 @@ def get_notification_stats():
         ).count()
         
         total_delivered = NotificationLog.query.filter(
-            NotificationLog.status == 'delivered',
+            NotificationLog.status == 'sent',
             NotificationLog.sent_at >= since
         ).count()
         
@@ -72,6 +72,9 @@ def get_notification_stats():
         # Recent failures
         recent_failures = get_recent_failures(limit=10, since=since)
         
+        # FCM specific stats
+        fcm_stats = get_fcm_stats(since)
+        
         stats = {
             'time_range_hours': hours,
             'total_sent': total_sent,
@@ -83,7 +86,8 @@ def get_notification_stats():
             'avg_delivery_time_seconds': avg_delivery_time,
             'by_priority': by_priority,
             'by_type': by_type,
-            'recent_failures': recent_failures
+            'recent_failures': recent_failures,
+            'fcm': fcm_stats
         }
         
         return jsonify(stats), 200
@@ -182,6 +186,67 @@ def get_realtime_metrics():
         }
         
         return jsonify(metrics), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_notification_api.route('/api/admin/notifications/stats/timeline', methods=['GET'])
+@login_required
+@admin_required
+def get_notification_timeline_stats():
+    """Get notification statistics over time (daily/weekly/monthly)"""
+    try:
+        # Get period from query params (default: daily)
+        period = request.args.get('period', 'daily')  # daily, weekly, monthly
+        days = request.args.get('days', 7, type=int)  # Number of days to look back
+        
+        since = datetime.utcnow() - timedelta(days=days)
+        
+        # Group by date
+        if period == 'daily':
+            date_format = '%Y-%m-%d'
+            group_by = func.date(NotificationLog.sent_at)
+        elif period == 'weekly':
+            date_format = '%Y-W%W'
+            group_by = func.strftime('%Y-W%W', NotificationLog.sent_at)
+        else:  # monthly
+            date_format = '%Y-%m'
+            group_by = func.strftime('%Y-%m', NotificationLog.sent_at)
+        
+        # Query stats grouped by date
+        results = db.session.query(
+            group_by.label('date'),
+            func.count(NotificationLog.id).label('total'),
+            func.sum(func.if_(NotificationLog.status == 'sent', 1, 0)).label('delivered'),
+            func.sum(func.if_(NotificationLog.status == 'failed', 1, 0)).label('failed'),
+            func.sum(func.if_(NotificationLog.clicked_at.isnot(None), 1, 0)).label('clicked')
+        ).filter(
+            NotificationLog.sent_at >= since
+        ).group_by(group_by).order_by(group_by).all()
+        
+        timeline = []
+        for row in results:
+            total = row.total
+            delivered = row.delivered
+            failed = row.failed
+            clicked = row.clicked
+            
+            timeline.append({
+                'date': str(row.date),
+                'total': total,
+                'delivered': delivered,
+                'failed': failed,
+                'clicked': clicked,
+                'delivery_rate': round((delivered / total * 100) if total > 0 else 0, 2),
+                'click_through_rate': round((clicked / delivered * 100) if delivered > 0 else 0, 2)
+            })
+        
+        return jsonify({
+            'period': period,
+            'days': days,
+            'timeline': timeline
+        }), 200
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -387,3 +452,62 @@ def calculate_error_rate(since=None):
     failed = query_failed.count()
     
     return (failed / total * 100) if total > 0 else 0
+
+
+def get_fcm_stats(since=None):
+    """Get FCM specific statistics"""
+    # FCM token stats
+    total_fcm_tokens = SystemUser.query.filter(
+        SystemUser.fcm_token.isnot(None)
+    ).count()
+    
+    # Active FCM tokens (updated in last 7 days)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    active_fcm_tokens = SystemUser.query.filter(
+        SystemUser.fcm_token.isnot(None),
+        SystemUser.fcm_token_date >= seven_days_ago
+    ).count()
+    
+    # FCM notifications sent
+    query = NotificationLog.query.filter(
+        NotificationLog.notification_type == 'fcm'
+    )
+    
+    if since:
+        query = query.filter(NotificationLog.sent_at >= since)
+    
+    fcm_sent = query.count()
+    fcm_delivered = query.filter(NotificationLog.status == 'sent').count()
+    fcm_failed = query.filter(NotificationLog.status == 'failed').count()
+    
+    # FCM delivery rate
+    fcm_delivery_rate = (fcm_delivered / fcm_sent * 100) if fcm_sent > 0 else 0
+    
+    # FCM by priority
+    fcm_by_priority = {}
+    for priority in ['high', 'normal', 'low']:
+        count = query.filter(NotificationLog.priority == priority).count()
+        if count > 0:
+            fcm_by_priority[priority] = count
+    
+    # Driver vs Guest tokens
+    driver_tokens = SystemUser.query.filter(
+        SystemUser.fcm_token.isnot(None),
+        SystemUser.role == 'driver'
+    ).count()
+    
+    guest_tokens_count = db.session.execute(
+        db.text("SELECT COUNT(DISTINCT request_id) FROM guest_fcm_tokens")
+    ).scalar() if db.engine.dialect.has_table(db.engine, 'guest_fcm_tokens') else 0
+    
+    return {
+        'total_tokens': total_fcm_tokens,
+        'active_tokens': active_fcm_tokens,
+        'driver_tokens': driver_tokens,
+        'guest_tokens': guest_tokens_count,
+        'notifications_sent': fcm_sent,
+        'notifications_delivered': fcm_delivered,
+        'notifications_failed': fcm_failed,
+        'delivery_rate': round(fcm_delivery_rate, 2),
+        'by_priority': fcm_by_priority
+    }

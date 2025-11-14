@@ -9,6 +9,7 @@ const Guest = {
     requestId: null,
     socket: null,
     html5QrCode: null,
+    fcmToken: null,
 
     /**
      * Initialize guest panel
@@ -25,6 +26,9 @@ const Guest = {
         
         // Initialize Socket.IO
         this.initSocket();
+        
+        // Initialize FCM for guest notifications
+        this.initFCM();
         
         // Load available locations
         this.loadLocations();
@@ -50,6 +54,156 @@ const Guest = {
         this.socket.on('connect', () => {
             console.log('Socket connected');
         });
+    },
+
+    /**
+     * Initialize FCM for guest notifications
+     */
+    async initFCM() {
+        try {
+            // FCM Manager'ın yüklü olup olmadığını kontrol et
+            if (typeof window.fcmManager === 'undefined') {
+                console.warn('⚠️ FCM Manager yüklenmemiş, guest bildirimleri devre dışı');
+                return;
+            }
+
+            console.log('🔔 Guest FCM başlatılıyor...');
+            
+            // FCM'i başlat
+            const initialized = await window.fcmManager.initialize();
+            
+            if (!initialized) {
+                console.warn('⚠️ FCM başlatılamadı');
+                return;
+            }
+
+            // Bildirim izni iste ve token al (sessizce, kullanıcıyı rahatsız etme)
+            const permission = Notification.permission;
+            
+            if (permission === 'granted') {
+                // İzin zaten verilmiş, token al
+                const token = await window.fcmManager.requestPermissionAndGetToken();
+                if (token) {
+                    this.fcmToken = token;
+                    console.log('✅ Guest FCM token alındı');
+                }
+            } else if (permission === 'default') {
+                // İzin istenmemiş, request oluşturulduğunda iste
+                console.log('ℹ️ FCM izni henüz istenmedi, request oluşturulduğunda istenecek');
+            }
+
+            // Foreground message listener
+            this.setupFCMListener();
+
+        } catch (error) {
+            console.error('❌ Guest FCM başlatma hatası:', error);
+        }
+    },
+
+    /**
+     * Setup FCM message listener for guest
+     */
+    setupFCMListener() {
+        window.addEventListener('fcm-message', (event) => {
+            const payload = event.detail;
+            
+            console.log('📬 Guest FCM mesajı alındı:', payload);
+            
+            // Bildirim tipine göre işlem yap
+            if (payload.data?.type === 'request_accepted') {
+                this.handleRequestAccepted(payload);
+            } else if (payload.data?.type === 'request_completed') {
+                this.handleRequestCompleted(payload);
+            }
+        });
+    },
+
+    /**
+     * Handle request accepted notification
+     */
+    handleRequestAccepted(payload) {
+        console.log('✅ Talep kabul edildi bildirimi');
+        
+        // Eğer status sayfasındaysak, sayfayı yenile
+        if (window.location.pathname.includes('/guest/status')) {
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+    },
+
+    /**
+     * Handle request completed notification
+     */
+    handleRequestCompleted(payload) {
+        console.log('🎉 Talep tamamlandı bildirimi');
+        
+        // Eğer status sayfasındaysak, sayfayı yenile
+        if (window.location.pathname.includes('/guest/status')) {
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+    },
+
+    /**
+     * Register guest FCM token to backend
+     */
+    async registerGuestFCMToken() {
+        try {
+            // Eğer FCM token yoksa, şimdi al
+            if (!this.fcmToken && typeof window.fcmManager !== 'undefined') {
+                console.log('📱 Guest FCM token alınıyor...');
+                
+                // Bildirim izni iste
+                const permission = await Notification.requestPermission();
+                
+                if (permission === 'granted') {
+                    const token = await window.fcmManager.requestPermissionAndGetToken();
+                    if (token) {
+                        this.fcmToken = token;
+                    }
+                } else {
+                    console.log('ℹ️ Bildirim izni verilmedi, FCM token kaydedilmeyecek');
+                    return;
+                }
+            }
+
+            if (!this.fcmToken) {
+                console.log('ℹ️ FCM token yok, kayıt atlanıyor');
+                return;
+            }
+
+            if (!this.requestId) {
+                console.error('❌ Request ID yok, FCM token kaydedilemedi');
+                return;
+            }
+
+            console.log('💾 Guest FCM token kaydediliyor...');
+
+            // Token'ı backend'e kaydet
+            const response = await fetch('/api/guest/register-fcm-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    token: this.fcmToken,
+                    request_id: this.requestId
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                console.log('✅ Guest FCM token kaydedildi');
+            } else {
+                console.error('❌ Guest FCM token kaydedilemedi:', data.message);
+            }
+
+        } catch (error) {
+            console.error('❌ Guest FCM token kayıt hatası:', error);
+        }
     },
 
     /**
@@ -616,6 +770,9 @@ const Guest = {
                 this.requestId = data.request.id;
                 
                 console.log('✅ Request created:', this.requestId);
+                
+                // FCM token'ı kaydet (eğer varsa)
+                await this.registerGuestFCMToken();
                 
                 // Trigger request-created event for notification system
                 const requestCreatedEvent = new CustomEvent('request-created', {

@@ -251,10 +251,8 @@ def send_fcm_http_notification(token, message_data, status):
                     badge='/static/icons/Icon-96.png',
                     vibrate=[200, 100, 200, 100, 200],
                     require_interaction=(status == 'accepted')
-                ),
-                fcm_options=messaging.WebpushFCMOptions(
-                    link='/'
                 )
+                # fcm_options kaldırıldı - HTTP URL hatası önlendi
             )
         )
         

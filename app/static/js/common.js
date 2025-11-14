@@ -582,8 +582,6 @@ function handleDeepLinkNavigation(url) {
  * @param {boolean} online - Network online status
  */
 function handleNetworkStatusChange(online) {
-    console.log('[Network] Status changed:', online ? 'online' : 'offline');
-    
     if (online) {
         showToast('İnternet bağlantısı geri geldi', 'success');
         
@@ -821,7 +819,7 @@ const BadgeManager = {
                     messageChannel.port1.close();
                     messageChannel.port2.close();
                     reject(new Error('Badge reset timeout'));
-                }, 5000);
+                }, 25000);
                 
                 // Clear timeout on success
                 messageChannel.port1.onmessage = (event) => {
@@ -903,14 +901,10 @@ const BadgeManager = {
      * Initialize badge manager and listen for updates
      */
     init() {
-        console.log('[Badge] Initializing Badge Manager');
-
         // Listen for badge updates from Service Worker
         if (navigator.serviceWorker) {
             navigator.serviceWorker.addEventListener('message', (event) => {
                 if (event.data.type === 'BADGE_UPDATE') {
-                    console.log('[Badge] Badge updated:', event.data.count);
-                    
                     // Update title badge as fallback
                     this.updateTitleBadge(event.data.count);
                     
@@ -920,7 +914,6 @@ const BadgeManager = {
                     }));
                 } else if (event.data.type === 'BADGE_FALLBACK') {
                     // Fallback for browsers without Badge API
-                    console.log('[Badge] Using title badge fallback');
                     this.updateTitleBadge(event.data.count);
                 }
             });
@@ -929,12 +922,9 @@ const BadgeManager = {
         // Reset badge when page becomes visible
         document.addEventListener('visibilitychange', async () => {
             if (!document.hidden) {
-                console.log('[Badge] Page visible, resetting badge');
                 await this.resetBadgeCount();
             }
         });
-
-        console.log('[Badge] Badge Manager initialized');
     }
 };
 
@@ -955,10 +945,8 @@ const ServiceWorkerHandler = {
             navigator.serviceWorker.addEventListener('message', (event) => {
                 this.handleMessage(event.data);
             });
-            
-            console.log('[SW Handler] Service Worker message listener initialized');
         } else {
-            console.warn('[SW Handler] Service Worker not supported');
+            // Service Worker not supported
         }
     },
     
@@ -968,8 +956,6 @@ const ServiceWorkerHandler = {
      */
     handleMessage(data) {
         const { type } = data;
-        
-        console.log('[SW Handler] Received message:', type, data);
         
         switch (type) {
             case 'NAVIGATE':
@@ -1008,15 +994,12 @@ const ServiceWorkerHandler = {
     handleNavigation(data) {
         const { url, pathname, search, hash } = data;
         
-        console.log('[SW Handler] Navigating to:', url);
-        
         try {
             // Check if we're already on the target page
             const currentPath = window.location.pathname;
             const targetPath = pathname || new URL(url, window.location.origin).pathname;
             
             if (currentPath === targetPath && !search && !hash) {
-                console.log('[SW Handler] Already on target page, refreshing...');
                 window.location.reload();
                 return;
             }
@@ -1044,8 +1027,6 @@ const ServiceWorkerHandler = {
     handlePlaySound(data) {
         const { soundUrl } = data;
         
-        console.log('[SW Handler] Playing sound:', soundUrl);
-        
         try {
             if (typeof playNotificationSound === 'function') {
                 playNotificationSound(soundUrl);
@@ -1064,8 +1045,6 @@ const ServiceWorkerHandler = {
     handleBadgeUpdate(data) {
         const { count } = data;
         
-        console.log('[SW Handler] Badge updated:', count);
-        
         // Update UI if needed
         if (typeof BadgeManager !== 'undefined' && BadgeManager.updateUI) {
             BadgeManager.updateUI(count);
@@ -1078,8 +1057,6 @@ const ServiceWorkerHandler = {
      */
     handleNetworkStatus(data) {
         const { online } = data;
-        
-        console.log('[SW Handler] Network status changed:', online ? 'online' : 'offline');
         
         if (online) {
             Utils.showToast('İnternet bağlantısı geri geldi', 'success');
@@ -1095,8 +1072,6 @@ const ServiceWorkerHandler = {
     handleSyncComplete(data) {
         const { results } = data;
         
-        console.log('[SW Handler] Sync complete:', results);
-        
         if (results && results.delivered > 0) {
             Utils.showToast(`${results.delivered} bildirim senkronize edildi`, 'success');
         }
@@ -1108,8 +1083,6 @@ const ServiceWorkerHandler = {
      */
     handleBadgeFallback(data) {
         const { count } = data;
-        
-        console.log('[SW Handler] Badge fallback:', count);
         
         // Update page title with badge count
         const baseTitle = document.title.replace(/^\(\d+\)\s*/, '');

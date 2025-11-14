@@ -91,12 +91,7 @@ class RequestService:
             hotel_id=location.hotel_id
         )
         
-        # Notify drivers via WebSocket (gerçek zamanlı)
-        socketio.emit('new_request', {
-            'request': request_obj.to_dict()
-        }, room=f'hotel_{location.hotel_id}_drivers')
-        
-        # Notify drivers via FCM (push notification)
+        # Notify drivers via FCM (push notification) - Socket.IO kaldırıldı
         try:
             from app.services.fcm_notification_service import FCMNotificationService
             import logging
@@ -195,17 +190,7 @@ class RequestService:
             hotel_id=request_obj.hotel_id
         )
         
-        # Notify guest via WebSocket
-        socketio.emit('request_accepted', {
-            'request': request_obj.to_dict()
-        }, room=f'request_{request_id}')
-        
-        # Notify admins
-        socketio.emit('request_status_changed', {
-            'request': request_obj.to_dict()
-        }, room=f'hotel_{request_obj.hotel_id}_admin')
-        
-        # Guest'e direkt FCM bildirimi gönder
+        # Guest'e FCM bildirimi gönder - Socket.IO kaldırıldı
         try:
             from app.routes.guest_notification_api import GUEST_FCM_TOKENS, send_fcm_http_notification
             
@@ -302,17 +287,7 @@ class RequestService:
             hotel_id=request_obj.hotel_id
         )
         
-        # Notify guest via WebSocket
-        socketio.emit('request_completed', {
-            'request': request_obj.to_dict()
-        }, room=f'request_{request_id}')
-        
-        # Notify admins
-        socketio.emit('request_status_changed', {
-            'request': request_obj.to_dict()
-        }, room=f'hotel_{request_obj.hotel_id}_admin')
-        
-        # Guest'e direkt FCM bildirimi gönder
+        # Guest'e FCM bildirimi gönder - Socket.IO kaldırıldı
         try:
             from app.routes.guest_notification_api import GUEST_FCM_TOKENS, send_fcm_http_notification
             
@@ -332,25 +307,7 @@ class RequestService:
         except Exception as e:
             logger.error(f"❌ Guest tamamlanma FCM bildirim hatası: {str(e)}")
         
-        # Emit buggy status and location change
-        if request_obj.buggy:
-            location_name = None
-            if current_location_id:
-                location = Location.query.get(current_location_id)
-                location_name = location.name if location else None
-            
-            socketio.emit('buggy_status_changed', {
-                'buggy_id': request_obj.buggy.id,
-                'status': 'available',
-                'location_name': location_name
-            }, room=f'hotel_{request_obj.hotel_id}_admin')
-            
-            # Emit buggy status update for real-time dashboard
-            try:
-                from app.services.buggy_service import BuggyService
-                BuggyService.emit_buggy_status_update(request_obj.buggy.id, request_obj.hotel_id)
-            except:
-                pass
+        # Buggy status güncellendi - Socket.IO kaldırıldı
         
         return request_obj
     

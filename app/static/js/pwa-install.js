@@ -565,12 +565,27 @@ if ('serviceWorker' in navigator) {
 
 // Handle service worker updates
 if ('serviceWorker' in navigator) {
+    let updateToastShown = false;
+    
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // Sadece bir kez göster
+        if (updateToastShown) {
+            console.log('[PWA] Update toast already shown, skipping');
+            return;
+        }
+        
+        updateToastShown = true;
         console.log('[PWA] New service worker activated');
+
+        // Mevcut toast'ı kaldır
+        const existingToast = document.querySelector('.pwa-update-toast');
+        if (existingToast) {
+            existingToast.remove();
+        }
 
         // Show update notification
         const updateToast = document.createElement('div');
-        updateToast.className = 'pwa-toast';
+        updateToast.className = 'pwa-toast pwa-update-toast';
         updateToast.innerHTML = `
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M4 4V9H4.58152M19.9381 11C19.446 7.05369 16.0796 4 12 4C8.64262 4 5.76829 6.06817 4.58152 9M4.58152 9H9M20 20V15H19.4185M19.4185 15C18.2317 17.9318 15.3574 20 12 20C7.92038 20 4.55399 16.9463 4.06189 13M19.4185 15H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -580,7 +595,15 @@ if ('serviceWorker' in navigator) {
         `;
 
         document.body.appendChild(updateToast);
+        
+        // 10 saniye sonra otomatik kapat
+        setTimeout(() => {
+            updateToast.style.opacity = '0';
+            setTimeout(() => {
+                updateToast.remove();
+            }, 300);
+        }, 10000);
     });
 }
 
-console.log('[PWA] Install handler loaded');
+// PWA Install handler loaded
