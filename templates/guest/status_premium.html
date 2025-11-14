@@ -825,8 +825,8 @@ function connectWebSocket() {
         if (data.request_id === requestId) {
             loadRequestStatus();
             if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('Shuttle Geldi!', {
-                    body: 'İyi yolculuklar',
+                new Notification('Mutlu Günler Dileriz...', {
+                    body: 'Shuttle Call',
                     icon: '/static/icons/Icon-192.png'
                 });
             }

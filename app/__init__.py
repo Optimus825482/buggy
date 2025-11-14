@@ -307,6 +307,25 @@ def register_blueprints(app):
                 return redirect(url_for('driver.dashboard'))
         # Default to login page
         return redirect(url_for('auth.login'))
+
+    @app.before_request
+    def block_suspicious_requests():
+        suspicious_paths = [
+            '/wp-admin', '/wordpress', '/wp-content',
+            '/.env', '/phpMyAdmin', '/admin.php', '/config.php'
+        ]
+        if any(request.path.startswith(path) for path in suspicious_paths):
+            abort(403)
+    
+    # 3️⃣ robots.txt ekle
+    @app.route('/robots.txt')
+    def robots():
+        return """User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Allow: /
+""", 200, {'Content-Type': 'text/plain'}
     
     # Favicon route (for browsers that request /favicon.ico)
     @app.route('/favicon.ico')
@@ -532,3 +551,5 @@ def register_shell_context(app):
             'AuditTrail': AuditTrail,
             'Session': Session
         }
+
+

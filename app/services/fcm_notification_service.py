@@ -430,35 +430,43 @@ class FCMNotificationService:
     @staticmethod
     def notify_new_request(request_obj) -> int:
         """
-        Yeni talep bildirimi - HIGH PRIORITY + Rich Media
-        Tüm müsait sürücülere gönder
-        
+        ⚡ KRITIK SISTEM: Yeni talep bildirimi - HIGH PRIORITY + Rich Media
+        Tüm müsait sürücülere GARANTILI gönder
+
         Args:
             request_obj: BuggyRequest nesnesi
-        
+
         Returns:
             int: Bildirim gönderilen sürücü sayısı
         """
         from app.models.buggy import Buggy, BuggyStatus
-        
-        # Tüm buggy'leri logla
+
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        logger.info(f'🔔 [FCM] NEW REQUEST NOTIFICATION START')
+        logger.info(f'📋 Request ID: {request_obj.id}')
+        logger.info(f'🏨 Hotel ID: {request_obj.hotel_id}')
+        logger.info(f'📍 Location: {request_obj.location.name}')
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+        # Tüm buggy'leri detaylı logla
         all_buggies = Buggy.query.filter_by(hotel_id=request_obj.hotel_id).all()
         logger.info(f"🚗 Hotel {request_obj.hotel_id} - Toplam buggy sayısı: {len(all_buggies)}")
         for b in all_buggies:
-            logger.info(f"  - Buggy {b.code}: Status={b.status}, Driver={b.driver_id}")
-        
+            logger.info(f"  - Buggy {b.code}: Status={b.status.value}, Driver ID={b.driver_id}")
+
         # Müsait buggy'leri bul
         available_buggies = Buggy.query.filter_by(
             hotel_id=request_obj.hotel_id,
             status=BuggyStatus.AVAILABLE
         ).all()
-        
-        logger.info(f"🚗 Müsait buggy sayısı: {len(available_buggies)}")
-        
+
+        logger.info(f"✅ Müsait buggy sayısı: {len(available_buggies)}")
+
         # Sürücü token'larını topla
         tokens = []
         driver_ids = []
-        
+        driver_details = []
+
         for buggy in available_buggies:
             # Yeni sistem: BuggyDriver association table kullan
             from app.models.buggy_driver import BuggyDriver
@@ -466,32 +474,68 @@ class FCMNotificationService:
                 buggy_id=buggy.id,
                 is_active=True
             ).all()
-            
-            logger.info(f"  - Buggy {buggy.code}: {len(active_assignments)} aktif atama")
-            
+
+            logger.info(f"  🔍 Buggy {buggy.code}: {len(active_assignments)} aktif atama")
+
             for assignment in active_assignments:
                 driver = SystemUser.query.get(assignment.driver_id)
                 if driver:
-                    logger.info(f"    - Driver {driver.full_name}: FCM Token={'✅' if driver.fcm_token else '❌'}")
+                    has_token = bool(driver.fcm_token)
+                    token_preview = driver.fcm_token[:20] + '...' if driver.fcm_token else 'None'
+
+                    logger.info(f"    👤 Driver: {driver.full_name} (ID: {driver.id})")
+                    logger.info(f"       FCM Token: {'✅ ' + token_preview if has_token else '❌ None'}")
+
                     if driver.fcm_token and driver.id not in driver_ids:
                         tokens.append(driver.fcm_token)
                         driver_ids.append(driver.id)
-        
+                        driver_details.append({
+                            'id': driver.id,
+                            'name': driver.full_name,
+                            'buggy': buggy.code
+                        })
+                        logger.info(f"       ✅ Token added to send list")
+                    elif driver.fcm_token:
+                        logger.warning(f"       ⚠️ Driver already in list (duplicate prevented)")
+                    else:
+                        logger.error(f"       ❌ NO FCM TOKEN - Driver cannot receive notifications!")
+
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        logger.info(f"📊 SUMMARY:")
+        logger.info(f"   Total Available Buggies: {len(available_buggies)}")
+        logger.info(f"   Drivers with FCM Tokens: {len(tokens)}")
+        logger.info(f"   Ready to Send: {len(tokens)} notifications")
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
         if not tokens:
-            log_error('FCM_NO_DRIVERS', 'Bildirim gönderilecek sürücü bulunamadı', {
+            error_msg = 'KRITIK: Bildirim gönderilecek sürücü bulunamadı!'
+            logger.error(f"❌ {error_msg}")
+            logger.error(f"   Hotel ID: {request_obj.hotel_id}")
+            logger.error(f"   Request ID: {request_obj.id}")
+            logger.error(f"   Available Buggies: {len(available_buggies)}")
+            logger.error(f"   Drivers Found: {len(driver_ids)}")
+            logger.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+            log_error('FCM_NO_DRIVERS', error_msg, {
                 'hotel_id': request_obj.hotel_id,
                 'request_id': request_obj.id,
-                'available_buggies': len(available_buggies)
+                'available_buggies': len(available_buggies),
+                'all_buggies': len(all_buggies),
+                'drivers_checked': len(driver_ids)
             })
             return 0
         
-        # Bildirim içeriği
+        # Bildirim içeriği - ENHANCED
         room_info = f"Oda {request_obj.room_number}" if request_obj.room_number else "Misafir"
         guest_info = f" - {request_obj.guest_name}" if request_obj.guest_name else ""
-        
-        title = "🚗 Yeni Shuttle Talebi!"
+
+        title = "🚗 YENİ SHUTTLE TALEBİ!"
         body = f"📍 {request_obj.location.name}\n🏨 {room_info}{guest_info}"
-        
+
+        logger.info(f"📝 Notification content:")
+        logger.info(f"   Title: {title}")
+        logger.info(f"   Body: {body}")
+
         # Data payload - Action buttons için
         data = {
             'type': 'new_request',
@@ -501,12 +545,13 @@ class FCMNotificationService:
             'room_number': request_obj.room_number or '',
             'guest_name': request_obj.guest_name or '',
             'url': '/driver/dashboard',
+            'priority': 'high',
             'actions': json.dumps([
                 {'action': 'accept', 'title': 'Kabul Et'},
                 {'action': 'details', 'title': 'Detaylar'}
             ])
         }
-        
+
         # Rich media - Harita thumbnail
         image = None
         try:
@@ -516,10 +561,15 @@ class FCMNotificationService:
                 google_maps_key = os.getenv('GOOGLE_MAPS_API_KEY', '')
                 if google_maps_key:
                     image = f"https://maps.googleapis.com/maps/api/staticmap?center={lat},{lng}&zoom=15&size=400x200&markers=color:red%7C{lat},{lng}&key={google_maps_key}"
+                    logger.info(f"🗺️ Map image URL generated")
         except Exception as e:
-            print(f"⚠️ Harita thumbnail oluşturulamadı: {str(e)}")
-        
+            logger.warning(f"⚠️ Harita thumbnail oluşturulamadı: {str(e)}")
+
         # HIGH PRIORITY ile gönder
+        logger.info(f"📤 Sending notifications to {len(tokens)} drivers...")
+        logger.info(f"   Priority: HIGH")
+        logger.info(f"   Drivers: {', '.join([d['name'] for d in driver_details])}")
+
         result = FCMNotificationService.send_to_multiple(
             tokens=tokens,
             title=title,
@@ -528,7 +578,13 @@ class FCMNotificationService:
             priority='high',  # Yeni talep = HIGH priority
             image=image
         )
-        
+
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        logger.info(f"📊 NOTIFICATION RESULT:")
+        logger.info(f"   ✅ Success: {result['success']}")
+        logger.info(f"   ❌ Failed: {result['failure']}")
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
         # Audit log
         if result['success'] > 0:
             try:
@@ -541,13 +597,20 @@ class FCMNotificationService:
                         'notification_type': 'new_request',
                         'priority': 'high',
                         'recipient_count': result['success'],
-                        'driver_ids': driver_ids
+                        'failed_count': result['failure'],
+                        'driver_ids': driver_ids,
+                        'driver_details': driver_details
                     },
                     hotel_id=request_obj.hotel_id
                 )
+                logger.info(f"✅ Audit log saved")
             except Exception as e:
-                print(f"⚠️ Audit log hatası: {str(e)}")
-        
+                logger.error(f"❌ Audit log hatası: {str(e)}")
+
+        logger.info(f"🎉 [FCM] NEW REQUEST NOTIFICATION COMPLETE")
+        logger.info(f"   Notified {result['success']} drivers successfully")
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
         return result['success']
     
     @staticmethod
