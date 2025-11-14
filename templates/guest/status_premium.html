@@ -691,14 +691,19 @@ function loadRequestStatus() {
 }
 
 function updateStatus(request) {
-    // Update info
-    document.getElementById('location-name').textContent = request.location_name || '-';
-    document.getElementById('room-number').textContent = request.room_number || 'Yok';
+    // Update info with null checks
+    const locationName = document.getElementById('location-name');
+    if (locationName) locationName.textContent = request.location_name || '-';
+    
+    const roomNumber = document.getElementById('room-number');
+    if (roomNumber) roomNumber.textContent = request.room_number || 'Yok';
 
     // Update times
     if (request.requested_at) {
-        document.getElementById('time-requested').textContent = 
-            new Date(request.requested_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
+        const timeRequested = document.getElementById('time-requested');
+        if (timeRequested) {
+            timeRequested.textContent = new Date(request.requested_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
+        }
     }
 
     const status = request.status;
@@ -776,12 +781,18 @@ function updateToCompleted(request) {
         timeline.style.display = 'none';
     }
 
-    // Update status
-    document.getElementById('status-icon').innerHTML = '<i class="fas fa-check-circle"></i>';
-    document.getElementById('status-icon').style.background = 'linear-gradient(135deg, #27AE60, #2ECC71)';
+    // Update status with null checks
+    const statusIcon = document.getElementById('status-icon');
+    if (statusIcon) {
+        statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        statusIcon.style.background = 'linear-gradient(135deg, #27AE60, #2ECC71)';
+    }
     
     // Show completed message
-    document.getElementById('completed-box').classList.add('show');
+    const completedBox = document.getElementById('completed-box');
+    if (completedBox) {
+        completedBox.classList.add('show');
+    }
 }
 
 function connectWebSocket() {

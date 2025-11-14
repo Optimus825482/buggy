@@ -404,15 +404,27 @@ class RequestService:
         except Exception as e:
             logger.error(f"❌ Guest tamamlanma FCM bildirim hatası: {str(e)}")
         
-        # WebSocket: Notify guest and dashboards
+        # WebSocket: Notify guest, drivers and dashboards
         try:
-            socketio.emit('request_completed', {
+            event_data = {
                 'request_id': request_id,
                 'hotel_id': request_obj.hotel_id,
                 'buggy_id': request_obj.buggy_id,
                 'location_id': current_location_id
-            })
-            logger.info(f"📡 WebSocket: request_completed emitted for request {request_id}")
+            }
+            
+            # Broadcast to all
+            socketio.emit('request_completed', event_data)
+            
+            # Notify drivers room specifically
+            drivers_room = f'hotel_{request_obj.hotel_id}_drivers'
+            socketio.emit('request_completed', event_data, room=drivers_room)
+            
+            # Notify admin room
+            admin_room = f'hotel_{request_obj.hotel_id}_admin'
+            socketio.emit('request_completed', event_data, room=admin_room)
+            
+            logger.info(f"📡 WebSocket: request_completed emitted for request {request_id} to all rooms")
         except Exception as e:
             logger.error(f"❌ WebSocket emit hatası: {str(e)}")
         

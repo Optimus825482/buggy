@@ -15,6 +15,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/notification-permission.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/driver-dashboard.css') }}">
 <style>
     .driver-dashboard {
         background: linear-gradient(135deg, #1A2B4A 0%, #2C3E5A 100%);
@@ -665,6 +666,22 @@
         {% if user.buggy %}
         <!-- Stats Cards -->
 
+        <!-- Current Request (Hidden by default, shown when active) -->
+        <div class="section-card" id="current-request-section" style="display: none;">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, #27AE60 0%, #229954 100%);">
+                    <i class="fas fa-route"></i>
+                </div>
+                <h3 class="section-title">Aktif Görev</h3>
+            </div>
+            <div id="current-request">
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>Aktif görev yok</p>
+                </div>
+            </div>
+        </div>
+
 
         <!-- Pending Requests (Hidden when there's an active request) -->
         <div class="section-card" id="pending-requests-section">
@@ -683,21 +700,7 @@
             </div>
         </div>
 
-        <!-- Current Request (Hidden by default, shown when active) -->
-        <div class="section-card" id="current-request-section" style="display: none;">
-            <div class="section-header">
-                <div class="section-icon" style="background: linear-gradient(135deg, #27AE60 0%, #229954 100%);">
-                    <i class="fas fa-route"></i>
-                </div>
-                <h3 class="section-title">Aktif Görev</h3>
-            </div>
-            <div id="current-request">
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <p>Aktif görev yok</p>
-                </div>
-            </div>
-        </div>
+        
         {% else %}
         <!-- No Shuttle Assigned -->
         <div class="section-card">
@@ -732,12 +735,11 @@
 
 <!-- Existing Scripts -->
 <script src="{{ url_for('static', filename='js/notification-permission.js') }}"></script>
-<script src="{{ url_for('static', filename='js/driver-dashboard.js') }}"></script>
 <script>
     // Set driver data from session (server-side render)
     document.body.dataset.hotelId = '{{ session.get("hotel_id", 1) }}';
     document.body.dataset.userId = '{{ session.get("user_id", 0) }}';
-    document.body.dataset.shuttleId = '{{ user.buggy.id if user.buggy else 0 }}';
+    document.body.dataset.buggyId = '{{ user.buggy.id if user.buggy else 0 }}';
     document.body.dataset.needsLocationSetup = '{{ "true" if session.get("needs_location_setup") else "false" }}';
     document.body.dataset.notificationPermissionAsked = '{{ notification_permission_asked|tojson|safe }}';
     document.body.dataset.notificationPermissionStatus = '{{ notification_permission_status|safe }}';
@@ -886,6 +888,9 @@
         }
     });
 
-    // Location setup is now handled by DriverDashboard.showLocationSetupModal() in driver-dashboard.js
+    // Location setup is now handled by DriverDashboard.showLocationSetupModal() in driver.js
 </script>
+
+<!-- Driver Dashboard v3.0 -->
+<script src="{{ url_for('static', filename='js/driver.js') }}"></script>
 {% endblock %}

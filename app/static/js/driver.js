@@ -1,170 +1,301 @@
 /**
- * Shuttle Call - Driver Panel JavaScript
- * Real-time request management for drivers
+ * ========================================
+ * SHUTTLE CALL - DRIVER DASHBOARD v3.0
+ * Modern, Real-time, Production-Ready
+ * ========================================
  */
 
-const Driver = {
-    hotelId: null,
-    buggyId: null,
-    userId: null,
+const DriverDashboard = {
+    // ==================== STATE ====================
+    state: {
+        hotelId: null,
+        userId: null,
+        buggyId: null,
+        currentRequest: null,
+        pendingRequests: [],
+        completedToday: 0,
+        isOnline: false,
+        lastSync: null
+    },
+
+    // ==================== WEBSOCKET ====================
     socket: null,
-    currentRequest: null,
-    PENDINGRequests: [],
+    reconnectAttempts: 0,
+    maxReconnectAttempts: 5,
+
+    // ==================== TIMERS ====================
+    timers: {
+        elapsed: null,
+        sync: null,
+        heartbeat: null
+    },
+
+    // ==================== AUDIO ====================
+    audio: {
+        notification: null,
+        enabled: true
+    },
 
     /**
-     * Initialize driver panel
+     * ========================================
+     * INITIALIZATION
+     * ========================================
      */
     async init() {
-        console.log('Driver panel initializing...');
-        
-        // Get data from session
-        this.hotelId = document.body.dataset.hotelId || 1;
-        this.userId = document.body.dataset.userId;
-        this.buggyId = document.body.dataset.buggyId;
-        
-        // Check if driver has buggy assigned
-        if (!this.buggyId || this.buggyId === '0') {
-            console.warn('No buggy assigned to driver');
-            await BuggyCall.Utils.showWarning('Size henüz bir shuttle atanmamış. Lütfen yöneticinizle iletişime geçin.');
-            return;
-        }
-        
-        // Initialize Socket.IO
-        this.initSocket();
-        
-        // Load initial data
-        this.loadDriverData();
-        
-        // Setup event listeners
-        this.setupEventListeners();
-        
-        // Play notification sound
-        this.setupNotificationSound();
-        
-        console.log('Driver panel initialized');
-    },
+        console.log('🚀 Driver Dashboard v3.0 Initializing...');
 
-    /**
-     * Initialize WebSocket connection
-     */
-    initSocket() {
-        this.socket = BuggyCall.Socket.init();
-        this.socket.connect();
-        
-        // Join hotel drivers room
-        this.socket.on('connect', () => {
-            this.socket.emit('join_hotel', {
-                hotel_id: this.hotelId,
-                role: 'driver'
-            });
-            this.updateStatus('available');
-        });
-        
-        // Listen to new requests
-        this.socket.on('new_request', (data) => {
-            console.log('New request received:', data);
-            this.handleNewRequest(data);
-        });
-        
-        // Listen to request taken by another driver
-        this.socket.on('request_taken', (data) => {
-            console.log('Request taken:', data);
-            this.removeRequest(data.request_id);
-        });
-        
-        // Listen to request cancelled
-        this.socket.on('request_cancelled', (data) => {
-            console.log('Request cancelled:', data);
-            if (this.currentRequest && this.currentRequest.id === data.request_id) {
-                this.currentRequest = null;
-                this.updateStatus('available');
-            }
-            this.removeRequest(data.request_id);
-        });
-    },
-
-    /**
-     * Load driver data
-     */
-    async loadDriverData() {
         try {
-            BuggyCall.Utils.showLoading();
-            
-            // Load PENDING requests
-            await this.loadPendingRequests();
-            
-            // Load current request if any
-            await this.loadCurrentRequest();
-            
-            // Load today's completed requests
-            await this.loadCompletedToday();
-            
-            // Update UI
-            this.updateDashboard();
-            
-            BuggyCall.Utils.hideLoading();
-        } catch (error) {
-            console.error('Error loading driver data:', error);
-            await BuggyCall.Utils.showError('Veri yüklenirken hata oluştu: ' + error.message);
-            BuggyCall.Utils.hideLoading();
-        }
-    },
+            // Load state from DOM
+            this.loadStateFromDOM();
 
-    /**
-     * Setup event listeners
-     */
-    setupEventListeners() {
-        // Accept request buttons (event delegation)
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('[data-action="accept-request"]')) {
-                const btn = e.target.closest('[data-action="accept-request"]');
-                const requestId = btn.dataset.requestId;
-                this.acceptRequest(requestId);
+            // Validate buggy assignment
+            if (!this.state.buggyId || this.state.buggyId === '0') {
+                await this.showNoBuggyWarning();
+                return;
             }
-        });
-        
-        // Complete request button
-        const completeBtn = document.getElementById('complete-request-btn');
-        if (completeBtn) {
-            completeBtn.addEventListener('click', () => this.completeCurrentRequest());
-        }
-        
-        // Location update
-        const locationSelect = document.getElementById('driver-location');
-        if (locationSelect) {
-            locationSelect.addEventListener('change', (e) => {
-                this.updateLocation(e.target.value);
-            });
-        }
-        
-        // Status toggle
-        const statusToggle = document.getElementById('status-toggle');
-        if (statusToggle) {
-            statusToggle.addEventListener('change', (e) => {
-                const status = e.target.checked ? 'available' : 'offline';
-                this.updateStatus(status);
-            });
+
+            // Initialize components
+            await this.initializeComponents();
+
+            // Load initial data
+            await this.loadInitialData();
+
+            // Setup event listeners
+            this.setupEventListeners();
+
+            // Start background tasks
+            this.startBackgroundTasks();
+
+            console.log('✅ Driver Dashboard Initialized Successfully');
+        } catch (error) {
+            console.error('❌ Initialization Error:', error);
+            await BuggyCall.Utils.showError('Dashboard başlatılamadı: ' + error.message);
         }
     },
 
     /**
-     * Setup notification sound
+     * Load state from DOM data attributes
      */
-    setupNotificationSound() {
-        // Create audio element for notification
-        this.notificationSound = new Audio('data:audio/wav;base64,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');
+    loadStateFromDOM() {
+        const body = document.body;
+        this.state.hotelId = body.dataset.hotelId || 1;
+        this.state.userId = body.dataset.userId;
+        this.state.buggyId = body.dataset.buggyId;
+
+        console.log('📊 State loaded:', this.state);
     },
 
     /**
-     * Load PENDING requests
+     * Initialize all components
+     */
+    async initializeComponents() {
+        // Initialize WebSocket
+        this.initWebSocket();
+
+        // Initialize audio
+        this.initAudio();
+
+        // Initialize UI components
+        this.initUI();
+    },
+
+    /**
+     * ========================================
+     * WEBSOCKET CONNECTION
+     * ========================================
+     */
+    initWebSocket() {
+        console.log('🔌 Initializing WebSocket...');
+
+        try {
+            this.socket = io({
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                reconnectionAttempts: this.maxReconnectAttempts
+            });
+
+            // Connection events
+            this.socket.on('connect', () => this.onSocketConnect());
+            this.socket.on('disconnect', () => this.onSocketDisconnect());
+            this.socket.on('connect_error', (error) => this.onSocketError(error));
+
+            // Request events
+            this.socket.on('new_request', (data) => this.onNewRequest(data));
+            this.socket.on('request_taken', (data) => this.onRequestTaken(data));
+            this.socket.on('request_cancelled', (data) => this.onRequestCancelled(data));
+            this.socket.on('request_completed', (data) => this.onRequestCompleted(data));
+
+            console.log('✅ WebSocket initialized');
+        } catch (error) {
+            console.error('❌ WebSocket initialization failed:', error);
+        }
+    },
+
+    /**
+     * Socket connected
+     */
+    onSocketConnect() {
+        console.log('✅ WebSocket Connected');
+        this.state.isOnline = true;
+        this.reconnectAttempts = 0;
+
+        // Join hotel drivers room
+        this.socket.emit('join_hotel', {
+            hotel_id: this.state.hotelId,
+            role: 'driver'
+        });
+
+        // Update UI
+        this.updateConnectionStatus('connected');
+    },
+
+    /**
+     * Socket disconnected
+     */
+    onSocketDisconnect() {
+        console.log('⚠️ WebSocket Disconnected');
+        this.state.isOnline = false;
+        this.updateConnectionStatus('disconnected');
+    },
+
+    /**
+     * Socket error
+     */
+    onSocketError(error) {
+        console.error('❌ WebSocket Error:', error);
+        this.reconnectAttempts++;
+
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            this.updateConnectionStatus('failed');
+            BuggyCall.Utils.showError('Bağlantı kurulamadı. Lütfen sayfayı yenileyin.');
+        } else {
+            this.updateConnectionStatus('reconnecting');
+        }
+    },
+
+    /**
+     * ========================================
+     * WEBSOCKET EVENT HANDLERS
+     * ========================================
+     */
+
+    /**
+     * New request received
+     */
+    async onNewRequest(data) {
+        console.log('🔔 New Request:', data);
+
+        // Play notification sound
+        this.playNotificationSound();
+
+        // Add to pending requests
+        this.state.pendingRequests.unshift(data);
+
+        // Update UI
+        this.renderPendingRequests();
+        this.updateCounters();
+
+        // Show toast notification
+        BuggyCall.Utils.showToast(`🔔 Yeni talep: ${data.location?.name || 'Bilinmeyen lokasyon'}`, 'info');
+    },
+
+    /**
+     * Request taken by another driver
+     */
+    onRequestTaken(data) {
+        console.log('👤 Request Taken:', data);
+
+        // Remove from pending
+        this.removeRequestFromPending(data.request_id);
+
+        // Update UI
+        this.renderPendingRequests();
+        this.updateCounters();
+    },
+
+    /**
+     * Request cancelled
+     */
+    onRequestCancelled(data) {
+        console.log('❌ Request Cancelled:', data);
+
+        // Remove from pending
+        this.removeRequestFromPending(data.request_id);
+
+        // If it's current request, clear it
+        if (this.state.currentRequest && this.state.currentRequest.id === data.request_id) {
+            this.state.currentRequest = null;
+            this.renderCurrentRequest();
+        }
+
+        // Update UI
+        this.renderPendingRequests();
+        this.updateCounters();
+    },
+
+    /**
+     * Request completed
+     */
+    async onRequestCompleted(data) {
+        console.log('✅ Request Completed:', data);
+
+        // Remove from pending
+        this.removeRequestFromPending(data.request_id);
+
+        // If it's current request, clear it
+        if (this.state.currentRequest && this.state.currentRequest.id === data.request_id) {
+            this.state.currentRequest = null;
+            this.renderCurrentRequest();
+        }
+
+        // Reload data
+        await this.loadPendingRequests();
+        await this.loadCompletedToday();
+
+        // Update UI
+        this.updateCounters();
+    },
+
+    /**
+     * ========================================
+     * DATA LOADING
+     * ========================================
+     */
+
+    /**
+     * Load all initial data
+     */
+    async loadInitialData() {
+        console.log('📥 Loading initial data...');
+
+        try {
+            await Promise.all([
+                this.loadPendingRequests(),
+                this.loadCurrentRequest(),
+                this.loadCompletedToday()
+            ]);
+
+            this.state.lastSync = new Date();
+            console.log('✅ Initial data loaded');
+        } catch (error) {
+            console.error('❌ Failed to load initial data:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Load pending requests
      */
     async loadPendingRequests() {
         try {
             const response = await BuggyCall.API.get('/requests?status=PENDING');
-            this.PENDINGRequests = response.requests || [];
+            this.state.pendingRequests = response.requests || [];
             this.renderPendingRequests();
+            this.updateCounters();
         } catch (error) {
-            console.error('Error loading PENDING requests:', error);
+            console.error('❌ Failed to load pending requests:', error);
         }
     },
 
@@ -173,25 +304,29 @@ const Driver = {
      */
     async loadCurrentRequest() {
         try {
-            const response = await BuggyCall.API.get(`/requests?status=accepted&buggy_id=${this.buggyId}`);
+            const response = await BuggyCall.API.get(`/requests?status=ACCEPTED&buggy_id=${this.state.buggyId}`);
             const requests = response.requests || [];
+
             if (requests.length > 0) {
-                this.currentRequest = requests[0];
-                this.renderCurrentRequest();
+                this.state.currentRequest = requests[0];
+            } else {
+                this.state.currentRequest = null;
             }
+
+            this.renderCurrentRequest();
         } catch (error) {
-            console.error('Error loading current request:', error);
+            console.error('❌ Failed to load current request:', error);
         }
     },
 
     /**
-     * Load today's completed requests
+     * Load completed today count
      */
     async loadCompletedToday() {
         try {
-            const response = await BuggyCall.API.get(`/requests?status=completed&buggy_id=${this.buggyId}`);
+            const response = await BuggyCall.API.get(`/requests?status=COMPLETED&buggy_id=${this.state.buggyId}`);
             const requests = response.requests || [];
-            
+
             // Filter today's requests
             const today = new Date().toISOString().split('T')[0];
             const todayRequests = requests.filter(req => {
@@ -201,313 +336,162 @@ const Driver = {
                 }
                 return false;
             });
-            
-            // Update counter
-            const counter = document.getElementById('completed-today');
-            if (counter) {
-                counter.textContent = todayRequests.length;
-            }
+
+            this.state.completedToday = todayRequests.length;
+            this.updateCounters();
         } catch (error) {
-            console.error('Error loading completed requests:', error);
+            console.error('❌ Failed to load completed count:', error);
         }
     },
 
     /**
-     * Handle new request notification
+     * ========================================
+     * REQUEST ACTIONS
+     * ========================================
      */
-    handleNewRequest(data) {
-        // Play notification sound
-        if (this.notificationSound) {
-            this.notificationSound.play().catch(e => console.log('Audio play failed:', e));
-        }
-        
-        // Show toast notification
-        BuggyCall.Utils.showToast(`Yeni talep: ${data.location.name}`, 'warning');
-        
-        // Add to PENDING requests
-        this.PENDINGRequests.unshift(data);
-        this.renderPendingRequests();
-        
-        // Update counter
-        this.updateRequestCounter();
-    },
 
     /**
-     * Accept request
+     * Accept a request
      */
     async acceptRequest(requestId) {
+        console.log('✅ Accepting request:', requestId);
+
         try {
             BuggyCall.Utils.showLoading();
-            
+
             const response = await BuggyCall.API.put(`/requests/${requestId}/accept`, {});
-            
+
             if (response.success) {
-                await BuggyCall.Utils.showSuccess('Talep başarıyla kabul edildi!');
-                this.currentRequest = response.request;
+                // Update state
+                this.state.currentRequest = response.request;
+
+                // Remove from pending
+                this.removeRequestFromPending(requestId);
+
+                // Update UI
                 this.renderCurrentRequest();
-                this.removeRequest(requestId);
-                this.updateStatus('busy');
+                this.renderPendingRequests();
+                this.updateCounters();
+
+                await BuggyCall.Utils.showSuccess('✅ Talep başarıyla kabul edildi!');
             }
-            
+
             BuggyCall.Utils.hideLoading();
         } catch (error) {
-            await BuggyCall.Utils.showError('Talep kabul edilirken hata oluştu: ' + error.message);
             BuggyCall.Utils.hideLoading();
+            await BuggyCall.Utils.showError('Talep kabul edilemedi: ' + error.message);
         }
     },
 
     /**
      * Complete current request
      */
-    async completeCurrentRequest() {
-        if (!this.currentRequest) return;
-        
+    async completeRequest() {
+        if (!this.state.currentRequest) {
+            await BuggyCall.Utils.showWarning('Aktif talep yok!');
+            return;
+        }
+
         const confirmed = await BuggyCall.Utils.confirm(
             'Bu talebi tamamlamak istediğinizden emin misiniz?',
             'Talebi Tamamla'
         );
-        
-        if (!confirmed) {
-            return;
-        }
-        
+
+        if (!confirmed) return;
+
         try {
             // Show location selection modal
             const locationId = await this.showLocationSelectionModal();
-            
-            if (!locationId) {
-                return; // User cancelled
-            }
-            
+
+            if (!locationId) return; // User cancelled
+
             BuggyCall.Utils.showLoading();
-            
-            await BuggyCall.API.put(`/requests/${this.currentRequest.id}/complete`, {
+
+            await BuggyCall.API.put(`/requests/${this.state.currentRequest.id}/complete`, {
                 current_location_id: locationId
             });
-            
-            await BuggyCall.Utils.showSuccess('Talep başarıyla tamamlandı!');
-            this.currentRequest = null;
+
+            // Clear current request
+            this.state.currentRequest = null;
+
+            // Reload data
+            await this.loadPendingRequests();
+            await this.loadCompletedToday();
+
+            // Update UI
             this.renderCurrentRequest();
-            this.updateStatus('available');
-            
+            this.updateCounters();
+
+            await BuggyCall.Utils.showSuccess('✅ Talep başarıyla tamamlandı!');
+
             BuggyCall.Utils.hideLoading();
         } catch (error) {
-            await BuggyCall.Utils.showError('Talep tamamlanırken hata oluştu: ' + error.message);
             BuggyCall.Utils.hideLoading();
+            await BuggyCall.Utils.showError('Talep tamamlanamadı: ' + error.message);
         }
     },
 
     /**
-     * Show location selection modal
+     * ========================================
+     * UI RENDERING
+     * ========================================
      */
-    async showLocationSelectionModal() {
-        return new Promise(async (resolve) => {
-            try {
-                // Load locations
-                const response = await BuggyCall.API.get('/locations');
-                const locations = response.locations || response.data?.items || [];
-                
-                if (locations.length === 0) {
-                    await BuggyCall.Utils.showError('Lokasyon bulunamadı!');
-                    resolve(null);
-                    return;
-                }
-                
-                // Create location cards HTML
-                const locationCards = locations.map(loc => {
-                    const imageOrIcon = loc.location_image 
-                        ? `<img src="${loc.location_image}" alt="${this.escapeHtml(loc.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 11px;">`
-                        : `<i class="fas fa-map-marker-alt" style="color: white; font-size: 1.5rem;"></i>`;
-                    
-                    return `
-                        <button class="location-select-card" data-location-id="${loc.id}" style="
-                            width: 100%;
-                            padding: 1rem;
-                            margin-bottom: 0.75rem;
-                            background: white;
-                            border: 2px solid #ddd;
-                            border-radius: 12px;
-                            cursor: pointer;
-                            transition: all 0.2s ease;
-                            display: flex;
-                            align-items: center;
-                            gap: 1rem;
-                            text-align: left;
-                        ">
-                            <div style="
-                                width: 60px;
-                                height: 60px;
-                                background: linear-gradient(135deg, #1BA5A8 0%, #158587 100%);
-                                border-radius: 11px;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                flex-shrink: 0;
-                                box-shadow: 0 4px 12px rgba(27, 165, 168, 0.25);
-                            ">
-                                ${imageOrIcon}
-                            </div>
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="font-weight: 600; color: #2C3E50; font-size: 1rem; margin-bottom: 0.25rem;">
-                                    ${this.escapeHtml(loc.name)}
-                                </div>
-                                <div style="font-size: 0.875rem; color: #5A6C7D;">
-                                    ${loc.description ? this.escapeHtml(loc.description) : 'Şu anda bu konumdasınız'}
-                                </div>
-                            </div>
-                            <div style="flex-shrink: 0; color: #cbd5e1; font-size: 1.25rem;">
-                                <i class="fas fa-chevron-right"></i>
-                            </div>
-                        </button>
-                    `;
-                }).join('');
-                
-                const modal = BuggyModal.showCustomModal({
-                    title: 'Şu Anki Konumunuz',
-                    type: 'info',
-                    size: 'medium',
-                    customContent: `
-                        <div style="margin-bottom: 1rem;">
-                            <p style="color: #5A6C7D; font-size: 0.875rem; margin-bottom: 1rem;">
-                                Misafiri bıraktıktan sonra şu anda hangi konumdasınız?
-                            </p>
-                            <div id="location-cards-container" style="max-height: 400px; overflow-y: auto;">
-                                ${locationCards}
-                            </div>
-                        </div>
-                    `,
-                    buttons: [
-                        {
-                            text: 'İptal',
-                            class: 'btn-secondary',
-                            onClick: () => {
-                                BuggyModal.closeModal(modal);
-                                resolve(null);
-                            }
-                        }
-                    ]
-                });
-                
-                // Add click handlers to location cards
-                setTimeout(() => {
-                    const cards = document.querySelectorAll('.location-select-card');
-                    cards.forEach(card => {
-                        card.addEventListener('click', () => {
-                            const locationId = parseInt(card.dataset.locationId);
-                            BuggyModal.closeModal(modal);
-                            resolve(locationId);
-                        });
-                        
-                        // Hover effect
-                        card.addEventListener('mouseenter', () => {
-                            card.style.borderColor = '#1BA5A8';
-                            card.style.background = '#f0f9ff';
-                            card.style.transform = 'translateY(-2px)';
-                            card.style.boxShadow = '0 8px 20px rgba(27, 165, 168, 0.15)';
-                        });
-                        
-                        card.addEventListener('mouseleave', () => {
-                            card.style.borderColor = '#ddd';
-                            card.style.background = 'white';
-                            card.style.transform = 'translateY(0)';
-                            card.style.boxShadow = 'none';
-                        });
-                    });
-                }, 100);
-                
-            } catch (error) {
-                console.error('Error loading locations:', error);
-                await BuggyCall.Utils.showError('Lokasyonlar yüklenemedi!');
-                resolve(null);
-            }
-        });
-    },
 
     /**
-     * Escape HTML to prevent XSS
-     */
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    },
-
-    /**
-     * Remove request from PENDING list
-     */
-    removeRequest(requestId) {
-        this.PENDINGRequests = this.PENDINGRequests.filter(r => r.request_id !== requestId && r.id !== requestId);
-        this.renderPendingRequests();
-        this.updateRequestCounter();
-    },
-
-    /**
-     * Update driver status
-     */
-    updateStatus(status) {
-        this.socket.emit('driver_status', {
-            buggy_id: this.buggyId,
-            status: status,
-            hotel_id: this.hotelId
-        });
-        
-        // Update UI
-        const statusBadge = document.getElementById('driver-status-badge');
-        if (statusBadge) {
-            statusBadge.className = `badge ${BuggyCall.Utils.getBadgeClass(status)}`;
-            statusBadge.textContent = this.getStatusText(status);
-        }
-    },
-
-    /**
-     * Update driver location
-     */
-    updateLocation(locationId) {
-        this.socket.emit('driver_location', {
-            buggy_id: this.buggyId,
-            location_id: locationId,
-            hotel_id: this.hotelId
-        });
-        
-        BuggyCall.Utils.showToast('Lokasyon güncellendi', 'info');
-    },
-
-    /**
-     * Render PENDING requests
+     * Render pending requests
      */
     renderPendingRequests() {
-        const container = document.getElementById('PENDING-requests');
+        const container = document.getElementById('pending-requests');
         if (!container) return;
-        
-        if (this.PENDINGRequests.length === 0) {
-            container.innerHTML = '<div class="empty-state">Bekleyen talep yok</div>';
+
+        if (this.state.pendingRequests.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Bekleyen talep yok</p>
+                </div>
+            `;
             return;
         }
-        
-        container.innerHTML = this.PENDINGRequests.map(req => `
-            <div class="card request-card mb-2 hover-shadow" data-id="${req.request_id || req.id}">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <h5 class="card-title">
-                                <i class="fas fa-map-marker-alt text-primary"></i>
-                                ${req.location?.name || 'Bilinmiyor'}
-                            </h5>
-                            ${req.room_number ? `<p class="mb-1"><i class="fas fa-door-open"></i> Oda: ${req.room_number}</p>` : ''}
-                            <p class="text-muted mb-0">
-                                <i class="fas fa-clock"></i>
-                                ${BuggyCall.Utils.formatDate(req.requested_at)}
-                            </p>
-                        </div>
-                        <button class="btn btn-success btn-lg" 
-                                data-action="accept-request" 
-                                data-request-id="${req.request_id || req.id}">
-                            <i class="fas fa-check"></i> Kabul Et
-                        </button>
+
+        container.innerHTML = this.state.pendingRequests.map(req => this.createRequestCard(req)).join('');
+    },
+
+    /**
+     * Create request card HTML
+     */
+    createRequestCard(req) {
+        const requestId = req.request_id || req.id;
+        const locationName = req.location?.name || 'Bilinmeyen Lokasyon';
+        const roomNumber = req.room_number || '';
+        const requestedAt = this.formatDateTime(req.requested_at);
+
+        return `
+            <div class="request-card" data-request-id="${requestId}">
+                <div class="request-card-header">
+                    <div class="request-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>${this.escapeHtml(locationName)}</span>
+                    </div>
+                    <div class="request-time">
+                        <i class="fas fa-clock"></i>
+                        <span>${requestedAt}</span>
                     </div>
                 </div>
+                ${roomNumber ? `
+                <div class="request-room">
+                    <i class="fas fa-door-open"></i>
+                    <span>Oda: ${this.escapeHtml(roomNumber)}</span>
+                </div>
+                ` : ''}
+                <div class="request-actions">
+                    <button class="btn btn-accept" onclick="DriverDashboard.acceptRequest(${requestId})">
+                        <i class="fas fa-check"></i>
+                        Kabul Et
+                    </button>
+                </div>
             </div>
-        `).join('');
+        `;
     },
 
     /**
@@ -515,101 +499,468 @@ const Driver = {
      */
     renderCurrentRequest() {
         const container = document.getElementById('current-request');
-        if (!container) return;
-        
-        if (!this.currentRequest) {
-            container.innerHTML = '<div class="empty-state">Aktif talep yok</div>';
+        const section = document.getElementById('current-request-section');
+
+        if (!container || !section) return;
+
+        if (!this.state.currentRequest) {
+            section.style.display = 'none';
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>Aktif görev yok</p>
+                </div>
+            `;
+            this.stopElapsedTimer();
             return;
         }
-        
-        const req = this.currentRequest;
+
+        section.style.display = 'block';
+
+        const req = this.state.currentRequest;
+        const locationName = req.location?.name || 'Bilinmeyen Lokasyon';
+        const roomNumber = req.room_number || '';
+        const requestedAt = this.formatDateTime(req.requested_at);
+        const acceptedAt = this.formatDateTime(req.accepted_at);
+
         container.innerHTML = `
-            <div class="card request-card-active">
-                <div class="card-body">
-                    <h4 class="card-title mb-3">
-                        <i class="fas fa-route text-success"></i>
-                        Aktif Talep
-                    </h4>
-                    <div class="mb-3">
-                        <h5><i class="fas fa-map-marker-alt"></i> ${req.location?.name || 'Bilinmiyor'}</h5>
-                        ${req.room_number ? `<p class="lead"><i class="fas fa-door-open"></i> Oda: ${req.room_number}</p>` : ''}
+            <div class="active-request-card">
+                <div class="active-request-header">
+                    <i class="fas fa-route"></i>
+                    <h3>Aktif Görev</h3>
+                </div>
+                <div class="active-request-body">
+                    <div class="active-request-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>${this.escapeHtml(locationName)}</span>
                     </div>
-                    <div class="mb-3">
-                        <p class="mb-1"><strong>Talep Zamanı:</strong> ${BuggyCall.Utils.formatDate(req.requested_at)}</p>
-                        <p class="mb-1"><strong>Kabul Zamanı:</strong> ${BuggyCall.Utils.formatDate(req.accepted_at)}</p>
-                        <p class="mb-0"><strong>Geçen Süre:</strong> <span id="elapsed-time">-</span></p>
+                    ${roomNumber ? `
+                    <div class="active-request-room">
+                        <i class="fas fa-door-open"></i>
+                        <span>Oda: ${this.escapeHtml(roomNumber)}</span>
                     </div>
-                    <button id="complete-request-btn" class="btn btn-success btn-lg btn-block">
-                        <i class="fas fa-check-circle"></i> Tamamla
+                    ` : ''}
+                    <div class="active-request-info">
+                        <div class="info-row">
+                            <span class="info-label">Talep Zamanı:</span>
+                            <span class="info-value">${requestedAt}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Kabul Zamanı:</span>
+                            <span class="info-value">${acceptedAt}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Geçen Süre:</span>
+                            <span class="info-value" id="elapsed-time">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="active-request-actions">
+                    <button class="btn btn-complete" onclick="DriverDashboard.completeRequest()">
+                        <i class="fas fa-check-circle"></i>
+                        Tamamla
                     </button>
                 </div>
             </div>
         `;
-        
-        // Start elapsed time counter
-        this.startElapsedTimeCounter();
+
+        this.startElapsedTimer();
     },
 
     /**
-     * Start elapsed time counter
+     * ========================================
+     * LOCATION SELECTION MODAL
+     * ========================================
      */
-    startElapsedTimeCounter() {
-        if (this.elapsedTimeInterval) {
-            clearInterval(this.elapsedTimeInterval);
+    async showLocationSelectionModal() {
+        return new Promise(async (resolve) => {
+            try {
+                // Load locations
+                const response = await BuggyCall.API.get('/locations');
+                const locations = response.locations || response.data?.items || [];
+
+                if (locations.length === 0) {
+                    await BuggyCall.Utils.showError('Lokasyon bulunamadı!');
+                    resolve(null);
+                    return;
+                }
+
+                // Create modal HTML
+                const modalHTML = `
+                    <div class="location-modal-overlay" id="location-modal">
+                        <div class="location-modal">
+                            <div class="location-modal-header">
+                                <h3>Mevcut Lokasyonunuzu Seçin</h3>
+                                <button class="location-modal-close" onclick="DriverDashboard.closeLocationModal()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="location-modal-body">
+                                ${locations.map(loc => `
+                                    <div class="location-card" data-location-id="${loc.id}" onclick="DriverDashboard.selectLocation(${loc.id})">
+                                        <div class="location-image">
+                                            ${loc.location_image 
+                                                ? `<img src="${loc.location_image}" alt="${this.escapeHtml(loc.name)}">`
+                                                : `<i class="fas fa-map-marker-alt"></i>`
+                                            }
+                                        </div>
+                                        <div class="location-name">${this.escapeHtml(loc.name)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Add to body
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+                // Store resolve function
+                this._locationModalResolve = resolve;
+
+            } catch (error) {
+                console.error('❌ Failed to show location modal:', error);
+                resolve(null);
+            }
+        });
+    },
+
+    /**
+     * Select location from modal
+     */
+    selectLocation(locationId) {
+        if (this._locationModalResolve) {
+            this._locationModalResolve(locationId);
+            this._locationModalResolve = null;
         }
-        
-        if (!this.currentRequest) return;
-        
-        this.elapsedTimeInterval = setInterval(() => {
+        this.closeLocationModal();
+    },
+
+    /**
+     * Close location modal
+     */
+    closeLocationModal() {
+        const modal = document.getElementById('location-modal');
+        if (modal) {
+            modal.remove();
+        }
+        if (this._locationModalResolve) {
+            this._locationModalResolve(null);
+            this._locationModalResolve = null;
+        }
+    },
+
+    /**
+     * ========================================
+     * TIMERS & COUNTERS
+     * ========================================
+     */
+
+    /**
+     * Start elapsed time timer
+     */
+    startElapsedTimer() {
+        this.stopElapsedTimer();
+
+        if (!this.state.currentRequest || !this.state.currentRequest.accepted_at) return;
+
+        this.timers.elapsed = setInterval(() => {
             const element = document.getElementById('elapsed-time');
-            if (!element || !this.currentRequest) {
-                clearInterval(this.elapsedTimeInterval);
+            if (!element || !this.state.currentRequest) {
+                this.stopElapsedTimer();
                 return;
             }
-            
-            const start = new Date(this.currentRequest.accepted_at);
+
+            const start = new Date(this.state.currentRequest.accepted_at);
             const now = new Date();
             const diffSeconds = Math.floor((now - start) / 1000);
-            element.textContent = BuggyCall.Utils.formatDuration(diffSeconds);
+            element.textContent = this.formatDuration(diffSeconds);
         }, 1000);
     },
 
     /**
-     * Update request counter
+     * Stop elapsed time timer
      */
-    updateRequestCounter() {
-        const counter = document.getElementById('PENDING-request-count');
-        if (counter) {
-            counter.textContent = this.PENDINGRequests.length;
+    stopElapsedTimer() {
+        if (this.timers.elapsed) {
+            clearInterval(this.timers.elapsed);
+            this.timers.elapsed = null;
         }
     },
 
     /**
-     * Update dashboard
+     * Update all counters
      */
-    updateDashboard() {
-        this.updateRequestCounter();
+    updateCounters() {
+        // Pending requests counter
+        const pendingBadge = document.getElementById('pending-badge');
+        if (pendingBadge) {
+            pendingBadge.textContent = this.state.pendingRequests.length;
+        }
+
+        // Completed today counter
+        const completedCounter = document.getElementById('completed-today');
+        if (completedCounter) {
+            completedCounter.textContent = this.state.completedToday;
+        }
     },
 
     /**
-     * Get status text in Turkish
+     * ========================================
+     * BACKGROUND TASKS
+     * ========================================
      */
-    getStatusText(status) {
-        const statusMap = {
-            'available': 'Müsait',
-            'busy': 'Meşgul',
-            'offline': 'Çevrimdışı'
+
+    /**
+     * Start background tasks
+     */
+    startBackgroundTasks() {
+        // Sync data every 30 seconds
+        this.timers.sync = setInterval(() => {
+            this.syncData();
+        }, 30000);
+
+        // Heartbeat every 10 seconds
+        this.timers.heartbeat = setInterval(() => {
+            this.sendHeartbeat();
+        }, 10000);
+    },
+
+    /**
+     * Sync data with server
+     */
+    async syncData() {
+        if (!this.state.isOnline) return;
+
+        try {
+            await this.loadPendingRequests();
+            await this.loadCompletedToday();
+            this.state.lastSync = new Date();
+        } catch (error) {
+            console.error('❌ Sync failed:', error);
+        }
+    },
+
+    /**
+     * Send heartbeat to server
+     */
+    sendHeartbeat() {
+        if (this.socket && this.socket.connected) {
+            this.socket.emit('driver_heartbeat', {
+                driver_id: this.state.userId,
+                buggy_id: this.state.buggyId,
+                timestamp: new Date().toISOString()
+            });
+        }
+    },
+
+    /**
+     * ========================================
+     * EVENT LISTENERS
+     * ========================================
+     */
+
+    /**
+     * Setup all event listeners
+     */
+    setupEventListeners() {
+        // Page visibility change
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                this.syncData();
+            }
+        });
+
+        // Online/offline events
+        window.addEventListener('online', () => {
+            console.log('🌐 Back online');
+            this.updateConnectionStatus('connected');
+            this.syncData();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('📡 Offline');
+            this.updateConnectionStatus('disconnected');
+        });
+
+        // Before unload
+        window.addEventListener('beforeunload', () => {
+            this.cleanup();
+        });
+    },
+
+    /**
+     * ========================================
+     * AUDIO
+     * ========================================
+     */
+
+    /**
+     * Initialize audio
+     */
+    initAudio() {
+        try {
+            this.audio.notification = new Audio('/static/sounds/notification.mp3');
+            this.audio.notification.volume = 0.5;
+        } catch (error) {
+            console.warn('⚠️ Audio initialization failed:', error);
+        }
+    },
+
+    /**
+     * Play notification sound
+     */
+    playNotificationSound() {
+        if (this.audio.enabled && this.audio.notification) {
+            this.audio.notification.play().catch(e => {
+                console.warn('⚠️ Audio play failed:', e);
+            });
+        }
+    },
+
+    /**
+     * ========================================
+     * UI HELPERS
+     * ========================================
+     */
+
+    /**
+     * Initialize UI components
+     */
+    initUI() {
+        // Set initial connection status
+        this.updateConnectionStatus('connecting');
+    },
+
+    /**
+     * Update connection status indicator
+     */
+    updateConnectionStatus(status) {
+        const statusElement = document.getElementById('connection-status');
+        const textElement = document.getElementById('connection-text');
+
+        if (!statusElement || !textElement) return;
+
+        statusElement.className = 'connection-status ' + status;
+
+        const statusTexts = {
+            connecting: 'Bağlanıyor...',
+            connected: 'Bağlı',
+            disconnected: 'Bağlantı Kesildi',
+            reconnecting: 'Yeniden Bağlanıyor...',
+            failed: 'Bağlantı Başarısız'
         };
-        return statusMap[status] || status;
+
+        textElement.textContent = statusTexts[status] || 'Bilinmiyor';
+    },
+
+    /**
+     * Show no buggy warning
+     */
+    async showNoBuggyWarning() {
+        await BuggyCall.Utils.showWarning(
+            'Size henüz bir shuttle atanmamış. Lütfen yöneticinizle iletişime geçin.'
+        );
+    },
+
+    /**
+     * ========================================
+     * UTILITY FUNCTIONS
+     * ========================================
+     */
+
+    /**
+     * Remove request from pending list
+     */
+    removeRequestFromPending(requestId) {
+        this.state.pendingRequests = this.state.pendingRequests.filter(
+            r => (r.request_id || r.id) !== requestId
+        );
+    },
+
+    /**
+     * Format date time
+     */
+    formatDateTime(dateString) {
+        if (!dateString) return '-';
+
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleString('tr-TR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            return dateString;
+        }
+    },
+
+    /**
+     * Format duration in seconds
+     */
+    formatDuration(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+
+        if (hours > 0) {
+            return `${hours}s ${minutes}d ${secs}sn`;
+        } else if (minutes > 0) {
+            return `${minutes}d ${secs}sn`;
+        } else {
+            return `${secs}sn`;
+        }
+    },
+
+    /**
+     * Escape HTML
+     */
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
+    /**
+     * ========================================
+     * CLEANUP
+     * ========================================
+     */
+
+    /**
+     * Cleanup resources
+     */
+    cleanup() {
+        console.log('🧹 Cleaning up...');
+
+        // Stop all timers
+        Object.values(this.timers).forEach(timer => {
+            if (timer) clearInterval(timer);
+        });
+
+        // Disconnect socket
+        if (this.socket) {
+            this.socket.disconnect();
+        }
     }
 };
 
-// Initialize when DOM is ready
+/**
+ * ========================================
+ * AUTO-INITIALIZE ON DOM READY
+ * ========================================
+ */
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => Driver.init());
+    document.addEventListener('DOMContentLoaded', () => {
+        DriverDashboard.init();
+    });
 } else {
-    Driver.init();
+    DriverDashboard.init();
 }
 
-// Export to global scope
-window.Driver = Driver;
+// Export for global access
+window.DriverDashboard = DriverDashboard;

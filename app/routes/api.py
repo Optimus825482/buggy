@@ -1068,8 +1068,8 @@ def get_requests():
         # Handle status filter - convert string to enum
         if status_str:
             try:
-                # Try to convert string to RequestStatus enum
-                status_enum = RequestStatus(status_str.lower())
+                # Try to convert string to RequestStatus enum (uppercase)
+                status_enum = RequestStatus(status_str.upper())
                 query = query.filter_by(status=status_enum)
             except ValueError:
                 # Invalid status value, ignore filter
@@ -1137,8 +1137,8 @@ def accept_request(request_id):
     try:
         user = SystemUser.query.get(session['user_id'])
         
-        # Get driver's buggy
-        buggy = Buggy.query.filter_by(driver_id=user.id).first()
+        # Get driver's buggy (using buggy_drivers relationship)
+        buggy = user.buggy
         if not buggy:
             log_error('ACCEPT_REQUEST', 'Buggy bulunamadı', {'user_id': user.id, 'request_id': request_id})
             return jsonify({'error': 'Bu kullanıcıya atanmış buggy bulunamadı'}), 404
@@ -1149,13 +1149,14 @@ def accept_request(request_id):
             log_error('ACCEPT_REQUEST', 'Talep bulunamadı', {'request_id': request_id})
             return jsonify({'error': 'Talep bulunamadı'}), 404
         
-        if buggy_request.status != 'PENDING':
+        if buggy_request.status != RequestStatus.PENDING:
             log_error('ACCEPT_REQUEST', 'Talep zaten işleme alınmış', {'request_id': request_id, 'status': buggy_request.status})
             return jsonify({'error': 'Bu talep zaten işleme alınmış'}), 400
         
         # Update request
-        buggy_request.status = 'accepted'
+        buggy_request.status = RequestStatus.ACCEPTED
         buggy_request.buggy_id = buggy.id
+        buggy_request.accepted_by_id = user.id
         buggy_request.accepted_at = datetime.utcnow()
         
         if buggy_request.requested_at:
