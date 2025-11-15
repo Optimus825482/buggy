@@ -97,97 +97,97 @@ class BackgroundJobsService:
         try:
             from app import create_app
             app = create_app()
-            
+
             with app.app_context():
                 logger.info("Starting retry_failed_notifications job")
-                
+
                 # Get failed notifications from last 24 hours with retry count < 3
                 cutoff_time = datetime.utcnow() - timedelta(hours=24)
-            failed_notifications = NotificationLog.query.filter(
-                NotificationLog.status == 'failed',
-                NotificationLog.sent_at >= cutoff_time,
-                NotificationLog.retry_count < 3
-            ).all()
-            
-            if not failed_notifications:
-                logger.info("No failed notifications to retry")
-                return
-            
-            logger.info(f"Found {len(failed_notifications)} failed notifications to process")
-            
-            retry_count = 0
-            success_count = 0
-            
-            for log in failed_notifications:
-                try:
-                    # Calculate exponential backoff delay
-                    # retry_count 0: 30s, 1: 60s, 2: 120s, 3: 300s
-                    delay_seconds = min(300, 30 * (2 ** log.retry_count))
-                    
-                    # Check if enough time has passed since last attempt
-                    time_since_sent = (datetime.utcnow() - log.sent_at).total_seconds()
-                    
-                    if time_since_sent < delay_seconds:
-                        logger.debug(f"Notification {log.id} not ready for retry (waiting {delay_seconds}s)")
-                        continue
-                    
-                    # Get user and check if subscription still exists
-                    user = SystemUser.query.get(log.user_id)
-                    if not user:
-                        logger.warning(f"User {log.user_id} not found for notification {log.id}")
-                        log.status = 'permanently_failed'
-                        log.error_message = 'User not found'
-                        db.session.commit()
-                        continue
-                    
-                    if not user.fcm_token:
-                        logger.warning(f"User {log.user_id} has no FCM token")
-                        log.status = 'permanently_failed'
-                        log.error_message = 'No FCM token'
-                        db.session.commit()
-                        continue
-                    
-                    # Retry sending notification (FCM)
-                    logger.info(f"Retrying notification {log.id} (attempt {log.retry_count + 1}/3)")
-                    
-                    # FCM ile retry
-                    from app.services.fcm_notification_service import FCMNotificationService
-                    
-                    if user.fcm_token:
-                        success = FCMNotificationService.send_to_token(
-                            token=user.fcm_token,
-                            title=log.title,
-                            body=log.body,
-                            data={'user_id': user.id, 'retry': True, 'type': log.notification_type},
-                            priority=log.priority
-                        )
-                    else:
-                        logger.warning(f"User {log.user_id} has no FCM token")
-                        success = False
-                    
-                    # Update log based on result
-                    log.retry_count += 1
-                    
-                    if success:
-                        log.status = 'sent'
-                        log.error_message = None
-                        success_count += 1
-                        logger.info(f"Successfully retried notification {log.id}")
-                    else:
-                        if log.retry_count >= 3:
+                failed_notifications = NotificationLog.query.filter(
+                    NotificationLog.status == 'failed',
+                    NotificationLog.sent_at >= cutoff_time,
+                    NotificationLog.retry_count < 3
+                ).all()
+
+                if not failed_notifications:
+                    logger.info("No failed notifications to retry")
+                    return
+
+                logger.info(f"Found {len(failed_notifications)} failed notifications to process")
+
+                retry_count = 0
+                success_count = 0
+
+                for log in failed_notifications:
+                    try:
+                        # Calculate exponential backoff delay
+                        # retry_count 0: 30s, 1: 60s, 2: 120s, 3: 300s
+                        delay_seconds = min(300, 30 * (2 ** log.retry_count))
+
+                        # Check if enough time has passed since last attempt
+                        time_since_sent = (datetime.utcnow() - log.sent_at).total_seconds()
+
+                        if time_since_sent < delay_seconds:
+                            logger.debug(f"Notification {log.id} not ready for retry (waiting {delay_seconds}s)")
+                            continue
+
+                        # Get user and check if subscription still exists
+                        user = SystemUser.query.get(log.user_id)
+                        if not user:
+                            logger.warning(f"User {log.user_id} not found for notification {log.id}")
                             log.status = 'permanently_failed'
-                            logger.warning(f"Notification {log.id} permanently failed after 3 attempts")
+                            log.error_message = 'User not found'
+                            db.session.commit()
+                            continue
+
+                        if not user.fcm_token:
+                            logger.warning(f"User {log.user_id} has no FCM token")
+                            log.status = 'permanently_failed'
+                            log.error_message = 'No FCM token'
+                            db.session.commit()
+                            continue
+
+                        # Retry sending notification (FCM)
+                        logger.info(f"Retrying notification {log.id} (attempt {log.retry_count + 1}/3)")
+
+                        # FCM ile retry
+                        from app.services.fcm_notification_service import FCMNotificationService
+
+                        if user.fcm_token:
+                            success = FCMNotificationService.send_to_token(
+                                token=user.fcm_token,
+                                title=log.title,
+                                body=log.body,
+                                data={'user_id': user.id, 'retry': True, 'type': log.notification_type},
+                                priority=log.priority
+                            )
                         else:
-                            logger.warning(f"Retry failed for notification {log.id}, will retry again")
-                    
-                    db.session.commit()
-                    retry_count += 1
-                    
-                except Exception as e:
-                    logger.error(f"Error retrying notification {log.id}: {str(e)}")
-                    db.session.rollback()
-                    continue
-            
+                            logger.warning(f"User {log.user_id} has no FCM token")
+                            success = False
+
+                        # Update log based on result
+                        log.retry_count += 1
+
+                        if success:
+                            log.status = 'sent'
+                            log.error_message = None
+                            success_count += 1
+                            logger.info(f"Successfully retried notification {log.id}")
+                        else:
+                            if log.retry_count >= 3:
+                                log.status = 'permanently_failed'
+                                logger.warning(f"Notification {log.id} permanently failed after 3 attempts")
+                            else:
+                                logger.warning(f"Retry failed for notification {log.id}, will retry again")
+
+                        db.session.commit()
+                        retry_count += 1
+
+                    except Exception as e:
+                        logger.error(f"Error retrying notification {log.id}: {str(e)}")
+                        db.session.rollback()
+                        continue
+
                 logger.info(f"Retry job completed: {retry_count} retried, {success_count} successful")
             
         except Exception as e:
