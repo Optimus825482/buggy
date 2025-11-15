@@ -348,58 +348,127 @@
         }
     </script>
 
-    <!-- Mobile Menu Toggle -->
+    <!-- Mobile Menu Toggle - iOS Safari Compatible -->
     <script>
-        function toggleMobileMenu() {
-            const nav = document.querySelector( '.nav' );
-            const menuIcon = document.querySelector( '.mobile-menu-toggle i' );
-
-            if ( nav ) {
-                nav.classList.toggle( 'active' );
-
-                // Change icon
-                if ( nav.classList.contains( 'active' ) ) {
-                    menuIcon.classList.remove( 'fa-bars' );
-                    menuIcon.classList.add( 'fa-times' );
-                } else {
-                    menuIcon.classList.remove( 'fa-times' );
-                    menuIcon.classList.add( 'fa-bars' );
+        (function() {
+            // Toggle mobile menu function
+            function toggleMobileMenu(event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
                 }
-            }
-        }
 
-        // Close menu when clicking outside
-        document.addEventListener( 'click', function ( event ) {
-            const nav = document.querySelector( '.nav' );
-            const toggle = document.querySelector( '.mobile-menu-toggle' );
-            const header = document.querySelector( '.header' );
+                var nav = document.querySelector('.nav');
+                var menuIcon = document.querySelector('.mobile-menu-toggle i');
 
-            if ( nav && nav.classList.contains( 'active' ) ) {
-                if ( !header.contains( event.target ) || ( event.target.classList.contains( 'nav-link' ) ) ) {
-                    nav.classList.remove( 'active' );
-                    const menuIcon = document.querySelector( '.mobile-menu-toggle i' );
-                    if ( menuIcon ) {
-                        menuIcon.classList.remove( 'fa-times' );
-                        menuIcon.classList.add( 'fa-bars' );
+                if (nav) {
+                    nav.classList.toggle('active');
+
+                    // Toggle body scroll
+                    if (nav.classList.contains('active')) {
+                        document.body.classList.add('menu-open');
+                        if (menuIcon) {
+                            menuIcon.classList.remove('fa-bars');
+                            menuIcon.classList.add('fa-times');
+                        }
+                    } else {
+                        document.body.classList.remove('menu-open');
+                        if (menuIcon) {
+                            menuIcon.classList.remove('fa-times');
+                            menuIcon.classList.add('fa-bars');
+                        }
                     }
                 }
             }
-        } );
 
-        // Close menu on window resize to desktop
-        window.addEventListener( 'resize', function () {
-            if ( window.innerWidth > 768 ) {
-                const nav = document.querySelector( '.nav' );
-                if ( nav ) {
-                    nav.classList.remove( 'active' );
-                    const menuIcon = document.querySelector( '.mobile-menu-toggle i' );
-                    if ( menuIcon ) {
-                        menuIcon.classList.remove( 'fa-times' );
-                        menuIcon.classList.add( 'fa-bars' );
+            // Make function global for onclick attribute
+            window.toggleMobileMenu = toggleMobileMenu;
+
+            // iOS Safari: addEventListener support
+            document.addEventListener('DOMContentLoaded', function() {
+                var toggleBtn = document.querySelector('.mobile-menu-toggle');
+
+                if (toggleBtn) {
+                    // Remove onclick and use addEventListener for better iOS support
+                    toggleBtn.removeAttribute('onclick');
+
+                    // Click event
+                    toggleBtn.addEventListener('click', toggleMobileMenu, false);
+
+                    // Touch events for iOS (better responsiveness)
+                    if ('ontouchstart' in window) {
+                        toggleBtn.addEventListener('touchstart', function(e) {
+                            // Visual feedback on touch
+                            this.style.opacity = '0.7';
+                        }, false);
+
+                        toggleBtn.addEventListener('touchend', function(e) {
+                            this.style.opacity = '1';
+                        }, false);
+
+                        toggleBtn.addEventListener('touchcancel', function(e) {
+                            this.style.opacity = '1';
+                        }, false);
                     }
                 }
+            });
+
+            // Close menu when clicking outside
+            document.addEventListener('click', function(event) {
+                var nav = document.querySelector('.nav');
+                var toggle = document.querySelector('.mobile-menu-toggle');
+                var header = document.querySelector('.header');
+
+                if (nav && nav.classList.contains('active')) {
+                    if (!header.contains(event.target) || event.target.classList.contains('nav-link')) {
+                        nav.classList.remove('active');
+                        document.body.classList.remove('menu-open');
+                        var menuIcon = document.querySelector('.mobile-menu-toggle i');
+                        if (menuIcon) {
+                            menuIcon.classList.remove('fa-times');
+                            menuIcon.classList.add('fa-bars');
+                        }
+                    }
+                }
+            }, false);
+
+            // Touch event for closing menu (iOS)
+            if ('ontouchstart' in window) {
+                document.addEventListener('touchstart', function(event) {
+                    var nav = document.querySelector('.nav');
+                    var toggle = document.querySelector('.mobile-menu-toggle');
+                    var header = document.querySelector('.header');
+
+                    if (nav && nav.classList.contains('active')) {
+                        if (!header.contains(event.target) || event.target.classList.contains('nav-link')) {
+                            nav.classList.remove('active');
+                            document.body.classList.remove('menu-open');
+                            var menuIcon = document.querySelector('.mobile-menu-toggle i');
+                            if (menuIcon) {
+                                menuIcon.classList.remove('fa-times');
+                                menuIcon.classList.add('fa-bars');
+                            }
+                        }
+                    }
+                }, false);
             }
-        } );
+
+            // Close menu on window resize to desktop
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    var nav = document.querySelector('.nav');
+                    if (nav && nav.classList.contains('active')) {
+                        nav.classList.remove('active');
+                        document.body.classList.remove('menu-open');
+                        var menuIcon = document.querySelector('.mobile-menu-toggle i');
+                        if (menuIcon) {
+                            menuIcon.classList.remove('fa-times');
+                            menuIcon.classList.add('fa-bars');
+                        }
+                    }
+                }
+            }, false);
+        })();
     </script>
 
     {% block extra_js %}{% endblock %}

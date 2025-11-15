@@ -1201,14 +1201,15 @@ def accept_request(request_id):
                     'to': token_data['token'],
                     'notification': {
                         'title': '🚀 Shuttle Yola Çıktı!',
-                        'body': f'Shuttle\'ınız {buggy.plate_number} yola çıktı. Yakında yanınızda!',
+                        'body': f'Shuttle\'ınız {buggy.code} yola çıktı. Yakında yanınızda!',
                         'icon': '/static/img/shuttle-icon.png',
                         'click_action': f'/guest/status/{request_id}'
                     },
                     'data': {
                         'request_id': str(request_id),
                         'status': 'accepted',
-                        'buggy_plate': buggy.plate_number
+                        'buggy_code': buggy.code,
+                        'buggy_license_plate': buggy.license_plate
                     }
                 }
                 

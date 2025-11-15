@@ -389,59 +389,76 @@
         history.go(1);
     };
     
-    // Load locations on page load
-    document.addEventListener('DOMContentLoaded', async function() {
-        await loadShuttleInfo();
-        await loadLocations();
+    // Load locations on page load - iOS Safari Compatible (Promise-based)
+    document.addEventListener('DOMContentLoaded', function() {
+        loadShuttleInfo().then(function() {
+            return loadLocations();
+        }).catch(function(error) {
+            console.error('[LocationSelect] Init error:', error);
+        });
     });
-    
-    async function loadShuttleInfo() {
-        try {
-            const response = await fetch('/api/driver/shuttle-info');
-            const data = await response.json();
-            
+
+    function loadShuttleInfo() {
+        return fetch('/api/driver/shuttle-info', {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-cache'
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
             if (data.success && data.buggy) {
-                const shuttleCode = data.buggy.code || 'Shuttle';
-                const shuttleIcon = data.buggy.icon || '🏌️';
-                
+                var shuttleCode = data.buggy.code || 'Shuttle';
+                var shuttleIcon = data.buggy.icon || '🏌️';
+
                 // Update shuttle code
                 document.getElementById('shuttle-code').textContent = shuttleCode;
-                
+
                 // Update icon if emoji
-                const iconElement = document.querySelector('.location-icon i');
+                var iconElement = document.querySelector('.location-icon i');
                 if (shuttleIcon && shuttleIcon.length <= 2) {
                     // It's an emoji
-                    iconElement.outerHTML = `<span style="font-size: 2rem;">${shuttleIcon}</span>`;
+                    iconElement.outerHTML = '<span style="font-size: 2rem;">' + shuttleIcon + '</span>';
                 }
             }
-        } catch (error) {
+        })
+        .catch(function(error) {
             console.error('[LocationSelect] Error loading shuttle info:', error);
             document.getElementById('shuttle-code').textContent = 'Shuttle';
-        }
+        });
     }
-    
-    async function loadLocations() {
-        try {
-            const response = await fetch(`/api/locations?hotel_id=${hotelId}`);
-            const data = await response.json();
-            
-            if (!response.ok || !data.success) {
+
+    function loadLocations() {
+        return fetch('/api/locations?hotel_id=' + hotelId, {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-cache'
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('Network error');
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            if (!data.success) {
                 throw new Error(data.error || 'Lokasyonlar yüklenemedi');
             }
-            
-            const locations = data.locations || data.data?.items || [];
-            
+
+            var locations = data.locations || (data.data && data.data.items) || [];
+
             if (locations.length === 0) {
                 showEmptyState();
                 return;
             }
-            
+
             renderLocationCards(locations);
-            
-        } catch (error) {
+        })
+        .catch(function(error) {
             console.error('[LocationSelect] Error loading locations:', error);
-            showErrorState(error.message);
-        }
+            showErrorState(error.message || 'Bağlantı hatası');
+        });
     }
     
     function renderLocationCards(locations) {
@@ -503,67 +520,66 @@
         `;
     }
     
-    // Select location and redirect to dashboard
-    async function selectLocation(locationId, event) {
-        const card = event.target.closest('.location-card');
+    // Select location and redirect to dashboard - iOS Safari Compatible
+    function selectLocation(locationId, event) {
+        var card = event.target.closest('.location-card');
         if (!card) return;
-        
+
         // Disable all cards
-        document.querySelectorAll('.location-card').forEach(c => {
-            c.style.pointerEvents = 'none';
-            c.style.opacity = '0.5';
-        });
-        
+        var allCards = document.querySelectorAll('.location-card');
+        for (var i = 0; i < allCards.length; i++) {
+            allCards[i].style.pointerEvents = 'none';
+            allCards[i].style.opacity = '0.5';
+        }
+
         // Show loading on clicked card
         card.style.opacity = '1';
-        card.innerHTML = `
-            <div style="width: 100%; text-align: center; color: var(--primary);">
-                <i class="fas fa-circle-notch fa-spin" style="font-size: 1.5rem;"></i>
-                <p style="margin-top: 0.5rem; font-weight: 600;">Kaydediliyor...</p>
-            </div>
-        `;
-        
-        try {
-            const response = await fetch('/api/driver/set-initial-location', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ location_id: parseInt(locationId) })
-            });
-            
-            const data = await response.json();
-            
+        card.innerHTML = '<div style="width: 100%; text-align: center; color: var(--primary);">' +
+            '<i class="fas fa-circle-notch fa-spin" style="font-size: 1.5rem;"></i>' +
+            '<p style="margin-top: 0.5rem; font-weight: 600;">Kaydediliyor...</p>' +
+            '</div>';
+
+        fetch('/api/driver/set-initial-location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ location_id: parseInt(locationId) })
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
             if (data.success) {
                 // Show success state
-                card.innerHTML = `
-                    <div style="width: 100%; text-align: center; color: var(--success);">
-                        <i class="fas fa-check-circle" style="font-size: 1.5rem;"></i>
-                        <p style="margin-top: 0.5rem; font-weight: 600;">Başarılı! Yönlendiriliyorsunuz...</p>
-                    </div>
-                `;
-                
+                card.innerHTML = '<div style="width: 100%; text-align: center; color: var(--success);">' +
+                    '<i class="fas fa-check-circle" style="font-size: 1.5rem;"></i>' +
+                    '<p style="margin-top: 0.5rem; font-weight: 600;">Başarılı! Yönlendiriliyorsunuz...</p>' +
+                    '</div>';
+
                 // Check notification permission before redirecting
-                setTimeout(async () => {
-                    await checkAndRequestNotificationPermission();
-                    window.location.href = '/driver/dashboard';
+                setTimeout(function() {
+                    checkAndRequestNotificationPermission().then(function() {
+                        window.location.href = '/driver/dashboard';
+                    }).catch(function() {
+                        window.location.href = '/driver/dashboard';
+                    });
                 }, 500);
             } else {
                 throw new Error(data.error || 'Lokasyon ayarlanamadı');
             }
-        } catch (error) {
+        })
+        .catch(function(error) {
             console.error('[LocationSelect] Error setting location:', error);
-            
+
             // Show error and reload
-            card.innerHTML = `
-                <div style="width: 100%; text-align: center; color: var(--danger);">
-                    <i class="fas fa-times-circle" style="font-size: 1.5rem;"></i>
-                    <p style="margin-top: 0.5rem; font-weight: 600;">${escapeHtml(error.message)}</p>
-                </div>
-            `;
-            
-            setTimeout(() => {
+            card.innerHTML = '<div style="width: 100%; text-align: center; color: var(--danger);">' +
+                '<i class="fas fa-times-circle" style="font-size: 1.5rem;"></i>' +
+                '<p style="margin-top: 0.5rem; font-weight: 600;">' + escapeHtml(error.message) + '</p>' +
+                '</div>';
+
+            setTimeout(function() {
                 location.reload();
             }, 2000);
-        }
+        });
     }
     
     // Utility: Escape HTML
