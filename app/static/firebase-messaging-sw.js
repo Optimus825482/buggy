@@ -6,7 +6,9 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
-// Firebase Configuration - MUST MATCH backend service account!
+// ⚠️ SERVICE WORKER SCOPE: Cannot use firebase-config.js here
+// Service Workers run in different context and can't access window.firebaseConfig
+// Config must be hardcoded here - keep in sync with firebase-config.js
 const firebaseConfig = {
   apiKey: "AIzaSyD5brCkHqSPVCtt0XJmUMqZizrjK_HX9dc",
   authDomain: "shuttle-call-835d9.firebaseapp.com",

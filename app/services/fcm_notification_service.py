@@ -363,9 +363,38 @@ class FCMNotificationService:
                     error=f"Invalid token: {str(e)}"
                 )
                 raise  # Re-raise to be caught by retry logic
-                
+            
+            except messaging.SenderIdMismatchError as e:
+                logger.warning(f"❌ Sender ID uyuşmazlığı: {token[:20]}...")
+                FCMNotificationService._remove_invalid_token(token)
+                FCMNotificationService._log_notification(
+                    token=token,
+                    title=title,
+                    body=body,
+                    status='failed',
+                    priority=priority,
+                    error=f"Sender ID mismatch: {str(e)}"
+                )
+                raise  # Re-raise to be caught by retry logic
+            
             except Exception as e:
-                logger.error(f"❌ FCM bildirim hatası: {str(e)}")
+                error_str = str(e)
+                
+                # NOT_FOUND hatası da geçersiz token anlamına gelir
+                if 'NOT_FOUND' in error_str or 'Requested entity was not found' in error_str:
+                    logger.warning(f"❌ Token bulunamadı (NOT_FOUND): {token[:20]}...")
+                    FCMNotificationService._remove_invalid_token(token)
+                    FCMNotificationService._log_notification(
+                        token=token,
+                        title=title,
+                        body=body,
+                        status='failed',
+                        priority=priority,
+                        error=f"Token not found: {error_str}"
+                    )
+                    raise  # Re-raise to be caught by retry logic
+                
+                logger.error(f"❌ FCM bildirim hatası: {error_str}")
                 logger.error(f"❌ Traceback: {traceback.format_exc()}")
                 FCMNotificationService._log_notification(
                     token=token,
@@ -373,7 +402,7 @@ class FCMNotificationService:
                     body=body,
                     status='failed',
                     priority=priority,
-                    error=str(e)
+                    error=error_str
                 )
                 raise  # Re-raise to be caught by retry logic
         
@@ -769,16 +798,31 @@ class FCMNotificationService:
     
     @staticmethod
     def _remove_invalid_token(token: str):
-        """Geçersiz token'ı temizle - Automatic cleanup"""
+        """Geçersiz token'ı temizle - Automatic cleanup (Driver & Guest)"""
         try:
+            # Driver token temizle
             user = SystemUser.query.filter_by(fcm_token=token).first()
             if user:
                 user.fcm_token = None
                 user.fcm_token_date = None
                 db.session.commit()
-                print(f"🗑️ Geçersiz token temizlendi: User {user.id}")
+                logger.info(f"🗑️ Geçersiz driver token temizlendi: User {user.id}")
+                return
+            
+            # Guest token temizle
+            from app.models.request import BuggyRequest
+            guest_request = BuggyRequest.query.filter_by(guest_fcm_token=token).first()
+            if guest_request:
+                guest_request.guest_fcm_token = None
+                guest_request.guest_fcm_token_expires_at = None
+                db.session.commit()
+                logger.info(f"🗑️ Geçersiz guest token temizlendi: Request {guest_request.id}")
+                return
+            
+            logger.warning(f"⚠️ Token bulunamadı: {token[:20]}...")
+            
         except Exception as e:
-            print(f"⚠️ Token temizlenemedi: {str(e)}")
+            logger.error(f"⚠️ Token temizlenemedi: {str(e)}")
             db.session.rollback()
     
     @staticmethod

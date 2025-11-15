@@ -1369,14 +1369,26 @@ const GuestCall = (() => {
             hideLoadingOverlay();
 
             if (data.success && data.request) {
-                // ✅ TALEP OLUŞTURULDU - SURUCULERE TOAST BILDIRIMI GONDER
-                console.log('✅ Request created successfully, notifying drivers...');
-                await checkActiveDrivers();  // notify=true ile sürücülere toast gönder
+                // ✅ TALEP OLUŞTURULDU
+                console.log('✅ Request created successfully!');
+                console.log('📋 Request ID:', data.request.id);
+                
+                // Sürücülere bildirim gönder (arka planda, blocking değil)
+                checkActiveDrivers().catch(err => {
+                    console.error('⚠️ Driver notification failed (non-blocking):', err);
+                });
 
-                // Talep başarılı - bildirim izni iste
-                await requestNotificationPermissionForGuest(data.request.id);
+                // Bildirim izni iste (arka planda, blocking değil)
+                console.log('🔔 Requesting notification permission...');
+                requestNotificationPermissionForGuest(data.request.id).catch(err => {
+                    console.error('⚠️ Notification permission failed (non-blocking):', err);
+                });
+                
+                // Hemen success notification göster ve redirect et
+                console.log('🎉 Showing success notification and redirecting...');
                 showSuccessNotification(data.request.id);
             } else {
+                console.error('❌ Request creation failed:', data.error);
                 showToast(data.error || 'Talep oluşturulamadı', 'error');
             }
         } catch (error) {
@@ -1398,19 +1410,26 @@ const GuestCall = (() => {
 
         try {
             // FCM token al ve kaydet
+            console.log('🔔 Getting FCM token for request:', requestId);
             const token = await window.guestNotificationManager.requestPermissionAndGetToken(requestId);
             
             if (token) {
+                console.log('✅ FCM token received:', token.substring(0, 20) + '...');
                 showToast('✅ Shuttle yola çıktığında bildirim alacaksınız!', 'success');
+            } else {
+                console.log('⚠️ No FCM token received');
             }
         } catch (error) {
             console.error('❌ [FCM] Notification error:', error);
+            // Don't block the flow, continue anyway
         }
     };
 
     // Eski push subscription kodu kaldırıldı - Firebase Admin SDK kullanıyoruz
 
     const showSuccessNotification = (requestId) => {
+        console.log('🎯 showSuccessNotification called with requestId:', requestId);
+        
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay';
         overlay.setAttribute('role', 'alert');
@@ -1519,9 +1538,12 @@ const GuestCall = (() => {
         `;
 
         document.body.appendChild(overlay);
+        console.log('✅ Success overlay added to DOM');
 
         // Redirect after delay
+        console.log(`⏳ Redirecting to /guest/status/${requestId} in ${REDIRECT_DELAY}ms...`);
         setTimeout(() => {
+            console.log('🚀 Redirecting now...');
             window.location.href = `/guest/status/${requestId}`;
         }, REDIRECT_DELAY);
     };

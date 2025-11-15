@@ -317,6 +317,24 @@ def register_blueprints(app):
         ]
         if any(request.path.startswith(path) for path in suspicious_paths):
             abort(403)
+
+    # ✅ FRONTEND OPTIMIZATION: Add cache headers for static files
+    @app.after_request
+    def add_cache_headers(response):
+        from flask import request
+        # Cache static files for 1 year (immutable)
+        if request.path.startswith('/static/'):
+            # CSS, JS, Images, Fonts - cache aggressively
+            if any(request.path.endswith(ext) for ext in ['.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.woff', '.woff2', '.ttf', '.ico']):
+                response.cache_control.public = True
+                response.cache_control.max_age = 31536000  # 1 year
+                response.headers['Expires'] = 'Thu, 31 Dec 2099 23:59:59 GMT'
+        # No cache for HTML/API responses
+        elif request.path.startswith('/api/') or request.path.endswith('.html'):
+            response.cache_control.no_cache = True
+            response.cache_control.no_store = True
+            response.cache_control.must_revalidate = True
+        return response
     
     # 3️⃣ robots.txt ekle
     @app.route('/robots.txt')

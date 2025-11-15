@@ -6,8 +6,9 @@ class DriverFCMSystem {
         this.retryCount = 0;
         this.maxRetries = 3;
 
-        // Firebase Config - PRODUCTION READY
-        this.firebaseConfig = {
+        // ✅ FCM CONFIG SIMPLIFY: Use global config from firebase-config.js
+        this.firebaseConfig = window.firebaseConfig || {
+            // Fallback if firebase-config.js not loaded
             apiKey: "AIzaSyD5brCkHqSPVCtt0XJmUMqZizrjK_HX9dc",
             authDomain: "shuttle-call-835d9.firebaseapp.com",
             projectId: "shuttle-call-835d9",

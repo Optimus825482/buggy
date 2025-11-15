@@ -570,6 +570,8 @@ let guestNotificationManager;
 
 // Check notification permission on load
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 Status page initialized for request:', requestId);
+    
     loadRequestStatus();
     connectWebSocket();
     
@@ -579,32 +581,43 @@ document.addEventListener('DOMContentLoaded', async function() {
         const initialized = await guestNotificationManager.init();
 
         if (initialized) {
+            console.log('✅ Guest Notification Manager initialized');
+            
             // ✅ Setup foreground message listener
             guestNotificationManager.setupMessageListener((payload) => {
-                console.log('📬 [GUEST] Foreground notification received!', payload);
+                console.log('📬 [GUEST_STATUS] Foreground notification received!', payload);
 
                 // Show toast notification
                 if (payload.notification?.title) {
-                    showSuccessToast(payload.notification.title + '\n' + (payload.notification.body || ''));
+                    const message = payload.notification.title + (payload.notification.body ? '\n' + payload.notification.body : '');
+                    showSuccessToast(message);
                 }
 
                 // Refresh status if needed
-                if (payload.data?.status) {
+                if (payload.data?.type === 'accepted' || payload.data?.type === 'completed') {
+                    console.log('🔄 Refreshing status due to FCM notification');
                     loadRequestStatus();
                 }
             });
 
             if (Notification.permission === 'granted') {
                 // Bildirim izni varsa, token'ı kaydet
+                console.log('✅ Notification permission granted, registering token');
                 await guestNotificationManager.requestPermissionAndGetToken(requestId);
+            } else {
+                console.log('⚠️ Notification permission not granted:', Notification.permission);
             }
+        } else {
+            console.warn('⚠️ Guest Notification Manager failed to initialize');
         }
     } catch (error) {
         console.error('❌ [FCM] Init error:', error);
     }
     
     checkNotificationPermission();
-    setInterval(loadRequestStatus, 10000); // Poll every 10 seconds
+    
+    // Poll every 10 seconds as fallback
+    setInterval(loadRequestStatus, 10000);
 });
 
 function checkNotificationPermission() {
@@ -808,34 +821,51 @@ function updateToCompleted(request) {
 }
 
 function connectWebSocket() {
-    if (typeof io === 'undefined') return;
+    if (typeof io === 'undefined') {
+        console.warn('Socket.IO not available');
+        return;
+    }
 
     socket = io();
+    
     socket.on('connect', function() {
+        console.log('✅ WebSocket connected');
         socket.emit('join_request', {request_id: requestId});
     });
 
+    socket.on('disconnect', function() {
+        console.log('❌ WebSocket disconnected');
+    });
+
+    // Talep kabul edildi
     socket.on('request_accepted', function(data) {
-        if (data.request_id === requestId) {
+        console.log('📡 WebSocket: request_accepted received', data);
+        
+        if (data.request_id === requestId || data.request_id == requestId) {
+            console.log('✅ Request accepted for this guest');
             loadRequestStatus();
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('Talep İşleme Alındı!', {
-                    body: 'Shuttle yola çıktı',
-                    icon: '/static/icons/Icon-192.png'
-                });
-            }
+            showSuccessToast('🎉 Shuttle kabul edildi! Size doğru geliyor...');
         }
     });
 
+    // Talep tamamlandı
     socket.on('request_completed', function(data) {
-        if (data.request_id === requestId) {
+        console.log('📡 WebSocket: request_completed received', data);
+        
+        if (data.request_id === requestId || data.request_id == requestId) {
+            console.log('✅ Request completed for this guest');
             loadRequestStatus();
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('Mutlu Günler Dileriz...', {
-                    body: 'Shuttle Call',
-                    icon: '/static/icons/Icon-192.png'
-                });
-            }
+            showSuccessToast('✅ Shuttle ulaştı! İyi yolculuklar...');
+        }
+    });
+
+    // Genel status değişikliği
+    socket.on('request_status_changed', function(data) {
+        console.log('📡 WebSocket: request_status_changed received', data);
+        
+        if (data.request && (data.request.id === requestId || data.request.id == requestId)) {
+            console.log('✅ Status changed for this guest');
+            loadRequestStatus();
         }
     });
 }

@@ -37,136 +37,161 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     """
-    ✅ PERFORMANS OPTİMİZE: Hızlı disconnect - cleanup async
+    ✅ RACE CONDITION FIX: Critical DB updates sync, notifications async
     Handle client disconnection - Auto-terminate driver sessions
     """
     print(f'Client disconnected: {request.sid}')
-    
+
     # Get user_id from global mapping (set in join_user)
     user_id = ws_connections.get(request.sid)
-    
+
     # Fallback to Flask session
     if not user_id:
         user_id = session.get('ws_user_id') or session.get('user_id')
-    
+
     if not user_id:
         print(f'No user_id found for SID: {request.sid}')
         return
-    
+
     # ✅ Connection mapping'i hemen temizle
     if request.sid in ws_connections:
         del ws_connections[request.sid]
         print(f'Cleaned up connection mapping for SID: {request.sid}')
-    
-    # ✅ Ağır işlemleri background'da yap
-    from threading import Thread
-    Thread(target=_handle_driver_disconnect_async, 
-           args=(user_id,), 
-           daemon=True).start()
-    
-    print(f'[DISCONNECT] Cleanup started in background for user {user_id}')
+
+    # ✅ RACE CONDITION FIX: Database update SYNCHRONOUSLY to prevent race condition
+    # Only audit/notifications go to background thread
+    buggy_data = _update_driver_status_sync(user_id)
+
+    # ✅ Background thread only for non-critical tasks (audit, notifications)
+    if buggy_data:
+        from threading import Thread
+        Thread(target=_handle_driver_disconnect_async,
+               args=(user_id, buggy_data),
+               daemon=True).start()
+        print(f'[DISCONNECT] Notifications queued in background for user {user_id}')
+    else:
+        print(f'[DISCONNECT] No active buggy for user {user_id}')
 
 
-def _handle_driver_disconnect_async(user_id):
+def _update_driver_status_sync(user_id):
     """
-    Background'da driver disconnect işlemleri
-    Bu fonksiyon async çalışır, disconnect anında dönüş yapar
+    ✅ RACE CONDITION FIX: Synchronous database update
+    Immediately set buggy to OFFLINE when driver disconnects
+    Returns buggy_data dict for async notification, or None if no active buggy
     """
     try:
-        from app import create_app
-        app = create_app()
-        
-        with app.app_context():
-            # Get user from database
-            user = SystemUser.query.get(user_id)
-            
-            # Only process for drivers
-            if not user or user.role != UserRole.DRIVER:
-                print(f'[DISCONNECT_ASYNC] User {user_id} is not a driver, skipping')
-                return
-            
-            print(f'[DISCONNECT_ASYNC] Processing disconnect for driver: {user.username} (ID: {user_id})')
-            
-            # Find driver's active buggy using BuggyDriver table
-            from app.models.buggy_driver import BuggyDriver
-            from app.models.buggy import Buggy
-            
-            active_buggy_assoc = BuggyDriver.query.filter_by(
-                driver_id=user_id,
-                is_active=True
-            ).first()
-            
-            if active_buggy_assoc:
-                buggy = Buggy.query.get(active_buggy_assoc.buggy_id)
-                
-                if buggy:
-                    # Deactivate driver association
-                    active_buggy_assoc.is_active = False
-                    print(f'[DISCONNECT_ASYNC] Deactivated driver association for buggy_id={buggy.id}')
-                    
-                    # Set buggy to OFFLINE and clear location
-                    buggy.status = BuggyStatus.OFFLINE
-                    buggy.current_location_id = None  # Clear location on disconnect
-                    buggy_id = buggy.id
-                    buggy_code = buggy.code
-                    hotel_id = buggy.hotel_id
-                    
-                    # Commit changes
-                    db.session.commit()
-                    
-                    print(f'[DISCONNECT_ASYNC] Buggy {buggy_code} set to OFFLINE')
-                    
-                    # Log audit trail
-                    AuditService.log_action(
-                        action='driver_disconnected',
-                        entity_type='buggy',
-                        entity_id=buggy_id,
-                        user_id=user_id,
-                        hotel_id=hotel_id,
-                        new_values={
-                            'reason': 'connection_lost',
-                            'buggy_code': buggy_code,
-                            'driver_name': user.username,
-                            'status': 'offline'
-                        }
-                    )
-                    
-                    # Emit WebSocket event to admin panel
-                    from app import socketio
-                    room_name = f'hotel_{hotel_id}_admin'
-                    event_data = {
-                        'buggy_id': buggy_id,
-                        'buggy_code': buggy_code,
-                        'buggy_icon': buggy.icon,
-                        'driver_id': None,
-                        'driver_name': None,
-                        'location_name': None,
-                        'status': 'offline',
-                        'reason': 'connection_lost'
-                    }
-                    
-                    print(f'[DISCONNECT_ASYNC] Emitting buggy_status_changed to room: {room_name}')
-                    print(f'[DISCONNECT_ASYNC] Event data: {event_data}')
-                    
-                    socketio.emit('buggy_status_changed', event_data, room=room_name, namespace='/')
-                    
-                    print(f'[DISCONNECT_ASYNC] ✅ Emitted buggy_status_changed event successfully')
-                    print(f'[DISCONNECT_ASYNC] Driver {user.username} disconnected - Buggy {buggy_code} set to OFFLINE')
-                else:
-                    db.session.commit()
-                    print(f'[DISCONNECT_ASYNC] Buggy not found for driver {user.username}')
-            else:
-                db.session.commit()
-                print(f'[DISCONNECT_ASYNC] Driver {user.username} disconnected (no active buggy assignment)')
-                
+        # Get user from database
+        user = SystemUser.query.get(user_id)
+
+        # Only process for drivers
+        if not user or user.role != UserRole.DRIVER:
+            print(f'[DISCONNECT_SYNC] User {user_id} is not a driver, skipping')
+            return None
+
+        print(f'[DISCONNECT_SYNC] Processing disconnect for driver: {user.username} (ID: {user_id})')
+
+        # Find driver's active buggy using BuggyDriver table
+        from app.models.buggy_driver import BuggyDriver
+        from app.models.buggy import Buggy
+
+        active_buggy_assoc = BuggyDriver.query.filter_by(
+            driver_id=user_id,
+            is_active=True
+        ).first()
+
+        if not active_buggy_assoc:
+            print(f'[DISCONNECT_SYNC] Driver {user.username} has no active buggy assignment')
+            return None
+
+        buggy = Buggy.query.get(active_buggy_assoc.buggy_id)
+
+        if not buggy:
+            print(f'[DISCONNECT_SYNC] Buggy not found for driver {user.username}')
+            return None
+
+        # ✅ CRITICAL: Update database immediately to prevent race condition
+        # Deactivate driver association
+        active_buggy_assoc.is_active = False
+        print(f'[DISCONNECT_SYNC] Deactivated driver association for buggy_id={buggy.id}')
+
+        # Set buggy to OFFLINE and clear location
+        buggy.status = BuggyStatus.OFFLINE
+        buggy.current_location_id = None  # Clear location on disconnect
+
+        # Commit changes IMMEDIATELY
+        db.session.commit()
+
+        print(f'[DISCONNECT_SYNC] ✅ Buggy {buggy.code} set to OFFLINE (database updated)')
+
+        # Return data for async notification
+        return {
+            'buggy_id': buggy.id,
+            'buggy_code': buggy.code,
+            'buggy_icon': buggy.icon,
+            'hotel_id': buggy.hotel_id,
+            'driver_name': user.username
+        }
+
     except Exception as e:
-        print(f'[DISCONNECT_ASYNC] Error handling disconnect for user {user_id}: {str(e)}')
+        print(f'[DISCONNECT_SYNC] Error updating driver status: {str(e)}')
         import traceback
         traceback.print_exc()
         try:
             db.session.rollback()
         except:
             pass
+        return None
+
+
+def _handle_driver_disconnect_async(user_id, buggy_data):
+    """
+    ✅ RACE CONDITION FIX: Background notification and audit only
+    Database already updated synchronously in _update_driver_status_sync
+    This function only handles non-critical tasks: audit logs and WebSocket notifications
+    """
+    try:
+        from app import create_app
+        app = create_app()
+
+        with app.app_context():
+            # Log audit trail
+            AuditService.log_action(
+                action='driver_disconnected',
+                entity_type='buggy',
+                entity_id=buggy_data['buggy_id'],
+                user_id=user_id,
+                hotel_id=buggy_data['hotel_id'],
+                new_values={
+                    'reason': 'connection_lost',
+                    'buggy_code': buggy_data['buggy_code'],
+                    'driver_name': buggy_data['driver_name'],
+                    'status': 'offline'
+                }
+            )
+
+            # Emit WebSocket event to admin panel
+            from app import socketio
+            room_name = f'hotel_{buggy_data["hotel_id"]}_admin'
+            event_data = {
+                'buggy_id': buggy_data['buggy_id'],
+                'buggy_code': buggy_data['buggy_code'],
+                'buggy_icon': buggy_data['buggy_icon'],
+                'driver_id': None,
+                'driver_name': None,
+                'location_name': None,
+                'status': 'offline',
+                'reason': 'connection_lost'
+            }
+
+            print(f'[DISCONNECT_ASYNC] Emitting buggy_status_changed to room: {room_name}')
+            socketio.emit('buggy_status_changed', event_data, room=room_name, namespace='/')
+
+            print(f'[DISCONNECT_ASYNC] ✅ Notifications sent for Buggy {buggy_data["buggy_code"]}')
+
+    except Exception as e:
+        print(f'[DISCONNECT_ASYNC] Error sending notifications for user {user_id}: {str(e)}')
+        import traceback
+        traceback.print_exc()
 
 
 @socketio.on('join_hotel')

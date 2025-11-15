@@ -31,11 +31,14 @@ class Config:
     SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = DEBUG
+    # ✅ CONNECTION POOL OPTIMIZATION: Increased for high-traffic hotel environments
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 10,
-        'pool_recycle': 3600,
-        'pool_pre_ping': True,
-        'max_overflow': 20
+        'pool_size': 20,  # Base pool (was 10)
+        'pool_recycle': 3600,  # Recycle connections after 1 hour
+        'pool_pre_ping': True,  # Test connections before use
+        'max_overflow': 40,  # Additional connections (was 20) - Total: 60 connections
+        'pool_timeout': 30,  # Wait 30s for connection before timeout
+        'echo_pool': False  # Don't log pool events (performance)
     }
     
     # JWT Configuration
@@ -155,13 +158,14 @@ class ProductionConfig(Config):
     # Stricter rate limits for production
     RATELIMIT_DEFAULT = "50 per hour"
     
-    # Production-specific SQLAlchemy settings
+    # ✅ CONNECTION POOL OPTIMIZATION: Production settings for high-traffic
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 10,
-        'pool_recycle': 3600,
-        'pool_pre_ping': True,
-        'max_overflow': 5,
-        'pool_timeout': 30
+        'pool_size': 30,  # Larger base pool for production (was 10)
+        'pool_recycle': 3600,  # Recycle connections after 1 hour
+        'pool_pre_ping': True,  # Test connections before use (essential for production)
+        'max_overflow': 60,  # Higher overflow for traffic spikes (was 5) - Total: 90 connections
+        'pool_timeout': 30,  # Wait 30s for connection
+        'echo_pool': False  # Don't log pool events (performance)
     }
     
     # Use threading for production (gevent requires additional setup)

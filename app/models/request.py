@@ -40,6 +40,8 @@ class BuggyRequest(db.Model, BaseModel):
     notes = Column(Text)
     guest_device_id = Column(Text)  # ⚠️ DEPRECATED - No longer used for privacy. Always NULL.
     guest_push_subscription = Column(Text)  # Web Push API subscription (JSON)
+    guest_fcm_token = Column(String(500))  # Firebase Cloud Messaging token for guest notifications
+    guest_fcm_token_expires_at = Column(DateTime)  # FCM token expiration timestamp (TTL: 1 hour)
     status = Column(Enum(RequestStatus), default=RequestStatus.PENDING, nullable=False, index=True)
     cancelled_by = Column(String(50))  # 'driver', 'guest', 'admin'
     

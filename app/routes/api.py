@@ -850,63 +850,53 @@ def get_drivers():
 
 @api_bp.route('/drivers/active', methods=['GET'])
 def get_active_drivers():
-    """Get active drivers with their buggies (No auth required for guest debugging)"""
+    """✅ N+1 FIX: Get active drivers with their buggies (No auth required for guest debugging)"""
     try:
         hotel_id = request.args.get('hotel_id', 1, type=int)
         notify_param = request.args.get('notify', 'false')
         notify = notify_param.lower() == 'true' if notify_param else False
-        
+
         from app.models.buggy import Buggy, BuggyStatus
         from app.models.buggy_driver import BuggyDriver
         from app.models.location import Location
-        
+
         # DEBUG: Tüm buggy'leri kontrol et
         all_buggies = Buggy.query.filter_by(hotel_id=hotel_id).all()
         print(f'\n🔍 [DEBUG] Hotel {hotel_id} - Total Buggies: {len(all_buggies)}')
         for b in all_buggies:
             print(f'   Buggy {b.code}: status={b.status.value}, location={b.current_location_id}')
-        
-        # Müsait buggy'leri bul
-        available_buggies = Buggy.query.filter_by(
-            hotel_id=hotel_id,
-            status=BuggyStatus.AVAILABLE
+
+        # ✅ N+1 FIX: Single query to get all active assignments
+        # Note: Buggy is already joined, so we get it in the same query
+        # Driver will be lazy-loaded but only once per unique driver
+        active_assignments = BuggyDriver.query.join(
+            Buggy, BuggyDriver.buggy_id == Buggy.id
+        ).filter(
+            Buggy.hotel_id == hotel_id,
+            Buggy.status == BuggyStatus.AVAILABLE,
+            BuggyDriver.is_active == True
         ).all()
-        
-        print(f'🟢 [DEBUG] Available Buggies: {len(available_buggies)}')
-        
+
+        print(f'🟢 [DEBUG] Available Buggies with Active Assignments: {len(active_assignments)}')
+
         active_drivers = []
-        
-        for buggy in available_buggies:
-            # Aktif sürücü atamalarını bul
-            print(f'   🔍 Checking Buggy {buggy.code} (ID: {buggy.id})')
-            
-            # Tüm assignment'ları kontrol et (debug için)
-            all_assignments = BuggyDriver.query.filter_by(buggy_id=buggy.id).all()
-            print(f'      Total assignments: {len(all_assignments)}')
-            for a in all_assignments:
-                print(f'         - Driver ID: {a.driver_id}, is_active: {a.is_active}')
-            
-            active_assignments = BuggyDriver.query.filter_by(
-                buggy_id=buggy.id,
-                is_active=True
-            ).all()
-            
-            print(f'   ✅ Active assignments: {len(active_assignments)}')
-            
-            for assignment in active_assignments:
-                driver = SystemUser.query.get(assignment.driver_id)
-                if driver:
-                    print(f'      ✅ Driver: {driver.full_name or driver.username}, FCM: {bool(driver.fcm_token)}')
-                    active_drivers.append({
-                        'driver_id': driver.id,
-                        'driver_name': driver.full_name or driver.username,
-                        'buggy_id': buggy.id,
-                        'buggy_code': buggy.code,
-                        'buggy_icon': buggy.icon,
-                        'buggy_status': buggy.status.value,
-                        'has_fcm_token': bool(driver.fcm_token),
-                        'last_active': assignment.last_active_at.isoformat() if assignment.last_active_at else None
-                    })
+
+        for assignment in active_assignments:
+            buggy = assignment.buggy
+            driver = assignment.driver
+
+            if buggy and driver:
+                print(f'   ✅ Buggy {buggy.code}, Driver: {driver.full_name or driver.username}, FCM: {bool(driver.fcm_token)}')
+                active_drivers.append({
+                    'driver_id': driver.id,
+                    'driver_name': driver.full_name or driver.username,
+                    'buggy_id': buggy.id,
+                    'buggy_code': buggy.code,
+                    'buggy_icon': buggy.icon,
+                    'buggy_status': buggy.status.value,
+                    'has_fcm_token': bool(driver.fcm_token),
+                    'last_active': assignment.last_active_at.isoformat() if assignment.last_active_at else None
+                })
         
         print(f'👥 [DEBUG] Total Active Drivers: {len(active_drivers)}\n')
         
@@ -1186,10 +1176,12 @@ def accept_request(request_id):
         
         # Guest'e FCM bildirimi gönder
         try:
-            from app.routes.guest_notification_api import GUEST_FCM_TOKENS
+            from app.routes.guest_notification_api import get_guest_token
             import requests
-            
-            token_data = GUEST_FCM_TOKENS.get(request_id)
+
+            # ✅ Use database-backed token retrieval
+            guest_token = get_guest_token(request_id)
+            token_data = {'token': guest_token} if guest_token else None
             if token_data:
                 # FCM bildirimi gönder
                 fcm_url = 'https://fcm.googleapis.com/fcm/send'
@@ -1870,24 +1862,25 @@ def close_driver_session(driver_id):
         if driver.role != UserRole.DRIVER:
             return jsonify({'error': 'Kullanıcı sürücü değil'}), 400
         
-        # Close all active BuggyDriver associations and set buggies offline
+        # ✅ N+1 QUERY FIX: Close all active BuggyDriver associations and set buggies offline
         from app.models.buggy_driver import BuggyDriver
         from app.models.buggy import Buggy
-        
+        # ✅ N+1 FIX: Query active buggy associations for driver
+        # Buggy will be loaded via backref when accessed
         active_buggy_drivers = BuggyDriver.query.filter_by(
             driver_id=driver_id,
             is_active=True
         ).all()
-        
+
         buggy_ids = []
         for assoc in active_buggy_drivers:
             # Deactivate driver association
             from app.models import get_current_timestamp
             assoc.is_active = False
             assoc.last_active_at = get_current_timestamp()
-            
-            # Set buggy to offline and clear location
-            buggy = Buggy.query.get(assoc.buggy_id)
+
+            # ✅ N+1 FIX: Use eager-loaded buggy instead of separate query
+            buggy = assoc.buggy
             if buggy:
                 buggy.status = BuggyStatus.OFFLINE
                 buggy.current_location_id = None  # Clear location when admin closes session

@@ -5,28 +5,34 @@ Many-to-many relationship between buggies and drivers
 from app import db
 from app.models import BaseModel, get_current_timestamp
 from sqlalchemy import Column, Integer, ForeignKey, DateTime, Boolean
+from sqlalchemy.orm import relationship
 
 
 class BuggyDriver(db.Model, BaseModel):
-    """Association table for buggy-driver many-to-many relationship"""
-    
+    """✅ N+1 FIX: Association table for buggy-driver many-to-many relationship"""
+
     __tablename__ = 'buggy_drivers'
-    
+
     # Primary Key
     id = Column(Integer, primary_key=True, autoincrement=True)
-    
+
     # Foreign Keys
     buggy_id = Column(Integer, ForeignKey('buggies.id', ondelete='CASCADE'), nullable=False, index=True)
     driver_id = Column(Integer, ForeignKey('system_users.id', ondelete='CASCADE'), nullable=False, index=True)
-    
+
     # Status
     is_active = Column(Boolean, default=False, nullable=False, index=True)  # Currently logged in
     is_primary = Column(Boolean, default=False, nullable=False)  # Primary driver for this buggy
-    
+
     # Timestamps
     assigned_at = Column(DateTime, default=get_current_timestamp, nullable=False)
     last_active_at = Column(DateTime)
-    
+
+    # ✅ N+1 FIX: Relationships are automatically created via backrefs
+    # - 'buggy' relationship is created via backref in Buggy.driver_associations
+    # - 'driver' relationship is created via backref in SystemUser.buggy_associations
+    # No need to define them here to avoid conflicts
+
     # Unique constraint: one driver can be assigned to one buggy at a time
     __table_args__ = (
         db.UniqueConstraint('buggy_id', 'driver_id', name='uq_buggy_driver'),

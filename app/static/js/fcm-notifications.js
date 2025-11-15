@@ -9,9 +9,10 @@ class FCMNotificationManager {
         this.messaging = null;
         this.currentToken = null;
         this.isSupported = false;
-        
-        // Firebase Config (Firebase Console'dan alınmalı)
-        this.firebaseConfig = {
+
+        // ✅ FCM CONFIG SIMPLIFY: Use global config from firebase-config.js
+        this.firebaseConfig = window.firebaseConfig || {
+            // Fallback if firebase-config.js not loaded
             apiKey: "AIzaSyD5brCkHqSPVCtt0XJmUMqZizrjK_HX9dc",
             authDomain: "shuttle-call-835d9.firebaseapp.com",
             projectId: "shuttle-call-835d9",

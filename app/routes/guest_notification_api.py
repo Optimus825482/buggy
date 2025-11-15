@@ -6,7 +6,14 @@ Powered by Erkan ERDEM
 from flask import Blueprint, jsonify, request, current_app
 from app import db, csrf
 from app.models.request import BuggyRequest
-from datetime import datetime
+from app.constants import (
+    GUEST_TOKEN_TTL_SECONDS,
+    REQUEST_STATUS_MESSAGES,
+    ERROR_MESSAGES,
+    SUCCESS_MESSAGES,
+    HttpStatus
+)
+from datetime import datetime, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,112 +23,126 @@ guest_notification_api_bp = Blueprint('guest_notification_api', __name__)
 # CSRF exempt for API endpoints
 csrf.exempt(guest_notification_api_bp)
 
-# In-memory storage for guest FCM tokens (request_id -> token mapping)
-# Production'da Redis veya database kullanılmalı
-GUEST_FCM_TOKENS = {}
-
-# Token TTL configuration (1 hour)
-GUEST_TOKEN_TTL_SECONDS = 3600
-
 
 def cleanup_expired_guest_tokens():
     """
-    Expired guest FCM token'larını temizle
-    TTL'i dolmuş token'ları sil
+    ✅ DATABASE VERSION: Expired guest FCM token'larını temizle
+    TTL'i dolmuş token'ları database'den sil
     """
     try:
-        current_time = datetime.utcnow().replace(tzinfo=None).timestamp()
-        expired_tokens = []
-        
-        for request_id, token_data in list(GUEST_FCM_TOKENS.items()):
-            if token_data.get('expires_at', 0) < current_time:
-                expired_tokens.append(request_id)
-        
-        # Remove expired tokens
-        for request_id in expired_tokens:
-            del GUEST_FCM_TOKENS[request_id]
-            logger.info(f'🗑️ Expired guest FCM token removed: Request {request_id}')
-        
-        if expired_tokens:
-            logger.info(f'🧹 Cleaned up {len(expired_tokens)} expired guest FCM tokens')
-            
+        current_time = datetime.utcnow().replace(tzinfo=None)
+
+        # Find and clear expired tokens in database
+        expired_requests = BuggyRequest.query.filter(
+            BuggyRequest.guest_fcm_token.isnot(None),
+            BuggyRequest.guest_fcm_token_expires_at < current_time
+        ).all()
+
+        count = 0
+        for req in expired_requests:
+            req.guest_fcm_token = None
+            req.guest_fcm_token_expires_at = None
+            count += 1
+            logger.info(f'🗑️ Expired guest FCM token removed: Request {req.id}')
+
+        if count > 0:
+            db.session.commit()
+            logger.info(f'🧹 Cleaned up {count} expired guest FCM tokens from database')
+
     except Exception as e:
+        db.session.rollback()
         logger.error(f'❌ Error cleaning up expired tokens: {str(e)}')
 
 
 def get_guest_token(request_id: int) -> str:
     """
-    Guest FCM token'ını al (TTL kontrolü ile)
-    
+    ✅ DATABASE VERSION: Guest FCM token'ını al (TTL kontrolü ile)
+
     Args:
         request_id: Request ID
-    
+
     Returns:
         str: FCM token veya None
     """
-    token_data = GUEST_FCM_TOKENS.get(request_id)
-    
-    if not token_data:
+    try:
+        buggy_request = BuggyRequest.query.get(request_id)
+
+        if not buggy_request or not buggy_request.guest_fcm_token:
+            return None
+
+        # Check if expired
+        current_time = datetime.utcnow().replace(tzinfo=None)
+        if buggy_request.guest_fcm_token_expires_at and buggy_request.guest_fcm_token_expires_at < current_time:
+            logger.warning(f'⚠️ Guest FCM token expired for request {request_id}')
+            # Clear expired token
+            buggy_request.guest_fcm_token = None
+            buggy_request.guest_fcm_token_expires_at = None
+            db.session.commit()
+            return None
+
+        return buggy_request.guest_fcm_token
+
+    except Exception as e:
+        logger.error(f'❌ Error getting guest token: {str(e)}')
         return None
-    
-    # Check if expired
-    current_time = datetime.utcnow().replace(tzinfo=None).timestamp()
-    if token_data.get('expires_at', 0) < current_time:
-        logger.warning(f'⚠️ Guest FCM token expired for request {request_id}')
-        del GUEST_FCM_TOKENS[request_id]
-        return None
-    
-    return token_data.get('token')
 
 
 @guest_notification_api_bp.route('/guest/register-fcm-token', methods=['POST'])
 def register_guest_fcm_token():
     """
-    Guest kullanıcısının FCM token'ını kaydet
+    ✅ DATABASE VERSION: Guest kullanıcısının FCM token'ını kaydet
     """
     try:
         data = request.get_json()
-        
+
         if not data:
             return jsonify({
                 'success': False,
-                'message': 'Veri gönderilmedi'
-            }), 400
-        
+                'message': ERROR_MESSAGES['MISSING_FIELD'].format(field='Data')
+            }), HttpStatus.BAD_REQUEST
+
         token = data.get('token')
         request_id = data.get('request_id')
-        
+
         if not token:
             return jsonify({
                 'success': False,
-                'message': 'FCM token gerekli'
-            }), 400
-        
+                'message': ERROR_MESSAGES['MISSING_FIELD'].format(field='FCM token')
+            }), HttpStatus.BAD_REQUEST
+
         if not request_id:
             return jsonify({
                 'success': False,
-                'message': 'Request ID gerekli'
-            }), 400
-        
-        # Token'ı kaydet (request_id ile ilişkilendir) with TTL
+                'message': ERROR_MESSAGES['MISSING_FIELD'].format(field='Request ID')
+            }), HttpStatus.BAD_REQUEST
+
+        # Find the request
+        buggy_request = BuggyRequest.query.get(request_id)
+        if not buggy_request:
+            return jsonify({
+                'success': False,
+                'message': ERROR_MESSAGES['NOT_FOUND'].format(entity='Request')
+            }), HttpStatus.NOT_FOUND
+
+        # ✅ Store token in database with TTL
         current_utc = datetime.utcnow().replace(tzinfo=None)
-        GUEST_FCM_TOKENS[request_id] = {
-            'token': token,
-            'registered_at': current_utc,
-            'expires_at': current_utc.timestamp() + GUEST_TOKEN_TTL_SECONDS
-        }
-        
-        logger.info(f'✅ Guest FCM token registered for request {request_id} (TTL: {GUEST_TOKEN_TTL_SECONDS}s)')
-        
+        buggy_request.guest_fcm_token = token
+        buggy_request.guest_fcm_token_expires_at = current_utc + timedelta(seconds=GUEST_TOKEN_TTL_SECONDS)
+
+        db.session.commit()
+
+        logger.info(f'✅ Guest FCM token saved to database for request {request_id} (TTL: {GUEST_TOKEN_TTL_SECONDS}s)')
+
         # Cleanup expired tokens
         cleanup_expired_guest_tokens()
-        
+
         return jsonify({
             'success': True,
-            'message': 'FCM token başarıyla kaydedildi'
-        }), 200
-        
+            'message': SUCCESS_MESSAGES['TOKEN_REGISTERED']
+        }), HttpStatus.OK
+
     except Exception as e:
+        db.session.rollback()
         logger.error(f'❌ Error registering guest FCM token: {str(e)}')
         return jsonify({
             'success': False,
@@ -143,47 +164,36 @@ def send_guest_notification(request_id):
                 'success': False,
                 'message': 'Request bulunamadı'
             }), 404
-        
-        # FCM token'ı al
-        token_data = GUEST_FCM_TOKENS.get(request_id)
-        if not token_data:
+
+        # ✅ DATABASE VERSION: FCM token'ı al
+        fcm_token = get_guest_token(request_id)
+        if not fcm_token:
             logger.warning(f'⚠️ No FCM token found for request {request_id}')
             return jsonify({
                 'success': False,
                 'message': 'FCM token bulunamadı'
             }), 404
         
-        fcm_token = token_data['token']
-        
         # Bildirim içeriğini hazırla
         data = request.get_json() or {}
         notification_type = data.get('type', 'status_update')
         
-        # Status'a göre mesaj oluştur
-        status_messages = {
-            'accepted': {
-                'title': '🎉 Shuttle Kabul Edildi!',
-                'body': f'Shuttle size doğru geliyor. Buggy: {buggy_request.buggy.code if buggy_request.buggy else "N/A"}'
-            },
-            'in_progress': {
-                'title': '🚗 Shuttle Yolda!',
-                'body': 'Sürücü konumunuza yaklaşıyor'
-            },
-            'completed': {
-                'title': '✅ Shuttle Ulaştı!',
-                'body': 'İyi günler dileriz'
-            },
-            'cancelled': {
-                'title': '❌ Talep İptal Edildi',
-                'body': 'Shuttle talebiniz iptal edildi'
-            }
-        }
-        
+        # ✅ CODE REFACTORING: Use centralized status messages
         status = buggy_request.status.value if hasattr(buggy_request.status, 'value') else str(buggy_request.status)
-        message_data = status_messages.get(status, {
+        status_lower = status.lower() if status else 'pending'
+
+        # Get message template from constants
+        message_template = REQUEST_STATUS_MESSAGES.get(status_lower, {
             'title': 'Shuttle Call',
             'body': 'Talep durumunuz güncellendi'
         })
+
+        # Format message with actual data
+        buggy_code = buggy_request.buggy.code if buggy_request.buggy else "N/A"
+        message_data = {
+            'title': message_template['title'],
+            'body': message_template['body'].format(buggy_code=buggy_code) if '{buggy_code}' in message_template['body'] else message_template['body']
+        }
         
         # FCM bildirimi gönder
         try:
@@ -349,22 +359,31 @@ def test_guest_notification():
 @guest_notification_api_bp.route('/guest/debug-tokens', methods=['GET'])
 def debug_tokens():
     """
-    Kayıtlı FCM token'ları göster (debug için)
+    ✅ DATABASE VERSION: Kayıtlı FCM token'ları göster (debug için)
     """
     try:
+        # Query all requests with active FCM tokens
+        current_time = datetime.utcnow().replace(tzinfo=None)
+        active_tokens = BuggyRequest.query.filter(
+            BuggyRequest.guest_fcm_token.isnot(None),
+            BuggyRequest.guest_fcm_token_expires_at > current_time
+        ).all()
+
         tokens_info = {}
-        for req_id, token_data in GUEST_FCM_TOKENS.items():
-            tokens_info[req_id] = {
-                'token_preview': token_data['token'][:20] + '...',
-                'registered_at': token_data['registered_at']
+        for req in active_tokens:
+            tokens_info[req.id] = {
+                'token_preview': req.guest_fcm_token[:20] + '...' if req.guest_fcm_token else 'N/A',
+                'expires_at': req.guest_fcm_token_expires_at.isoformat() if req.guest_fcm_token_expires_at else None,
+                'status': req.status.value if req.status else None,
+                'guest_name': req.guest_name
             }
-        
+
         return jsonify({
             'success': True,
-            'total_tokens': len(GUEST_FCM_TOKENS),
+            'total_tokens': len(active_tokens),
             'tokens': tokens_info
         }), 200
-        
+
     except Exception as e:
         logger.error(f'❌ Debug tokens error: {str(e)}')
         return jsonify({

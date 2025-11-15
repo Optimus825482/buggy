@@ -1,45 +1,54 @@
 // Service Worker for Shuttle Call PWA - Optimized Version
-// Version 5.1.2 - Async Claim Fix
+// Version 5.2.0 - ✅ FRONTEND OPTIMIZATION: Enhanced Caching
 // Powered by Erkan ERDEM
 
-const CACHE_VERSION = 'shuttlecall-v5.1.2';
+const CACHE_VERSION = 'shuttlecall-v5.2.0';
 const CACHE_NAME = `${CACHE_VERSION}-cache`;
+const STATIC_CACHE = `${CACHE_VERSION}-static`;
+const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
 // Offline sayfası için cache
 const OFFLINE_URL = '/offline';
+
+// ✅ FRONTEND OPTIMIZATION: Expanded cache list
+const STATIC_ASSETS = [
+  '/static/icons/Icon-192.png',
+  '/static/icons/Icon-96.png',
+  '/static/css/main.css',
+  '/static/css/modern.css',
+  '/static/css/professional.css',
+  '/static/css/variables.css',
+  '/static/js/firebase-config.js',
+  '/static/js/common.js',
+  '/static/manifest.json'
+];
 
 // ============================================================================
 // INSTALLATION
 // ============================================================================
 
 self.addEventListener('install', (event) => {
-  console.log('[SW v5.1] Installing Service Worker');
-  
+  console.log('[SW v5.2] ✅ Installing Service Worker with enhanced caching');
+
   event.waitUntil(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      console.log('[SW] Caching offline resources');
-      
-      // Her dosyayı tek tek cache'le - hata olursa devam et
-      const urlsToCache = [
-        '/static/icons/Icon-192.png',
-        '/static/css/main.css'
-      ];
-      
-      for (const url of urlsToCache) {
+    caches.open(STATIC_CACHE).then(async (cache) => {
+      console.log('[SW] Caching static assets');
+
+      // Cache static assets with error handling
+      for (const url of STATIC_ASSETS) {
         try {
           const response = await fetch(url);
           if (response.ok) {
             await cache.put(url, response);
-            console.log('[SW] Cached:', url);
+            console.log('[SW] ✅ Cached:', url);
           }
         } catch (err) {
-          console.warn('[SW] Failed to cache:', url, err.message);
+          console.warn('[SW] ⚠️ Failed to cache:', url, err.message);
         }
       }
-      
+
       console.log('[SW] Installation complete');
     })
-    // skipWaiting() kaldırıldı - sadece mesaj geldiğinde aktif olacak
   );
 });
 
@@ -48,28 +57,27 @@ self.addEventListener('install', (event) => {
 // ============================================================================
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW v5.1] Activating Service Worker');
-  
+  console.log('[SW v5.2] ✅ Activating Service Worker');
+
   event.waitUntil(
     (async () => {
       try {
-        // Önce eski cache'leri temizle
+        // Clean up old caches
         const cacheNames = await caches.keys();
         await Promise.all(
           cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
-              console.log(`[SW] Deleting old cache: ${cacheName}`);
+            if (!cacheName.startsWith(CACHE_VERSION)) {
+              console.log(`[SW] 🗑️ Deleting old cache: ${cacheName}`);
               return caches.delete(cacheName);
             }
           })
         );
-        
-        // Cache temizliği bittikten SONRA claim yap
-        console.log('[SW v5.1] Activation complete, claiming clients');
+
+        // Claim clients after cache cleanup
+        console.log('[SW v5.2] ✅ Activation complete, claiming clients');
         await self.clients.claim();
       } catch (error) {
-        console.warn('[SW] Activation error:', error);
-        // Hata olsa bile devam et
+        console.warn('[SW] ⚠️ Activation error:', error);
       }
     })()
   );

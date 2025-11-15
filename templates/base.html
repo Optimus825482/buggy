@@ -55,6 +55,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive-fix.css') }}">
     {% block extra_css %}{% endblock %}
 
+    <!-- ✅ FCM CONFIG SIMPLIFY: Global Firebase configuration -->
+    <script src="{{ url_for('static', filename='js/firebase-config.js') }}"></script>
+
     <title>{% block title %}Shuttle Call{% endblock %} - {{ app_name }}</title>
 </head>
 

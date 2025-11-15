@@ -360,9 +360,11 @@ const DriverDashboard = {
     initSocket() {
         if (typeof io === 'undefined') {
             console.error('Socket.IO not loaded');
+            // ✅ FALLBACK: Start polling if WebSocket not available
+            this.startPollingFallback();
             return;
         }
-        
+
         // Initialize Socket.IO with polling first to avoid WebSocket frame errors
         this.socket = io({
             transports: ['polling', 'websocket'],  // Polling önce, sonra WebSocket
@@ -373,12 +375,32 @@ const DriverDashboard = {
             withCredentials: true,  // ✅ Cookie'leri gönder (session için gerekli)
             autoConnect: true
         });
-        
+
+        // ✅ ERROR HANDLING: Connection error
+        this.socket.on('connect_error', (error) => {
+            console.error('❌ WebSocket connection error:', error.message);
+            this.updateConnectionStatus('error');
+            // Fallback to polling after 3 failed attempts
+            if (!this._pollingFallbackStarted && this.socket.io.reconnectionAttempts >= 3) {
+                console.warn('⚠️ Starting polling fallback after connection errors');
+                this.startPollingFallback();
+            }
+        });
+
+        // ✅ ERROR HANDLING: Reconnection failed
+        this.socket.on('reconnect_failed', () => {
+            console.error('❌ WebSocket reconnection failed - switching to polling');
+            this.updateConnectionStatus('disconnected');
+            this.startPollingFallback();
+        });
+
         // Join hotel drivers room and user-specific room
         this.socket.on('connect', () => {
             console.log('✅ Socket connected');
             this.updateConnectionStatus('connected');
-            
+            // ✅ Stop polling if WebSocket connected
+            this.stopPollingFallback();
+
             this.socket.emit('join_hotel', {
                 hotel_id: this.hotelId,
                 role: 'driver'
@@ -388,12 +410,12 @@ const DriverDashboard = {
                 user_id: this.userId
             });
         });
-        
+
         this.socket.on('disconnect', () => {
             console.log('❌ Socket disconnected');
             this.updateConnectionStatus('disconnected');
         });
-        
+
         this.socket.on('reconnecting', (attemptNumber) => {
             console.log(`🔄 Reconnecting... (attempt ${attemptNumber})`);
             this.updateConnectionStatus('connecting');
@@ -1617,12 +1639,12 @@ const DriverDashboard = {
     updateConnectionStatus(status) {
         const statusElement = document.getElementById('connection-status');
         const textElement = document.getElementById('connection-text');
-        
+
         if (!statusElement || !textElement) return;
-        
-        // Remove all status classes
-        statusElement.classList.remove('connected', 'disconnected', 'connecting');
-        
+
+        // ✅ ERROR HANDLING: Remove all status classes including new ones
+        statusElement.classList.remove('connected', 'disconnected', 'connecting', 'error', 'polling');
+
         // Add new status class and update text
         switch(status) {
             case 'connected':
@@ -1636,6 +1658,14 @@ const DriverDashboard = {
             case 'connecting':
                 statusElement.classList.add('connecting');
                 textElement.innerHTML = '<i class="fas fa-sync fa-spin"></i> Bağlanıyor...';
+                break;
+            case 'error':
+                statusElement.classList.add('error');
+                textElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Bağlantı Hatası';
+                break;
+            case 'polling':
+                statusElement.classList.add('polling');
+                textElement.innerHTML = '<i class="fas fa-sync fa-spin"></i> Yedek Mod (Polling)';
                 break;
         }
     },
@@ -1731,6 +1761,47 @@ const DriverDashboard = {
             });
         } catch (error) {
             console.error('Error playing alert sound:', error);
+        }
+    },
+
+    /**
+     * ✅ POLLING FALLBACK: Start polling when WebSocket fails
+     */
+    startPollingFallback() {
+        if (this._pollingFallbackStarted) {
+            return; // Already started
+        }
+
+        console.warn('🔄 Starting polling fallback (WebSocket unavailable)');
+        this._pollingFallbackStarted = true;
+        this.updateConnectionStatus('polling');
+
+        // Poll for pending requests every 5 seconds
+        this._pollingInterval = setInterval(async () => {
+            try {
+                await this.loadPendingRequests();
+            } catch (error) {
+                console.error('Polling error:', error);
+            }
+        }, 5000);
+
+        console.log('✅ Polling fallback started (5s interval)');
+    },
+
+    /**
+     * ✅ POLLING FALLBACK: Stop polling when WebSocket reconnects
+     */
+    stopPollingFallback() {
+        if (!this._pollingFallbackStarted) {
+            return;
+        }
+
+        console.log('⏹️ Stopping polling fallback (WebSocket connected)');
+        this._pollingFallbackStarted = false;
+
+        if (this._pollingInterval) {
+            clearInterval(this._pollingInterval);
+            this._pollingInterval = null;
         }
     }
 };

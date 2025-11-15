@@ -38,26 +38,27 @@ def cleanup_expired_driver_sessions():
 
 def cleanup_inactive_drivers():
     """
-    Cleanup buggies for drivers who haven't been active
+    ✅ N+1 QUERY FIX: Cleanup buggies for drivers who haven't been active
     This should be called periodically (e.g., via cron or background task)
     """
     from datetime import timedelta
-    
-    # Find all active driver associations
+
+    # ✅ N+1 FIX: Query active associations
+    # Note: Buggy will be loaded via backref when accessed
     active_associations = BuggyDriver.query.filter_by(is_active=True).all()
-    
+
     for assoc in active_associations:
         # If driver hasn't been active in last 5 minutes, consider them disconnected
         if assoc.last_active_at:
             time_since_active = datetime.utcnow() - assoc.last_active_at
             if time_since_active > timedelta(minutes=5):
                 print(f'[SESSION_CLEANUP] Driver {assoc.driver_id} inactive for {time_since_active}, cleaning up buggy {assoc.buggy_id}')
-                
+
                 # Deactivate driver
                 assoc.is_active = False
-                
-                # Set buggy to offline and clear location
-                buggy = Buggy.query.get(assoc.buggy_id)
+
+                # ✅ N+1 FIX: Use eager-loaded buggy instead of separate query
+                buggy = assoc.buggy
                 if buggy:
                     buggy.status = BuggyStatus.OFFLINE
                     buggy.current_location_id = None

@@ -266,35 +266,73 @@ class RequestService:
         
         # Guest'e FCM bildirimi gönder - Socket.IO kaldırıldı
         try:
-            from app.routes.guest_notification_api import GUEST_FCM_TOKENS, send_fcm_http_notification
-            
-            token_data = GUEST_FCM_TOKENS.get(request_id)
-            if token_data:
+            from app.routes.guest_notification_api import get_guest_token, send_fcm_http_notification
+
+            guest_token = get_guest_token(request_id)
+            if guest_token:
                 message_data = {
                     'title': '🎉 Shuttle Kabul Edildi!',
                     'body': f'Shuttle size doğru geliyor. Buggy: {buggy.code}'
                 }
+
+                # Direkt FCM gönder - request_id ve type ekle
+                result = send_fcm_http_notification(
+                    guest_token, 
+                    message_data, 
+                    'accepted', 
+                    request_id=request_id
+                )
                 
-                # Direkt FCM gönder - request_id ekle
-                send_fcm_http_notification(token_data['token'], message_data, 'accepted', request_id=request_id)
-                logger.info(f"✅ Guest FCM bildirimi gönderildi - Request ID: {request_id}")
+                if result:
+                    logger.info(f"✅ Guest FCM bildirimi gönderildi - Request ID: {request_id}")
+                    log_fcm_event('GUEST_NOTIFIED', request_id, {
+                        'type': 'accepted',
+                        'buggy_code': buggy.code,
+                        'driver_id': driver_id
+                    })
+                else:
+                    logger.warning(f"⚠️ Guest FCM bildirimi gönderilemedi - Request ID: {request_id}")
             else:
                 logger.info(f"ℹ️ Guest FCM token bulunamadı - Request ID: {request_id}")
                 
         except Exception as e:
+            import traceback
             logger.error(f"❌ Guest FCM bildirim hatası: {str(e)}")
+            logger.error(traceback.format_exc())
         
         # WebSocket: Notify guest and dashboards
         try:
+            # Broadcast to all
             socketio.emit('request_accepted', {
                 'request_id': request_id,
                 'buggy_code': buggy.code,
                 'driver_name': request_obj.accepted_by_driver.full_name if request_obj.accepted_by_driver else 'Sürücü',
                 'hotel_id': request_obj.hotel_id
             })
-            logger.info(f"📡 WebSocket: request_accepted emitted for request {request_id}")
+            
+            # Notify guest room specifically
+            guest_room = f'request_{request_id}'
+            socketio.emit('request_accepted', {
+                'request_id': request_id,
+                'buggy_code': buggy.code,
+                'driver_name': request_obj.accepted_by_driver.full_name if request_obj.accepted_by_driver else 'Sürücü',
+                'hotel_id': request_obj.hotel_id
+            }, room=guest_room)
+            
+            # Notify admin room
+            admin_room = f'hotel_{request_obj.hotel_id}_admin'
+            socketio.emit('request_accepted', {
+                'request_id': request_id,
+                'buggy_code': buggy.code,
+                'driver_name': request_obj.accepted_by_driver.full_name if request_obj.accepted_by_driver else 'Sürücü',
+                'hotel_id': request_obj.hotel_id
+            }, room=admin_room)
+            
+            logger.info(f"📡 WebSocket: request_accepted emitted for request {request_id} to all rooms")
         except Exception as e:
+            import traceback
             logger.error(f"❌ WebSocket emit hatası: {str(e)}")
+            logger.error(traceback.format_exc())
         
         return request_obj
     
@@ -400,17 +438,17 @@ class RequestService:
         
         # Guest'e FCM bildirimi gönder - Socket.IO kaldırıldı
         try:
-            from app.routes.guest_notification_api import GUEST_FCM_TOKENS, send_fcm_http_notification
-            
-            token_data = GUEST_FCM_TOKENS.get(request_id)
-            if token_data:
+            from app.routes.guest_notification_api import get_guest_token, send_fcm_http_notification
+
+            guest_token = get_guest_token(request_id)
+            if guest_token:
                 message_data = {
                     'title': '✅ Shuttle Ulaştı!',
                     'body': 'Shuttle\'ınız hedefe ulaştı. İyi yolculuklar!'
                 }
-                
+
                 # Direkt FCM gönder - request_id ekle
-                send_fcm_http_notification(token_data['token'], message_data, 'completed', request_id=request_id)
+                send_fcm_http_notification(guest_token, message_data, 'completed', request_id=request_id)
                 logger.info(f"✅ Guest tamamlanma FCM bildirimi gönderildi - Request ID: {request_id}")
             else:
                 logger.info(f"ℹ️ Guest FCM token bulunamadı - Request ID: {request_id}")
