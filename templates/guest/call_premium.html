@@ -1685,27 +1685,46 @@ document.head.appendChild(animationStyles);
     // iOS kontrolü
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    
+
     if (isIOS && !isPWA) {
         console.log('[Guest] iOS detected - PWA required for notifications');
     }
-    
-    // Guest notification manager'ı başlat
+
+    // ✅ Guest notification manager instance oluştur ve başlat
+    if (!window.guestNotificationManager) {
+        window.guestNotificationManager = new GuestNotificationManager();
+    }
     const initialized = await window.guestNotificationManager.init();
-    
+
     if (initialized) {
+        // ✅ Setup foreground message listener
+        window.guestNotificationManager.setupMessageListener((payload) => {
+            console.log('📬 [GUEST_CALL] Foreground notification received!', payload);
+
+            // Show toast notification
+            if (payload.notification?.title && payload.notification?.body) {
+                showSuccessToast(payload.notification.title + '\n' + payload.notification.body);
+            }
+
+            // Dispatch custom event for backward compatibility
+            const event = new CustomEvent('guest-fcm-message', {
+                detail: payload
+            });
+            window.dispatchEvent(event);
+        });
+
         // Request oluşturulduğunda bildirim izni iste
         window.addEventListener('request-created', async (event) => {
             const requestId = event.detail.requestId;
-            
+
             // Bildirim izni iste ve token al
             await window.guestNotificationManager.requestPermissionAndGetToken(requestId);
         });
-        
+
         // FCM mesajlarını dinle ve UI'ı güncelle
         window.addEventListener('guest-fcm-message', (event) => {
             const payload = event.detail;
-            
+
             // Status güncellemesi varsa UI'ı güncelle
             if (payload.data?.type === 'status_update' && payload.data?.status) {
                 // Guest.js'deki updateStatus fonksiyonunu çağır

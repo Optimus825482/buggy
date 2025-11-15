@@ -18,6 +18,35 @@ class GuestNotificationManager {
         try {
             console.log('🔔 [Guest FCM] Initializing...');
 
+            // ✅ iOS Safari kontrolü
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS/i.test(navigator.userAgent);
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+            if (isIOS) {
+                console.log('📱 [Guest FCM] iOS detected');
+
+                // iOS 16.4 altı kontrol
+                const match = navigator.userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
+                if (match) {
+                    const iosVersion = parseInt(match[1], 10);
+                    const iosMinor = parseInt(match[2], 10);
+
+                    if (iosVersion < 16 || (iosVersion === 16 && iosMinor < 4)) {
+                        console.warn(`⚠️ [Guest FCM] iOS ${match[1]}.${match[2]} - Web Push requires iOS 16.4+`);
+                        return false;
+                    }
+                }
+
+                // iOS PWA kontrolü
+                if (!isPWA) {
+                    console.warn('⚠️ [Guest FCM] iOS requires PWA mode for notifications');
+                    return false;
+                }
+
+                console.log('✅ [Guest FCM] iOS 16.4+ PWA mode - supported');
+            }
+
             // Check if FCM is supported
             if (!('serviceWorker' in navigator)) {
                 console.warn('⚠️ [Guest FCM] Service Worker not supported');
@@ -75,12 +104,24 @@ class GuestNotificationManager {
                 return null;
             }
 
-            // Request notification permission
-            const permission = await Notification.requestPermission();
-            
-            if (permission !== 'granted') {
-                console.warn('⚠️ [Guest FCM] Permission denied');
-                return null;
+            // ✅ iOS için özel işlem - iosNotificationHandler kullan
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            if (isIOS && window.iosNotificationHandler) {
+                console.log('📱 [Guest FCM] Using iOS notification handler');
+                const permission = await window.iosNotificationHandler.requestPermission();
+
+                if (permission !== 'granted') {
+                    console.warn('⚠️ [Guest FCM] iOS permission denied');
+                    return null;
+                }
+            } else {
+                // Normal tarayıcılar için
+                const permission = await Notification.requestPermission();
+
+                if (permission !== 'granted') {
+                    console.warn('⚠️ [Guest FCM] Permission denied');
+                    return null;
+                }
             }
 
             console.log('✅ [Guest FCM] Permission granted');

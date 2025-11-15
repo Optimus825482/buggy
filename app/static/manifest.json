@@ -10,17 +10,9 @@
   "background_color": "#ffffff",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
-  "related_applications": [],
-  "display_override": ["window-controls-overlay"],
   "version": "1.0.0",
   "lang": "tr-TR",
   "dir": "ltr",
-  "permissions": [
-    "notifications",
-    "push",
-    "background-sync",
-    "badge"
-  ],
   "icons": [
     {
       "src": "/static/icons/Icon-72.png",
@@ -71,61 +63,5 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["transportation", "business", "productivity"],
-  "screenshots": [
-    {
-      "src": "/static/images/screenshot-1.png",
-      "type": "image/png",
-      "sizes": "1920x1080",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/static/images/screenshot-2.png",
-      "type": "image/png",
-      "sizes": "540x720",
-      "form_factor": "narrow"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Shuttle Çağır",
-      "short_name": "Çağır",
-      "description": "Hızlıca shuttle çağır",
-      "url": "/guest/call",
-      "icons": [
-        {
-          "src": "/static/icons/Icon-96.png",
-          "sizes": "96x96"
-        }
-      ]
-    },
-    {
-      "name": "Admin Paneli",
-      "short_name": "Admin",
-      "description": "Admin paneline git",
-      "url": "/admin/dashboard",
-      "icons": [
-        {
-          "src": "/static/icons/Icon-96.png",
-          "sizes": "96x96"
-        }
-      ]
-    }
-  ],
-  "protocol_handlers": [
-    {
-      "protocol": "web+shuttlecall",
-      "url": "/handle?url=%s"
-    }
-  ],
-  "share_target": {
-    "action": "/share",
-    "method": "POST",
-    "enctype": "multipart/form-data",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url"
-    }
-  }
+  "categories": ["transportation", "business", "productivity"]
 }

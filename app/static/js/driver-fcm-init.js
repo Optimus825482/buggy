@@ -78,6 +78,43 @@ class DriverFCMSystem {
         console.log('🔐 [DRIVER_FCM] Requesting notification permission...');
 
         try {
+            // ✅ iOS kontrolü
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+            if (isIOS) {
+                console.log('📱 [DRIVER_FCM] iOS detected');
+
+                // iOS 16.4 kontrolü
+                const match = navigator.userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
+                if (match) {
+                    const iosVersion = parseInt(match[1], 10);
+                    const iosMinor = parseInt(match[2], 10);
+
+                    if (iosVersion < 16 || (iosVersion === 16 && iosMinor < 4)) {
+                        console.warn(`⚠️ [DRIVER_FCM] iOS ${match[1]}.${match[2]} - Web Push requires iOS 16.4+`);
+                        this.showErrorAlert(`iOS ${match[1]}.${match[2]} - Bildirimler için iOS 16.4+ gerekli`);
+                        return false;
+                    }
+                }
+
+                // PWA kontrolü
+                if (!isPWA) {
+                    console.warn('⚠️ [DRIVER_FCM] iOS requires PWA mode');
+                    this.showErrorAlert('iOS\'ta bildirimler için uygulamayı Ana Ekrana eklemelisiniz');
+                    return false;
+                }
+
+                console.log('✅ [DRIVER_FCM] iOS 16.4+ PWA mode - proceeding');
+
+                // iOS için iosNotificationHandler kullan
+                if (window.iosNotificationHandler) {
+                    console.log('📱 [DRIVER_FCM] Using iOS notification handler');
+                    const permission = await window.iosNotificationHandler.requestPermission();
+                    return permission === 'granted';
+                }
+            }
+
             // Check current permission status
             const currentPermission = Notification.permission;
             console.log('📋 [DRIVER_FCM] Current permission:', currentPermission);
@@ -353,18 +390,31 @@ class DriverFCMSystem {
             // Play sound
             this.playNotificationSound();
 
+            // ✅ Show dialog with notification details
+            this.showNotificationDialog(payload);
+
             // Dispatch custom event for dashboard to handle
             const event = new CustomEvent('fcm-notification', {
                 detail: payload
             });
             window.dispatchEvent(event);
 
-            // If it's a new request, also trigger dashboard refresh
+            // If it's a new request, trigger dashboard refresh
             if (payload.data?.type === 'new_request') {
                 console.log('🆕 [DRIVER_FCM] New request notification - refreshing dashboard');
-                if (window.DriverDashboard && typeof window.DriverDashboard.loadPendingRequests === 'function') {
-                    window.DriverDashboard.loadPendingRequests();
-                }
+
+                // Force refresh with slight delay to ensure backend has processed
+                setTimeout(() => {
+                    if (window.DriverDashboard) {
+                        console.log('🔄 [DRIVER_FCM] Refreshing pending requests...');
+                        if (typeof window.DriverDashboard.loadPendingRequests === 'function') {
+                            window.DriverDashboard.loadPendingRequests();
+                        }
+                        if (typeof window.DriverDashboard.loadDriverData === 'function') {
+                            window.DriverDashboard.loadDriverData();
+                        }
+                    }
+                }, 500);
             }
         });
 
@@ -409,6 +459,119 @@ class DriverFCMSystem {
             });
         } catch (error) {
             console.warn('⚠️ [DRIVER_FCM] Sound error:', error);
+        }
+    }
+
+    /**
+     * ========================================
+     * SHOW NOTIFICATION DIALOG
+     * ========================================
+     */
+    showNotificationDialog(payload) {
+        try {
+            const title = payload.notification?.title || 'Yeni Bildirim';
+            const body = payload.notification?.body || '';
+            const data = payload.data || {};
+
+            // Format notification content
+            let content = `<div style="text-align: left; padding: 10px;">`;
+            content += `<p style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">${body}</p>`;
+
+            // Add detailed info if available
+            if (data.location_name) {
+                content += `<p style="margin: 8px 0;"><strong>📍 Lokasyon:</strong> ${data.location_name}</p>`;
+            }
+            if (data.room_number) {
+                content += `<p style="margin: 8px 0;"><strong>🏨 Oda:</strong> ${data.room_number}</p>`;
+            }
+            if (data.guest_name) {
+                content += `<p style="margin: 8px 0;"><strong>👤 Misafir:</strong> ${data.guest_name}</p>`;
+            }
+            if (data.phone) {
+                content += `<p style="margin: 8px 0;"><strong>📞 Telefon:</strong> ${data.phone}</p>`;
+            }
+            if (data.notes) {
+                content += `<p style="margin: 8px 0;"><strong>📝 Notlar:</strong> ${data.notes}</p>`;
+            }
+
+            content += `</div>`;
+
+            // Create dialog overlay
+            const overlay = document.createElement('div');
+            overlay.id = 'fcm-dialog-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease-out;
+            `;
+
+            // Create dialog
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                background: white;
+                border-radius: 12px;
+                padding: 24px;
+                max-width: 500px;
+                width: 90%;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                animation: slideInDialog 0.3s ease-out;
+            `;
+
+            dialog.innerHTML = `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; color: #2563eb; font-size: 24px;">${title}</h2>
+                </div>
+                ${content}
+                <div style="text-align: center; margin-top: 20px;">
+                    <button id="fcm-dialog-close" style="
+                        background: #2563eb;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 12px 32px;
+                        font-size: 16px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+                    ">Tamam</button>
+                </div>
+            `;
+
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+
+            // Close handlers
+            const closeDialog = () => {
+                overlay.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 300);
+            };
+
+            document.getElementById('fcm-dialog-close').addEventListener('click', closeDialog);
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    closeDialog();
+                }
+            });
+
+            // Auto-close after 10 seconds
+            setTimeout(closeDialog, 10000);
+
+            console.log('✅ [DRIVER_FCM] Dialog shown');
+
+        } catch (error) {
+            console.error('❌ [DRIVER_FCM] Dialog error:', error);
         }
     }
 
@@ -619,6 +782,35 @@ if (!document.getElementById('driver-fcm-animations')) {
             to {
                 transform: translateX(400px);
                 opacity: 0;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        @keyframes slideInDialog {
+            from {
+                transform: scale(0.8) translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
             }
         }
     `;

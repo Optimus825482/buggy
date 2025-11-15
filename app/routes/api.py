@@ -979,7 +979,7 @@ def create_request():
             room_number=data.get('room_number'),
             phone=data.get('phone'),
             notes=data.get('notes'),
-            guest_device_id=request.remote_addr,  # Use IP as guest identifier
+            guest_device_id=None,  # ✅ IP adresi kaydedilmiyor - gizlilik için kaldırıldı
             status='PENDING'
         )
         
