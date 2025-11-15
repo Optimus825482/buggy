@@ -19,7 +19,7 @@ fi
 # 2. Database connection check
 echo ""
 echo "⏳ Checking database connection..."
-python -c "from app import create_app, db; app = create_app(); app.app_context().push(); db.session.execute('SELECT 1')" || {
+python -c "from app import create_app, db; from sqlalchemy import text; app = create_app(); app.app_context().push(); db.session.execute(text('SELECT 1'))" || {
     echo "❌ Database connection failed"
     exit 1
 }
