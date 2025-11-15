@@ -1,13 +1,20 @@
 {
+  "id": "/",
   "name": "Shuttle Call",
   "short_name": "ShuttleCall",
   "description": "Otel İçi Ulaşım Yönetim Sistemi - Your Ride, On Demand",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#1BA5A8",
-  "theme_color": "#1BA5A8",
+  "theme_color": "#1976d2",
+  "background_color": "#ffffff",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
+  "related_applications": [],
+  "display_override": ["window-controls-overlay"],
+  "version": "1.0.0",
+  "lang": "tr-TR",
+  "dir": "ltr",
   "permissions": [
     "notifications",
     "push",
@@ -67,10 +74,17 @@
   "categories": ["transportation", "business", "productivity"],
   "screenshots": [
     {
-      "src": "/static/images/screenshot1.png",
+      "src": "/static/images/screenshot-1.png",
       "type": "image/png",
-      "sizes": "1280x720"
-    }
+      "sizes": "1920x1080",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/static/images/screenshot-2.png",
+      "type": "image/png",
+      "sizes": "540x720",
+      "form_factor": "narrow"
+    },
   ],
   "shortcuts": [
     {
