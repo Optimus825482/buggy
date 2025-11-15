@@ -22,17 +22,31 @@ from app.utils.logger import (
 )
 from datetime import datetime, timezone
 import logging
+import pytz
 
 
 def get_utc_now():
     """
     Get current UTC timestamp
     Ensures consistent timezone handling across the application
-    
+
     Returns:
         datetime: Current UTC datetime
     """
     return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def get_cyprus_now():
+    """
+    Get current Cyprus timezone timestamp (UTC+2/UTC+3)
+    Cyprus uses Europe/Nicosia timezone (EET/EEST)
+
+    Returns:
+        datetime: Current Cyprus datetime (timezone-naive for DB storage)
+    """
+    cyprus_tz = pytz.timezone('Europe/Nicosia')  # Cyprus timezone
+    cyprus_time = datetime.now(cyprus_tz)
+    return cyprus_time.replace(tzinfo=None)  # Remove timezone info for DB storage
 
 
 class RequestService:
@@ -99,8 +113,8 @@ class RequestService:
                 'Şu anda müsait buggy bulunmamaktadır. Lütfen daha sonra tekrar deneyin.'
             )
         
-        # Create request with UTC timestamp
-        current_time = get_utc_now()
+        # Create request with Cyprus timezone timestamp
+        current_time = get_cyprus_now()
         request_obj = BuggyRequest(
             hotel_id=location.hotel_id,
             location_id=location_id,
@@ -208,8 +222,8 @@ class RequestService:
         # Store old values for audit
         old_values = request_obj.to_dict()
         
-        # Update request with UTC timestamp
-        current_time = get_utc_now()
+        # Update request with Cyprus timezone timestamp
+        current_time = get_cyprus_now()
         request_obj.buggy_id = buggy_id
         request_obj.accepted_by_id = driver_id
         request_obj.accepted_at = current_time
@@ -261,8 +275,8 @@ class RequestService:
                     'body': f'Shuttle size doğru geliyor. Buggy: {buggy.code}'
                 }
                 
-                # Direkt FCM gönder
-                send_fcm_http_notification(token_data['token'], message_data, 'accepted')
+                # Direkt FCM gönder - request_id ekle
+                send_fcm_http_notification(token_data['token'], message_data, 'accepted', request_id=request_id)
                 logger.info(f"✅ Guest FCM bildirimi gönderildi - Request ID: {request_id}")
             else:
                 logger.info(f"ℹ️ Guest FCM token bulunamadı - Request ID: {request_id}")
@@ -320,8 +334,8 @@ class RequestService:
         # Store old values for audit
         old_values = request_obj.to_dict()
         
-        # Update request with UTC timestamp
-        current_time = get_utc_now()
+        # Update request with Cyprus timezone timestamp
+        current_time = get_cyprus_now()
         request_obj.completed_at = current_time
         request_obj.status = RequestStatus.COMPLETED
         if notes:
@@ -395,8 +409,8 @@ class RequestService:
                     'body': 'Shuttle\'ınız hedefe ulaştı. İyi yolculuklar!'
                 }
                 
-                # Direkt FCM gönder
-                send_fcm_http_notification(token_data['token'], message_data, 'completed')
+                # Direkt FCM gönder - request_id ekle
+                send_fcm_http_notification(token_data['token'], message_data, 'completed', request_id=request_id)
                 logger.info(f"✅ Guest tamamlanma FCM bildirimi gönderildi - Request ID: {request_id}")
             else:
                 logger.info(f"ℹ️ Guest FCM token bulunamadı - Request ID: {request_id}")

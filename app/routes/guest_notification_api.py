@@ -269,7 +269,7 @@ def send_guest_notification(request_id):
         }), 500
 
 
-def send_fcm_http_notification(token, message_data, status):
+def send_fcm_http_notification(token, message_data, status, request_id=None):
     """
     ✅ FIXED: FCMNotificationService kullanarak bildirim gönder
     Returns: (success: bool, message: str)
@@ -281,6 +281,7 @@ def send_fcm_http_notification(token, message_data, status):
         logger.info(f'📤 [GUEST_FCM] Sending notification to guest')
         logger.info(f'   Type: {status}')
         logger.info(f'   Title: {message_data["title"]}')
+        logger.info(f'   Request ID: {request_id}')
         logger.info(f'   Token: {token[:20]}...')
         logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 
@@ -292,11 +293,14 @@ def send_fcm_http_notification(token, message_data, status):
             data={
                 'type': 'status_update',
                 'status': status,
-                'priority': 'high' if status == 'accepted' else 'normal'
+                'request_id': str(request_id) if request_id else '',
+                'priority': 'high' if status == 'accepted' else 'normal',
+                'click_action': f'/guest/status/{request_id}' if request_id else '/'
             },
             priority='high' if status == 'accepted' else 'normal',
             sound='default',
-            retry=True
+            retry=True,
+            click_action=f'/guest/status/{request_id}' if request_id else '/'
         )
 
         if success:
