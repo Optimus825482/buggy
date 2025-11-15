@@ -5,6 +5,7 @@ from app import db, socketio
 from app.models.buggy import Buggy, BuggyStatus
 from app.models.user import SystemUser, UserRole
 from app.models.hotel import Hotel
+from app.models.location import Location
 from app.services.audit_service import AuditService
 from app.utils.exceptions import ResourceNotFoundException, ValidationException, BusinessLogicException
 from app.utils.helpers import Pagination
