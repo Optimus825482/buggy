@@ -7,6 +7,7 @@ import firebase_admin
 from firebase_admin import credentials, messaging
 import os
 import json
+import base64
 import time
 import traceback
 from datetime import datetime, timedelta
@@ -97,11 +98,36 @@ class FCMNotificationService:
         except ValueError:
             # Not initialized, proceed with initialization
             try:
-                # ✅ ÖNCE ENV VARIABLE'DAN JSON OKUMAYA ÇALIŞ
+                # ✅ 1. ÖNCE BASE64 ENCODED JSON'U DENE
+                service_account_base64 = os.getenv('FIREBASE_SERVICE_ACCOUNT_BASE64')
+                
+                if service_account_base64:
+                    logger.info("🔧 Firebase credentials from FIREBASE_SERVICE_ACCOUNT_BASE64 env variable")
+                    try:
+                        # Base64 decode et
+                        decoded_json = base64.b64decode(service_account_base64).decode('utf-8')
+                        service_account_dict = json.loads(decoded_json)
+                        cred = credentials.Certificate(service_account_dict)
+                        firebase_admin.initialize_app(cred)
+                        FCMNotificationService._initialized = True
+
+                        logger.info("✅ Firebase Admin SDK başarıyla başlatıldı (BASE64 ENV variable)")
+                        log_fcm_event('SDK_INITIALIZED', {
+                            'source': 'base64_environment_variable',
+                            'timestamp': datetime.utcnow().isoformat()
+                        })
+                        return True
+
+                    except (base64.binascii.Error, json.JSONDecodeError) as e:
+                        error_msg = f'FIREBASE_SERVICE_ACCOUNT_BASE64 decode hatası: {str(e)}'
+                        logger.error(f"❌ FCM_INIT: {error_msg}")
+                        log_error('FCM_INIT', error_msg, {'error': str(e)})
+                        # Base64 başarısız olursa diğer yöntemleri dene
+
+                # ✅ 2. PLAIN JSON ENV VARIABLE'I DENE
                 service_account_json = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
 
                 if service_account_json:
-                    # Environment variable'dan JSON string olarak geldi
                     logger.info("🔧 Firebase credentials from FIREBASE_SERVICE_ACCOUNT_JSON env variable")
                     try:
                         service_account_dict = json.loads(service_account_json)
@@ -109,9 +135,9 @@ class FCMNotificationService:
                         firebase_admin.initialize_app(cred)
                         FCMNotificationService._initialized = True
 
-                        logger.info("✅ Firebase Admin SDK başarıyla başlatıldı (ENV variable)")
+                        logger.info("✅ Firebase Admin SDK başarıyla başlatıldı (JSON ENV variable)")
                         log_fcm_event('SDK_INITIALIZED', {
-                            'source': 'environment_variable',
+                            'source': 'json_environment_variable',
                             'timestamp': datetime.utcnow().isoformat()
                         })
                         return True
@@ -120,10 +146,10 @@ class FCMNotificationService:
                         error_msg = f'FIREBASE_SERVICE_ACCOUNT_JSON geçersiz JSON: {str(e)}'
                         logger.error(f"❌ FCM_INIT: {error_msg}")
                         log_error('FCM_INIT', error_msg, {'error': str(e)})
-                        return False
+                        # JSON parse başarısız olursa dosyadan dene
 
-                # ✅ ENV VARIABLE YOKSA DOSYADAN OKUMAYA ÇALIŞ
-                else:
+                # ✅ 3. DOSYADAN OKUMAYA ÇALIŞ (FALLBACK)
+                if not service_account_base64 and not service_account_json:
                     logger.info("🔧 Firebase credentials from file (fallback)")
                     service_account_path = os.getenv(
                         'FIREBASE_SERVICE_ACCOUNT_PATH',
