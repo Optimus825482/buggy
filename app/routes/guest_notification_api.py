@@ -271,58 +271,48 @@ def send_guest_notification(request_id):
 
 def send_fcm_http_notification(token, message_data, status):
     """
-    Firebase Admin SDK kullanarak bildirim gönder
+    ✅ FIXED: FCMNotificationService kullanarak bildirim gönder
     Returns: (success: bool, message: str)
     """
     try:
-        import firebase_admin
-        from firebase_admin import messaging, credentials
-        
-        # Firebase Admin SDK'yı başlat (eğer başlatılmamışsa)
-        if not firebase_admin._apps:
-            cred_path = current_app.config.get('FIREBASE_SERVICE_ACCOUNT_PATH', 'firebase-service-account.json')
-            try:
-                cred = credentials.Certificate(cred_path)
-                firebase_admin.initialize_app(cred)
-                logger.info('✅ Firebase Admin SDK initialized')
-            except Exception as init_error:
-                logger.error(f'❌ Firebase Admin SDK init error: {str(init_error)}')
-                return False, f'Firebase başlatılamadı: {str(init_error)}'
-        
-        # FCM mesajı oluştur
-        message = messaging.Message(
-            notification=messaging.Notification(
-                title=message_data['title'],
-                body=message_data['body']
-            ),
+        from app.services.fcm_notification_service import FCMNotificationService
+
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        logger.info(f'📤 [GUEST_FCM] Sending notification to guest')
+        logger.info(f'   Type: {status}')
+        logger.info(f'   Title: {message_data["title"]}')
+        logger.info(f'   Token: {token[:20]}...')
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+        # FCM Service kullan (env variable desteği ile)
+        success = FCMNotificationService.send_to_token(
+            token=token,
+            title=message_data['title'],
+            body=message_data['body'],
             data={
                 'type': 'status_update',
                 'status': status,
                 'priority': 'high' if status == 'accepted' else 'normal'
             },
-            token=token,
-            webpush=messaging.WebpushConfig(
-                notification=messaging.WebpushNotification(
-                    title=message_data['title'],
-                    body=message_data['body'],
-                    icon='/static/icons/Icon-192.png',
-                    badge='/static/icons/Icon-96.png',
-                    vibrate=[200, 100, 200, 100, 200],
-                    require_interaction=(status == 'accepted')
-                )
-                # fcm_options kaldırıldı - HTTP URL hatası önlendi
-            )
+            priority='high' if status == 'accepted' else 'normal',
+            sound='default',
+            retry=True
         )
-        
-        # Bildirimi gönder
-        response = messaging.send(message)
-        logger.info(f'✅ FCM notification sent successfully: {response}')
-        return True, 'Bildirim başarıyla gönderildi'
-        
+
+        if success:
+            logger.info('✅ [GUEST_FCM] Notification sent successfully!')
+            logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            return True, 'Bildirim başarıyla gönderildi'
+        else:
+            logger.error('❌ [GUEST_FCM] Notification failed!')
+            logger.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            return False, 'Bildirim gönderilemedi'
+
     except Exception as e:
-        logger.error(f'❌ FCM send error: {str(e)}')
+        logger.error(f'❌ [GUEST_FCM] Error: {str(e)}')
         import traceback
         logger.error(traceback.format_exc())
+        logger.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
         return False, f'Bildirim gönderilemedi: {str(e)}'
 
 
