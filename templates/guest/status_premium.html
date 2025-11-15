@@ -577,10 +577,27 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         guestNotificationManager = new GuestNotificationManager();
         const initialized = await guestNotificationManager.init();
-        
-        if (initialized && Notification.permission === 'granted') {
-            // Bildirim izni varsa, token'ı kaydet
-            await guestNotificationManager.requestPermissionAndGetToken(requestId);
+
+        if (initialized) {
+            // ✅ Setup foreground message listener
+            guestNotificationManager.setupMessageListener((payload) => {
+                console.log('📬 [GUEST] Foreground notification received!', payload);
+
+                // Show toast notification
+                if (payload.notification?.title) {
+                    showSuccessToast(payload.notification.title + '\n' + (payload.notification.body || ''));
+                }
+
+                // Refresh status if needed
+                if (payload.data?.status) {
+                    loadRequestStatus();
+                }
+            });
+
+            if (Notification.permission === 'granted') {
+                // Bildirim izni varsa, token'ı kaydet
+                await guestNotificationManager.requestPermissionAndGetToken(requestId);
+            }
         }
     } catch (error) {
         console.error('❌ [FCM] Init error:', error);
