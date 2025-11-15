@@ -24,9 +24,7 @@ def check_env():
     
     optional_vars = {
         'PORT': 'Application port (default: 5000)',
-        'FLASK_ENV': 'Flask environment (default: production)',
-        'VAPID_PUBLIC_KEY': 'Push notification public key',
-        'VAPID_PRIVATE_KEY': 'Push notification private key'
+        'FLASK_ENV': 'Flask environment (default: production)'
     }
     
     missing = []

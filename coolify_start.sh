@@ -16,44 +16,21 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 2. Database reset (if RESET_DB=true)
-if [ "$RESET_DB" = "true" ]; then
-    echo ""
-    echo "🔥 RESETTING DATABASE..."
-    python reset_database.py
-    if [ $? -eq 0 ]; then
-        echo "✅ Database reset completed"
-    else
-        echo "❌ Database reset failed"
-        exit 1
-    fi
-fi
-
-# 3. Column fix (add missing push notification columns)
+# 2. Database connection check
 echo ""
-echo "⏳ Fixing missing columns..."
-python railway_fix_columns.py
-if [ $? -eq 0 ]; then
-    echo "✅ Column fix completed"
-else
-    echo "⚠️  Column fix failed, continuing..."
-fi
-
-# 4. Migration fix
-echo ""
-echo "⏳ Running migration fix..."
-python fix_railway_migration.py
-if [ $? -eq 0 ]; then
-    echo "✅ Migration fix completed"
-else
-    echo "❌ Migration fix failed"
+echo "⏳ Checking database connection..."
+python -c "from app import create_app, db; app = create_app(); app.app_context().push(); db.session.execute('SELECT 1')" || {
+    echo "❌ Database connection failed"
     exit 1
-fi
+}
+echo "✅ Database connection OK"
 
-# 5. Create initial data
-echo ""
-echo "⏳ Creating initial data..."
-python scripts/create_initial_data.py || echo "⚠️  Initial data creation failed, continuing..."
+# 3. Create initial data (optional - skip if exists)
+if [ -f "scripts/create_initial_data.py" ]; then
+    echo ""
+    echo "⏳ Creating initial data..."
+    python scripts/create_initial_data.py || echo "⚠️  Initial data creation skipped"
+fi
 
 # 6. Start application
 echo ""
