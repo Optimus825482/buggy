@@ -510,7 +510,7 @@ body {
                 </div>
                 <div class="driver-text">
                     <h4 id="driver-name">Shuttle</h4>
-                    <p>Talebiniz <span id="buggy-code">-</span> plakalı shuttle tarafından işleme alınmıştır. En kısa sürede sizinle olacaktır.</p>
+                    <p>Talebiniz <span id="buggy-code">-</span> plakalı shuttle tarafından işleme alınmıştır. </p>
                 </div>
             </div>
         </div>
@@ -732,7 +732,7 @@ function updateToPending() {
     
     if (statusTitle) statusTitle.textContent = 'Sürücü Aranıyor...';
     if (statusMessage) {
-        statusMessage.textContent = 'Talebiniz yakındaki sürücülere iletildi. En kısa sürede yanıtlanacaktır.';
+        statusMessage.textContent = 'Talebiniz işleme alındı. En kısa sürede yanıtlanacaktır.';
     }
 }
 
@@ -763,7 +763,7 @@ function updateToAccepted(request) {
     
     if (statusIcon) statusIcon.innerHTML = '<i class="fas fa-shuttle-van"></i>';
     if (statusTitle) statusTitle.textContent = 'Shuttle Yolda!';
-    if (statusMessage) statusMessage.textContent = 'Shuttle yola çıktı. Yakında yanınızda olacak.';
+    if (statusMessage) statusMessage.textContent = ' Kısa Bir Süre İçerisinde Aracınız Konumunuza Ulaşmış Olacak...';
 
     // Show driver info
     if (request.buggy_code) {
@@ -813,7 +813,7 @@ function connectWebSocket() {
         if (data.request_id === requestId) {
             loadRequestStatus();
             if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('Shuttle Kabul Edildi!', {
+                new Notification('Talep İşleme Alındı!', {
                     body: 'Shuttle yola çıktı',
                     icon: '/static/icons/Icon-192.png'
                 });
