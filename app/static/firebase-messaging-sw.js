@@ -97,36 +97,64 @@ try {
       targetUrl = `/driver/dashboard?highlight=${notificationData.request_id}`;
     }
     
-    // Bildirim tipine göre URL belirle
+    // ✅ FIX: Bildirim tipine göre DOĞRU URL belirle
     if (notificationData.type === 'new_request') {
       targetUrl = '/driver/dashboard';
-    } else if (notificationData.type === 'request_accepted') {
-      targetUrl = `/guest/request/${notificationData.request_id}`;
-    } else if (notificationData.type === 'request_completed') {
-      targetUrl = `/guest/request/${notificationData.request_id}`;
+    } else if (notificationData.type === 'status_update') {
+      // ✅ Guest notification - status sayfasına git
+      const requestId = notificationData.request_id;
+      if (requestId) {
+        targetUrl = `/guest/status/${requestId}`;
+      }
+    } else if (notificationData.type === 'request_accepted' || notificationData.type === 'request_completed') {
+      // ✅ Guest notification - status sayfasına git
+      const requestId = notificationData.request_id;
+      if (requestId) {
+        targetUrl = `/guest/status/${requestId}`;
+      }
     }
-    
+
+    console.log('[FCM SW] Target URL:', targetUrl);
+
     // Pencereyi aç veya odaklan
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then((clientList) => {
-          // Mevcut dashboard penceresi varsa odaklan
-          for (let client of clientList) {
-            if (client.url.includes('/driver/dashboard') && 'focus' in client) {
-              console.log('[FCM SW] Focusing existing dashboard');
-              return client.focus();
+          console.log('[FCM SW] Found', clientList.length, 'windows');
+
+          // ✅ DRIVER notification için - mevcut dashboard'a odaklan
+          if (notificationData.type === 'new_request') {
+            for (let client of clientList) {
+              if (client.url.includes('/driver/dashboard') && 'focus' in client) {
+                console.log('[FCM SW] Focusing existing driver dashboard');
+                return client.focus();
+              }
             }
           }
-          
+
+          // ✅ GUEST notification için - mevcut status sayfasına odaklan veya git
+          if (notificationData.type === 'status_update' ||
+              notificationData.type === 'request_accepted' ||
+              notificationData.type === 'request_completed') {
+            for (let client of clientList) {
+              if (client.url.includes('/guest/status') && 'focus' in client) {
+                console.log('[FCM SW] Focusing existing guest status page');
+                // Sayfayı yenile (güncel durumu görmek için)
+                client.navigate(targetUrl);
+                return client.focus();
+              }
+            }
+          }
+
           // Herhangi bir pencere varsa ona git
           for (let client of clientList) {
             if ('focus' in client) {
-              console.log('[FCM SW] Navigating existing window');
+              console.log('[FCM SW] Navigating existing window to:', targetUrl);
               client.navigate(targetUrl);
               return client.focus();
             }
           }
-          
+
           // Yeni pencere aç
           if (clients.openWindow) {
             console.log('[FCM SW] Opening new window:', targetUrl);

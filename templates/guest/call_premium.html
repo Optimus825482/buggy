@@ -1369,6 +1369,10 @@ const GuestCall = (() => {
             hideLoadingOverlay();
 
             if (data.success && data.request) {
+                // ✅ TALEP OLUŞTURULDU - SURUCULERE TOAST BILDIRIMI GONDER
+                console.log('✅ Request created successfully, notifying drivers...');
+                await checkActiveDrivers();  // notify=true ile sürücülere toast gönder
+
                 // Talep başarılı - bildirim izni iste
                 await requestNotificationPermissionForGuest(data.request.id);
                 showSuccessNotification(data.request.id);
