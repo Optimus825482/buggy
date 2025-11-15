@@ -581,18 +581,25 @@ class FCMNotificationService:
             })
             return 0
         
-        # Bildirim içeriği - ENHANCED
+        # Bildirim içeriği - DAHA DETAYLI
         room_info = f"Oda {request_obj.room_number}" if request_obj.room_number else "Misafir"
-        guest_info = f" - {request_obj.guest_name}" if request_obj.guest_name else ""
+        guest_info = f"\n👤 {request_obj.guest_name}" if request_obj.guest_name else ""
+        phone_info = f"\n📞 {request_obj.phone}" if request_obj.phone else ""
+        notes_info = f"\n📝 {request_obj.notes}" if request_obj.notes else ""
 
+        # Detaylı bildirim metni
         title = "🚗 YENİ SHUTTLE TALEBİ!"
-        body = f"📍 {request_obj.location.name}\n🏨 {room_info}{guest_info}"
+        body = f"📍 {request_obj.location.name}\n🏨 {room_info}{guest_info}{phone_info}{notes_info}"
+
+        # Body çok uzunsa kısalt (max 200 karakter)
+        if len(body) > 200:
+            body = body[:197] + "..."
 
         logger.info(f"📝 Notification content:")
         logger.info(f"   Title: {title}")
         logger.info(f"   Body: {body}")
 
-        # Data payload - Action buttons için
+        # Data payload - DETAYLI BILGILER
         data = {
             'type': 'new_request',
             'request_id': str(request_obj.id),
@@ -600,11 +607,14 @@ class FCMNotificationService:
             'location_name': request_obj.location.name,
             'room_number': request_obj.room_number or '',
             'guest_name': request_obj.guest_name or '',
+            'phone': request_obj.phone or '',
+            'notes': request_obj.notes or '',
+            'requested_at': request_obj.requested_at.isoformat() if request_obj.requested_at else '',
             'url': '/driver/dashboard',
             'priority': 'high',
             'actions': json.dumps([
-                {'action': 'accept', 'title': 'Kabul Et'},
-                {'action': 'details', 'title': 'Detaylar'}
+                {'action': 'accept', 'title': '✅ Kabul Et'},
+                {'action': 'details', 'title': '👁️ Detaylar'}
             ])
         }
 

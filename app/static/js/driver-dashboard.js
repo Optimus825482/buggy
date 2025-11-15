@@ -1559,21 +1559,56 @@ const DriverDashboard = {
      */
     getTimeAgo(dateStr) {
         if (!dateStr) return '';
-        
-        const date = new Date(dateStr);
-        const now = new Date();
-        const seconds = Math.floor((now - date) / 1000);
-        
-        if (seconds < 60) return 'Az önce';
-        
-        const minutes = Math.floor(seconds / 60);
-        if (minutes < 60) return `${minutes} dakika önce`;
-        
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours} saat önce`;
-        
-        const days = Math.floor(hours / 24);
-        return `${days} gün önce`;
+
+        try {
+            const date = new Date(dateStr);
+            const now = new Date();
+
+            // Geçersiz tarih kontrolü
+            if (isNaN(date.getTime())) {
+                console.warn('[TimeAgo] Invalid date:', dateStr);
+                return '';
+            }
+
+            const seconds = Math.floor((now - date) / 1000);
+
+            // Gelecekteki tarihler için kontrol
+            if (seconds < 0) {
+                console.warn('[TimeAgo] Future date detected:', dateStr);
+                return 'Az önce';
+            }
+
+            // Zaman dilimleri
+            if (seconds < 10) return 'Şimdi';
+            if (seconds < 60) return 'Az önce';
+
+            const minutes = Math.floor(seconds / 60);
+            if (minutes === 1) return '1 dakika önce';
+            if (minutes < 60) return `${minutes} dakika önce`;
+
+            const hours = Math.floor(minutes / 60);
+            if (hours === 1) return '1 saat önce';
+            if (hours < 24) return `${hours} saat önce`;
+
+            const days = Math.floor(hours / 24);
+            if (days === 1) return '1 gün önce';
+            if (days < 7) return `${days} gün önce`;
+
+            const weeks = Math.floor(days / 7);
+            if (weeks === 1) return '1 hafta önce';
+            if (weeks < 4) return `${weeks} hafta önce`;
+
+            const months = Math.floor(days / 30);
+            if (months === 1) return '1 ay önce';
+            if (months < 12) return `${months} ay önce`;
+
+            const years = Math.floor(days / 365);
+            return `${years} yıl önce`;
+
+        } catch (error) {
+            console.error('[TimeAgo] Error:', error, 'Date:', dateStr);
+            return '';
+        }
     },
 
     /**
