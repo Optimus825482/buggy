@@ -330,6 +330,8 @@ a:hover {
     gap: var(--spacing-md);
     list-style: none;
     align-items: center;
+    position: relative;
+    z-index: 100000; /* ✅ En üstte olsun */
 }
 
 .nav-link {
@@ -340,6 +342,10 @@ a:hover {
     white-space: nowrap;
     font-weight: var(--font-weight-medium);
     font-size: 0.9rem;
+    position: relative;
+    z-index: 100001; /* ✅ Link'ler de üstte */
+    cursor: pointer;
+    pointer-events: auto; /* ✅ Tıklanabilir */
 }
 
 .nav-link:hover {

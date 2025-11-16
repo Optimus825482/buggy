@@ -47,6 +47,10 @@ const DriverDashboard = {
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
         try {
+            // ✅ Clear cache on every login
+            console.log('🧹 [INIT] Clearing cache...');
+            await this.clearCache();
+
             // Load state from DOM
             console.log('📊 [INIT] Loading state from DOM...');
             this.loadStateFromDOM();
@@ -1222,6 +1226,40 @@ const DriverDashboard = {
         // Disconnect socket
         if (this.socket) {
             this.socket.disconnect();
+        }
+    },
+
+    /**
+     * ✅ Clear cache on login
+     */
+    async clearCache() {
+        try {
+            // Clear localStorage (except important keys)
+            const keysToKeep = ['pwa-install-dismissed', 'pwa-update-shown-version'];
+            const allKeys = Object.keys(localStorage);
+            allKeys.forEach(key => {
+                if (!keysToKeep.includes(key)) {
+                    localStorage.removeItem(key);
+                }
+            });
+            console.log('✅ [CACHE] localStorage cleared');
+
+            // Clear sessionStorage
+            sessionStorage.clear();
+            console.log('✅ [CACHE] sessionStorage cleared');
+
+            // Clear service worker cache
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(
+                    cacheNames.map(cacheName => caches.delete(cacheName))
+                );
+                console.log('✅ [CACHE] Service worker caches cleared');
+            }
+
+            console.log('✅ [CACHE] All caches cleared successfully');
+        } catch (error) {
+            console.warn('⚠️ [CACHE] Cache clearing failed:', error);
         }
     }
 };

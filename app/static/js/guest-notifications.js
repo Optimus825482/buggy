@@ -94,27 +94,32 @@ class GuestNotificationManager {
                 return null;
             }
 
-            // ✅ iOS için özel işlem - iosNotificationHandler kullan
-            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-            if (isIOS && window.iosNotificationHandler) {
-                console.log('📱 [Guest FCM] Using iOS notification handler');
-                const permission = await window.iosNotificationHandler.requestPermission();
-
-                if (permission !== 'granted') {
-                    console.warn('⚠️ [Guest FCM] iOS permission denied');
-                    return null;
-                }
+            // ✅ İzin durumunu kontrol et - zaten verilmişse tekrar isteme
+            let currentPermission = Notification.permission;
+            
+            if (currentPermission === 'granted') {
+                console.log('✅ [Guest FCM] Permission already granted, skipping request');
             } else {
-                // Normal tarayıcılar için
-                const permission = await Notification.requestPermission();
+                // İzin verilmemişse iste
+                console.log('🔔 [Guest FCM] Requesting notification permission...');
+                
+                // ✅ iOS için özel işlem - iosNotificationHandler kullan
+                const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+                if (isIOS && window.iosNotificationHandler) {
+                    console.log('📱 [Guest FCM] Using iOS notification handler');
+                    currentPermission = await window.iosNotificationHandler.requestPermission();
+                } else {
+                    // Normal tarayıcılar için
+                    currentPermission = await Notification.requestPermission();
+                }
 
-                if (permission !== 'granted') {
+                if (currentPermission !== 'granted') {
                     console.warn('⚠️ [Guest FCM] Permission denied');
                     return null;
                 }
+                
+                console.log('✅ [Guest FCM] Permission granted');
             }
-
-            console.log('✅ [Guest FCM] Permission granted');
 
             // Get service worker registration
             const registration = await navigator.serviceWorker.ready;

@@ -12,12 +12,18 @@ class PWAInstaller {
     }
 
     init() {
+        // ✅ Debug: Log current path
+        console.log('[PWA] Current path:', window.location.pathname);
+        
         // Check if we should show install prompt based on user role
         // Only show for admin and driver, NOT for guest
         if (!this.shouldShowInstallPrompt()) {
-            console.log('[PWA] Install prompt disabled for guest users');
+            console.log('[PWA] Install prompt disabled for this page');
+            console.log('[PWA] Reason: Not an admin or driver page');
             return;
         }
+        
+        console.log('[PWA] Install prompt enabled for this page');
 
         // Check if app is already installed
         if (window.matchMedia('(display-mode: standalone)').matches ||
@@ -32,6 +38,11 @@ class PWAInstaller {
         
         if (isIOS && isSafari) {
             console.log('[PWA] iOS Safari detected - showing iOS install instructions');
+            // ✅ Guest sayfalarında gösterme
+            if (!this.shouldShowInstallPrompt()) {
+                console.log('[PWA] iOS install prompt disabled for guest users');
+                return;
+            }
             // iOS için özel prompt göster (biraz gecikmeyle)
             setTimeout(() => {
                 this.showIOSInstallPrompt();
@@ -611,13 +622,16 @@ if ('serviceWorker' in navigator) {
 // Handle service worker updates
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // Session storage ile kontrol et - sadece bir kez göster
-        if (sessionStorage.getItem('pwa-toast-shown')) {
-            console.log('[PWA] Update toast already shown, skipping');
+        // ✅ localStorage ile kalıcı kontrol - sürüm numarası ile
+        const currentVersion = '3.0.0'; // Manifest'teki version ile senkron
+        const lastShownVersion = localStorage.getItem('pwa-update-shown-version');
+        
+        if (lastShownVersion === currentVersion) {
+            console.log('[PWA] Update toast already shown for this version, skipping');
             return;
         }
         
-        sessionStorage.setItem('pwa-toast-shown', 'true');
+        localStorage.setItem('pwa-update-shown-version', currentVersion);
         console.log('[PWA] New service worker activated');
 
         // Mevcut toast'ı kaldır
@@ -626,7 +640,7 @@ if ('serviceWorker' in navigator) {
             existingToast.remove();
         }
 
-        // Show update notification (sadece reload sonrası değil, ilk aktivasyonda)
+        // ✅ Sadece gerçek update'lerde göster (reload değilse)
         if (!performance.navigation || performance.navigation.type !== 1) {
             const updateToast = document.createElement('div');
             updateToast.className = 'pwa-toast pwa-update-toast';

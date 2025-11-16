@@ -190,33 +190,34 @@ def setup_logging(app):
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     
-    # ✅ HER ZAMAN FILE HANDLER EKLE (debug mode'da bile)
-    # Setup file handler
+    # ✅ FILE HANDLER: Sadece DEBUG ve ERROR (INFO yok)
     try:
         file_handler = RotatingFileHandler(
-            'log.txt',  # Erkan'ın kullandığı dosya
+            'log.txt',
             maxBytes=10 * 1024 * 1024,  # 10MB
             backupCount=5
         )
         file_handler.setFormatter(log_format)
-        file_handler.setLevel(log_level)
+        # ✅ Custom filter: Sadece DEBUG ve ERROR
+        file_handler.addFilter(lambda record: record.levelno in [logging.DEBUG, logging.ERROR])
+        file_handler.setLevel(logging.DEBUG)  # DEBUG'dan başlat ama filter ile kontrol et
         app.logger.addHandler(file_handler)
-        print(f"✅ File logging enabled: log.txt")
+        print(f"✅ File logging enabled: log.txt (DEBUG + ERROR only)")
     except Exception as e:
         print(f"❌ Could not setup file logging: {e}")
     
-    # Always add console handler for Railway logs
+    # ✅ CONSOLE HANDLER: Tüm seviyeler (INFO dahil)
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(log_format)
     console_handler.setLevel(log_level)
     app.logger.addHandler(console_handler)
     
-    # ✅ ROOT LOGGER'I DA AYARLA (tüm modüller için)
+    # ✅ ROOT LOGGER: Aynı mantık
     root_logger = logging.getLogger()
-    root_logger.setLevel(log_level)
+    root_logger.setLevel(logging.DEBUG)  # En düşük seviye
     
-    # Root logger'a da aynı handler'ları ekle
     if not root_logger.handlers:
+        # File handler: Sadece DEBUG ve ERROR
         try:
             root_file_handler = RotatingFileHandler(
                 'log.txt',
@@ -224,11 +225,13 @@ def setup_logging(app):
                 backupCount=5
             )
             root_file_handler.setFormatter(log_format)
-            root_file_handler.setLevel(log_level)
+            root_file_handler.addFilter(lambda record: record.levelno in [logging.DEBUG, logging.ERROR])
+            root_file_handler.setLevel(logging.DEBUG)
             root_logger.addHandler(root_file_handler)
         except:
             pass
         
+        # Console handler: Tüm seviyeler
         root_console_handler = logging.StreamHandler()
         root_console_handler.setFormatter(log_format)
         root_console_handler.setLevel(log_level)
@@ -545,6 +548,14 @@ def apply_security_headers(app):
         
         for header, value in security_headers.items():
             response.headers[header] = value
+        
+        # ✅ Permissions-Policy: Google Chrome reklam/tracking uyarılarını sustur
+        response.headers['Permissions-Policy'] = (
+            'browsing-topics=(), '
+            'interest-cohort=(), '
+            'join-ad-interest-group=(), '
+            'run-ad-auction=()'
+        )
         
         # Force HTTPS in production
         if not app.config.get('DEBUG') and not app.config.get('TESTING'):

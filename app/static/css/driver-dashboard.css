@@ -1330,3 +1330,122 @@
     line-height: 1.6;
     margin-bottom: 0;
 }
+
+
+/* ==================== PWA OPTIMIZATIONS ==================== */
+/* Standalone mode (PWA) için özel ayarlar */
+@media all and (display-mode: standalone) {
+    body {
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .driver-dashboard {
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
+    }
+
+    /* iOS safe area support */
+    .dashboard-header {
+        padding-top: max(1.5rem, env(safe-area-inset-top));
+        padding-left: max(1.5rem, env(safe-area-inset-left));
+        padding-right: max(1.5rem, env(safe-area-inset-right));
+    }
+
+    /* Bottom navigation safe area */
+    .nav {
+        padding-bottom: max(0, env(safe-area-inset-bottom));
+    }
+}
+
+/* iOS PWA specific */
+@supports (-webkit-touch-callout: none) {
+    .driver-dashboard {
+        min-height: -webkit-fill-available;
+    }
+}
+
+/* Prevent pull-to-refresh on mobile */
+body {
+    overscroll-behavior-y: contain;
+}
+
+/* Touch optimization */
+@media (hover: none) and (pointer: coarse) {
+    /* Daha büyük dokunma alanları */
+    .nav-link {
+        min-height: 48px;
+        min-width: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem 1rem;
+    }
+
+    .btn-accept,
+    .btn-complete {
+        min-height: 52px;
+        font-size: 1.0625rem;
+    }
+
+    .request-card {
+        padding: 1.25rem;
+    }
+
+    /* Scroll snap for better mobile experience */
+    .stats-grid {
+        scroll-snap-type: x mandatory;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .stat-card {
+        scroll-snap-align: start;
+    }
+}
+
+/* Landscape mode optimizations */
+@media (max-width: 768px) and (orientation: landscape) {
+    .driver-dashboard {
+        padding: 0.5rem;
+    }
+
+    .dashboard-header {
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .section-card {
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .request-card,
+    .stat-card,
+    .section-card {
+        border: 2px solid #000;
+    }
+
+    .btn-accept,
+    .btn-complete {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
