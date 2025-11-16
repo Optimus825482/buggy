@@ -1,21 +1,29 @@
-{% extends "base.html" %}
-
-{% block title %}Shuttle Çağır{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/guest-premium.css') }}">
+{% extends "base.html" %} {% block title %}Shuttle Çağır{% endblock %} {% block
+extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/guest-premium.css') }}"
+/>
 <style>
-/* ==================== PREMIUM GUEST CALL PAGE ==================== */
-/* Optimized and Enhanced Version - Powered by Erkan ERDEM */
+  /* ==================== PREMIUM GUEST CALL PAGE ==================== */
+  /* Optimized and Enhanced Version - Powered by Erkan ERDEM */
 
-:root {
+  :root {
     /* Merit Hotels Renk Paleti */
-    --primary-navy: #1A2B4A;
-    --royal-gold: #D4AF37;
-    --primary-gradient: linear-gradient(135deg, var(--primary-navy) 0%, #2A3B5A 100%);
-    --accent-gradient: linear-gradient(135deg, var(--royal-gold) 0%, #E4BF47 100%);
-    --success-color: #2E7D32;
-    --error-color: #B71C1C;
+    --primary-navy: #1a2b4a;
+    --royal-gold: #d4af37;
+    --primary-gradient: linear-gradient(
+      135deg,
+      var(--primary-navy) 0%,
+      #2a3b5a 100%
+    );
+    --accent-gradient: linear-gradient(
+      135deg,
+      var(--royal-gold) 0%,
+      #e4bf47 100%
+    );
+    --success-color: #2e7d32;
+    --error-color: #b71c1c;
     --warning-color: var(--royal-gold);
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
     --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
@@ -24,21 +32,21 @@
     --radius-md: 16px;
     --radius-lg: 24px;
     --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-}
+  }
 
-/* ==================== BASE LAYOUT ==================== */
-body {
-  background: linear-gradient(180deg, #F8F8F8 0%, #E8F4F8 100%);
-  min-height: 100vh;
-}
+  /* ==================== BASE LAYOUT ==================== */
+  body {
+    background: linear-gradient(180deg, #f8f8f8 0%, #e8f4f8 100%);
+    min-height: 100vh;
+  }
 
-.header,
-.footer.no-print {
+  .header,
+  .footer.no-print {
     display: none !important;
-}
+  }
 
-/* ==================== CONTAINER ==================== */
-.guest-call-container {
+  /* ==================== CONTAINER ==================== */
+  .guest-call-container {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -46,25 +54,77 @@ body {
     padding: clamp(16px, 4vw, 24px);
     max-width: 540px;
     margin: 0 auto;
-}
+  }
 
-/* ==================== LOGO SECTION ==================== */
-.logo-section {
+  /* ==================== LOGO SECTION ==================== */
+  .logo-section {
     text-align: center;
     margin-bottom: 24px;
     margin-top: 20px;
     animation: fadeInDown 0.6s ease-out;
-}
+    position: relative;
+  }
 
-/* Location Image Wrapper (Large) */
-.location-image-wrapper {
+  /* ==================== GUEST CLOCK (Sol Üst) ==================== */
+  .guest-clock {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(135deg, #1a2b4a 0%, #2c3e5a 100%);
+    border-radius: 2rem;
+    color: white;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: "Courier New", monospace;
+    box-shadow: 0 4px 12px rgba(26, 43, 74, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    z-index: 10;
+  }
+
+  .guest-clock i {
+    font-size: 1.125rem;
+    color: #1ba5a8;
+    animation: clockTick 1s ease-in-out infinite;
+  }
+
+  .guest-clock:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(26, 43, 74, 0.4);
+  }
+
+  #guest-clock-time {
+    letter-spacing: 0.05em;
+    min-width: 85px;
+    text-align: center;
+  }
+
+  @keyframes clockTick {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(-5deg);
+    }
+    75% {
+      transform: rotate(5deg);
+    }
+  }
+
+  /* Location Image Wrapper (Large) */
+  .location-image-wrapper {
     width: 160px;
     height: 160px;
     margin: 0 auto 16px;
     position: relative;
-}
+  }
 
-#location-main-image-container {
+  #location-main-image-container {
     width: 100%;
     height: 100%;
     border-radius: 24px;
@@ -72,15 +132,15 @@ body {
     background: transparent;
     box-shadow: none;
     animation: float 3s ease-in-out infinite;
-}
+  }
 
-#location-main-image-container img {
+  #location-main-image-container img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-}
+  }
 
-#location-main-icon-container {
+  #location-main-icon-container {
     width: 100%;
     height: 100%;
     background: transparent;
@@ -90,53 +150,53 @@ body {
     justify-content: center;
     box-shadow: none;
     animation: float 3s ease-in-out infinite;
-}
+  }
 
-#location-main-icon-container i {
+  #location-main-icon-container i {
     font-size: 64px;
     color: white;
-}
+  }
 
-/* Location Name Display */
-.location-name-display {
+  /* Location Name Display */
+  .location-name-display {
     margin-bottom: 16px;
-}
+  }
 
-.location-name-display span {
+  .location-name-display span {
     font-size: clamp(18px, 4.5vw, 22px);
     font-weight: 700;
     color: var(--primary-navy);
     display: block;
-}
+  }
 
-/* Brand Title Section (Above Location Image) */
-.brand-title-section {
+  /* Brand Title Section (Above Location Image) */
+  .brand-title-section {
     margin-bottom: 16px;
-}
+  }
 
-.brand-title-text {
+  .brand-title-text {
     font-size: clamp(20px, 5vw, 26px);
     font-weight: 700;
     color: var(--primary-navy);
     margin: 0;
     letter-spacing: 0.5px;
-}
+  }
 
-/* Brand Logo Section (Below Location Name) */
-.brand-logo-section {
+  /* Brand Logo Section (Below Location Name) */
+  .brand-logo-section {
     margin-top: 12px;
-}
+  }
 
-.l-logo {
-    width: 130px;
-    height: 130px;
+  .small-logo {
+    width: 250px;
+    height: 200px;
     object-fit: contain;
-}
+  }
 
-/* ==================== CARDS ==================== */
-.qr-card,
-.call-form-card {
-    background: #FFFFFF;
+  /* ==================== CARDS ==================== */
+  .qr-card,
+  .call-form-card {
+    background: #ffffff;
     border-radius: 20px;
     padding: clamp(24px, 6vw, 40px) clamp(20px, 5vw, 32px);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -144,52 +204,52 @@ body {
     margin-bottom: 20px;
     animation: fadeInUp 0.6s ease-out 0.2s both;
     transition: all 0.3s var(--transition-smooth);
-}
+  }
 
-.call-form-card {
+  .call-form-card {
     display: none;
-}
+  }
 
-/* ==================== QR SCANNER ICON ==================== */
-.qr-icon-wrapper {
+  /* ==================== QR SCANNER ICON ==================== */
+  .qr-icon-wrapper {
     width: clamp(80px, 20vw, 96px);
     height: clamp(80px, 20vw, 96px);
     margin: 0 auto 24px;
-    background: #F9FAFB;
+    background: #f9fafb;
     border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px dashed #E5E7EB;
+    border: 2px dashed #e5e7eb;
     animation: scanner-pulse 2.5s ease-in-out infinite;
-}
+  }
 
-.qr-icon-wrapper i {
+  .qr-icon-wrapper i {
     font-size: clamp(36px, 10vw, 48px);
     background: linear-gradient(135deg, var(--primary-navy), var(--royal-gold));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-}
+  }
 
-.qr-card h2 {
+  .qr-card h2 {
     font-size: clamp(18px, 4.5vw, 22px);
     font-weight: 700;
     color: #111827;
     margin-bottom: 12px;
     text-align: center;
-}
+  }
 
-.qr-card p {
+  .qr-card p {
     font-size: clamp(13px, 3.2vw, 15px);
-    color: #6B7280;
+    color: #6b7280;
     line-height: 1.6;
     text-align: center;
     margin-bottom: 24px;
-}
+  }
 
-/* ==================== BUTTONS ==================== */
-.btn-primary-modern {
+  /* ==================== BUTTONS ==================== */
+  .btn-primary-modern {
     width: 100%;
     min-height: 56px;
     background: var(--primary-gradient);
@@ -211,24 +271,24 @@ body {
     touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;
-}
+  }
 
-.btn-primary-modern:hover {
+  .btn-primary-modern:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(27, 165, 168, 0.25);
-}
+  }
 
-.btn-primary-modern:active {
+  .btn-primary-modern:active {
     transform: translateY(-1px);
-}
+  }
 
-.btn-primary-modern:focus-visible {
+  .btn-primary-modern:focus-visible {
     outline: 3px solid rgba(27, 165, 168, 0.5);
     outline-offset: 3px;
-}
+  }
 
-.btn-primary-modern::before {
-    content: '';
+  .btn-primary-modern::before {
+    content: "";
     position: absolute;
     top: 50%;
     left: 50%;
@@ -238,101 +298,101 @@ body {
     background: rgba(255, 255, 255, 0.3);
     transform: translate(-50%, -50%);
     transition: width 0.6s, height 0.6s;
-}
+  }
 
-.btn-primary-modern:active::before {
+  .btn-primary-modern:active::before {
     width: 300px;
     height: 300px;
-}
+  }
 
-/* ==================== INPUT SECTION ==================== */
-.input-section {
+  /* ==================== INPUT SECTION ==================== */
+  .input-section {
     margin-bottom: 24px;
-}
+  }
 
-.input-header {
+  .input-header {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 12px;
-}
+  }
 
-.input-icon {
+  .input-icon {
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: #F9FAFB;
+    background: #f9fafb;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--primary-navy);
     font-size: 20px;
-    border: 1px solid #E5E7EB;
+    border: 1px solid #e5e7eb;
     flex-shrink: 0;
-}
+  }
 
-.input-label {
+  .input-label {
     font-size: clamp(14px, 3.5vw, 15px);
     font-weight: 700;
     color: #111827;
     margin: 0;
-}
+  }
 
-.modern-input {
+  .modern-input {
     width: 100%;
     min-height: 52px;
-    border: 2px solid #E5E7EB;
+    border: 2px solid #e5e7eb;
     border-radius: 14px;
     font-size: 16px;
     padding: 14px 16px;
     transition: all 0.3s ease;
-    background: #F9FAFB;
-}
+    background: #f9fafb;
+  }
 
-.modern-input:focus {
+  .modern-input:focus {
     border-color: var(--primary-navy);
     background: white;
     box-shadow: 0 0 0 4px rgba(26, 43, 74, 0.1);
     outline: none;
-}
+  }
 
-.modern-input::placeholder {
-    color: #9CA3AF;
-}
+  .modern-input::placeholder {
+    color: #9ca3af;
+  }
 
-/* ==================== REMOVED - Location display moved to logo section ==================== */
+  /* ==================== REMOVED - Location display moved to logo section ==================== */
 
-/* ==================== FOOTER SECTION ==================== */
-.footer-section {
+  /* ==================== FOOTER SECTION ==================== */
+  .footer-section {
     text-align: center;
     padding: 2rem 0;
-    background: #1A2B4A;
-    border-top: 2px solid #D4AF37;
+    background: #1a2b4a;
+    border-top: 2px solid #d4af37;
     margin-top: 2rem;
     margin-left: calc(-1 * clamp(16px, 4vw, 24px));
     margin-right: calc(-1 * clamp(16px, 4vw, 24px));
     width: calc(100% + 2 * clamp(16px, 4vw, 24px));
     animation: fadeIn 0.6s ease-out 0.4s both;
-}
+  }
 
-.hotel-name {
+  .hotel-name {
     font-size: clamp(14px, 3.5vw, 16px);
     font-weight: 600;
-    color: #FFFFFF;
+    color: #ffffff;
     letter-spacing: 0.5px;
     margin: 0;
-}
+  }
 
-.powered-by {
+  .powered-by {
     display: none;
-}
+  }
 
-.brand-name {
+  .brand-name {
     display: none;
-}
+  }
 
-/* ==================== MODAL STYLES ==================== */
-.modal-overlay {
+  /* ==================== MODAL STYLES ==================== */
+  .modal-overlay {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.75);
@@ -342,9 +402,9 @@ body {
     z-index: 10000;
     animation: fadeIn 0.3s ease;
     padding: 20px;
-}
+  }
 
-.modal-content-modern {
+  .modal-content-modern {
     background: white;
     border-radius: var(--radius-lg);
     max-width: 500px;
@@ -353,27 +413,27 @@ body {
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     overflow: hidden;
-}
+  }
 
-.modal-header-modern {
+  .modal-header-modern {
     background: var(--primary-gradient);
     color: white;
     padding: 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
+  }
 
-.modal-title-modern {
+  .modal-title-modern {
     font-size: clamp(16px, 4vw, 20px);
     font-weight: 700;
     display: flex;
     align-items: center;
     gap: 10px;
     margin: 0;
-}
+  }
 
-.modal-close-btn {
+  .modal-close-btn {
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -387,117 +447,134 @@ body {
     justify-content: center;
     transition: all 0.2s ease;
     flex-shrink: 0;
-}
+  }
 
-.modal-close-btn:hover {
+  .modal-close-btn:hover {
     background: rgba(255, 255, 255, 0.3);
     transform: rotate(90deg);
-}
+  }
 
-.modal-close-btn:focus-visible {
+  .modal-close-btn:focus-visible {
     outline: 2px solid white;
     outline-offset: 2px;
-}
+  }
 
-.modal-body-modern {
+  .modal-body-modern {
     padding: 24px;
-}
+  }
 
-/* ==================== QR READER ==================== */
-#qr-reader {
+  /* ==================== QR READER ==================== */
+  #qr-reader {
     border-radius: var(--radius-md);
     overflow: hidden;
     border: 3px solid var(--primary-navy);
-}
+  }
 
-.qr-reader-hint {
+  .qr-reader-hint {
     text-align: center;
     margin-top: 16px;
-    color: #6B7280;
+    color: #6b7280;
     font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-}
+  }
 
-/* ==================== ANIMATIONS ==================== */
-@keyframes fadeInDown {
+  /* ==================== ANIMATIONS ==================== */
+  @keyframes fadeInDown {
     from {
-        opacity: 0;
-        transform: translateY(-30px);
+      opacity: 0;
+      transform: translateY(-30px);
     }
     to {
-        opacity: 1;
-        transform: translateY(0);
+      opacity: 1;
+      transform: translateY(0);
     }
-}
+  }
 
-@keyframes fadeInUp {
+  @keyframes fadeInUp {
     from {
-        opacity: 0;
-        transform: translateY(30px);
+      opacity: 0;
+      transform: translateY(30px);
     }
     to {
-        opacity: 1;
-        transform: translateY(0);
+      opacity: 1;
+      transform: translateY(0);
     }
-}
+  }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-12px); }
-}
-
-@keyframes pulse-ring {
-    0%, 100% {
-        transform: scale(1);
-        opacity: 0.5;
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
     }
     50% {
-        transform: scale(1.1);
-        opacity: 0;
+      transform: translateY(-12px);
     }
-}
+  }
 
-@keyframes scanner-pulse {
-    0%, 100% {
-        border-color: #E5E7EB;
-        transform: scale(1);
+  @keyframes pulse-ring {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.5;
     }
     50% {
-        border-color: var(--primary-navy);
-        transform: scale(1.05);
+      transform: scale(1.1);
+      opacity: 0;
     }
-}
+  }
 
-@keyframes slideUp {
+  @keyframes scanner-pulse {
+    0%,
+    100% {
+      border-color: #e5e7eb;
+      transform: scale(1);
+    }
+    50% {
+      border-color: var(--primary-navy);
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes slideUp {
     from {
-        transform: translateY(50px) scale(0.9);
-        opacity: 0;
+      transform: translateY(50px) scale(0.9);
+      opacity: 0;
     }
     to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
+      transform: translateY(0) scale(1);
+      opacity: 1;
     }
-}
+  }
 
-@keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
-}
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
-/* ==================== ACCESSIBILITY ==================== */
-.sr-only {
+  /* ==================== ACCESSIBILITY ==================== */
+  .sr-only {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -507,248 +584,360 @@ body {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
-}
+  }
 
-/* ==================== PERFORMANCE OPTIMIZATIONS ==================== */
-.logo-wrapper,
-.qr-icon-wrapper,
-.btn-primary-modern {
+  /* ==================== PERFORMANCE OPTIMIZATIONS ==================== */
+  .logo-wrapper,
+  .qr-icon-wrapper,
+  .btn-primary-modern {
     will-change: transform;
-}
+  }
 
-/* ==================== REDUCED MOTION ==================== */
-@media (prefers-reduced-motion: reduce) {
+  /* ==================== REDUCED MOTION ==================== */
+  @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
     }
-}
+  }
 
-/* ==================== OPTIMIST BRANDING ==================== */
-.optimist-branding img {
+  /* ==================== OPTIMIST BRANDING ==================== */
+  .optimist-branding img {
     transition: opacity 0.3s ease;
-}
+  }
 
-.optimist-branding:hover img {
+  .optimist-branding:hover img {
     opacity: 1 !important;
-}
+  }
 
-@media (max-width: 480px) {
+  @media (max-width: 480px) {
     .optimist-branding img {
-        height: 20px !important;
+      height: 20px !important;
     }
-    
-    .optimist-branding p {
-        font-size: 0.6rem !important;
-    }
-    
-    .optimist-branding p:last-child {
-        font-size: 0.55rem !important;
-    }
-}
 
-/* ==================== RESPONSIVE DESIGN ==================== */
-@media (max-width: 768px) {
+    .optimist-branding p {
+      font-size: 0.6rem !important;
+    }
+
+    .optimist-branding p:last-child {
+      font-size: 0.55rem !important;
+    }
+  }
+
+  /* ==================== RESPONSIVE DESIGN ==================== */
+  @media (max-width: 768px) {
     .guest-call-container {
-        padding: 16px;
+      padding: 16px;
     }
 
     .qr-card,
     .call-form-card {
-        padding: 20px 16px;
+      padding: 20px 16px;
     }
-}
 
-/* ==================== DARK MODE SUPPORT ==================== */
-/* Dark mode disabled to match status page */
+    .guest-clock {
+      font-size: 0.9375rem;
+      padding: 0.5rem 1rem;
+    }
 
-/* ==================== PRINT STYLES ==================== */
-@media print {
+    #guest-clock-time {
+      min-width: 75px;
+    }
+  }
+
+  /* ==================== DARK MODE SUPPORT ==================== */
+  /* Dark mode disabled to match status page */
+
+  /* ==================== PRINT STYLES ==================== */
+  @media print {
     .guest-call-container {
-        display: none;
+      display: none;
     }
-}
+  }
 </style>
-{% endblock %}
-
-{% block content %}
-<div class="guest-call-container" data-location-id="{% if location_id %}{{ location_id }}{% endif %}">
-    <!-- Location Image & Logo Section -->
-    <div class="logo-section">
-        <div class="brand-logo-section">
-       <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Shuttle Call Logo" class="small-logo">
-        </div>
-        <!-- Brand Title -->
-        <div class="brand-title-section">
-            <!-- Small Logo -->
-            <p class="brand-title-text" data-i18n="brand.name">Shuttle Call System</p>
-        </div>
-      
-        
-        <!-- Location Image (Large) -->
-        <div class="location-image-wrapper" id="location-image-wrapper">
-            <div id="location-main-image-container" style="display: none;">
-                <img id="location-main-image" alt="Lokasyon görseli">
-            </div>
-            <div id="location-main-icon-container" style="display: flex;">
-                <i class="fas fa-map-marker-alt"></i>
-            </div>
-        </div>
-        
-        <!-- Location Name -->
-        <div class="location-name-display">
-            <span id="location-name-display">Lokasyon yükleniyor...</span>
-        </div>
-        
-        
+{% endblock %} {% block content %}
+<div
+  class="guest-call-container"
+  data-location-id="{% if location_id %}{{ location_id }}{% endif %}"
+>
+  <!-- Location Image & Logo Section -->
+  <div class="logo-section">
+    <!-- Clock (Sol Üst) -->
+    <div class="guest-clock" id="guest-clock">
+      <i class="fas fa-clock"></i>
+      <span id="guest-clock-time">--:--:--</span>
     </div>
 
-    <!-- Main Content -->
-    <div class="content-section">
-        <!-- QR Scanner Card -->
-        <div class="qr-card" id="qr-scanner-card" {% if location_id %}style="display: none;"{% endif %}>
-            <div class="qr-icon-wrapper" role="img" aria-label="QR Kod İkonu">
-                <i class="fas fa-qrcode" aria-hidden="true"></i>
-            </div>
-            <h2 data-i18n="call.scan_qr">QR Kod Okutun</h2>
-            <p>Bulunduğunuz lokasyondaki QR kodu okutarak kolayca shuttle çağırabilirsiniz</p>
-            <button
-                class="btn-primary-modern"
-                onclick="GuestCall.startQRScanner()"
-                aria-label="QR kod okuyucuyu başlat"
-                type="button">
-                <i class="fas fa-camera" aria-hidden="true"></i>
-                <span data-i18n="call.scan_qr">QR Kod Okut</span>
-            </button>
-        </div>
-
-        <!-- Call Form Card (shown after QR scan) -->
-        <div class="call-form-card" id="call-form-card" role="region" aria-label="Shuttle çağırma formu" {% if location_id %}style="display: block; opacity: 1; transform: translateY(0);"{% endif %}>
-            <!-- Call Button -->
-            <button
-                class="btn-primary-modern"
-                onclick="GuestCall.showConfirmationModal()"
-                aria-label="Shuttle çağır"
-                style="margin-bottom: 24px;"
-                type="button">
-                <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                <span data-i18n="call.call_shuttle">Shuttle Çağır</span>
-            </button>
-
-            <!-- Room Number Input -->
-       
-            <div class="input-section" style="display: none;">
-                <div class="input-header">
-                    <div class="input-icon" role="img" aria-label="Oda ikonu">
-                        <i class="fas fa-door-open" aria-hidden="true"></i>
-                    </div>
-                    <h3 class="input-label" data-i18n="call.room_number">Oda Numaranız (Opsiyonel)</h3>
-                </div>
-                <label for="room-number" class="sr-only" data-i18n="call.room_number">Oda numaranız (opsiyonel)</label>
-                <input
-                    type="text"
-                    class="modern-input"
-                    id="room-number"
-                    placeholder="Örn: A-101"
-                    maxlength="20"
-                    aria-label="Oda numaranız"
-                    aria-describedby="room-number-help"
-                    autocomplete="off">
-                <span id="room-number-help" class="sr-only">Oda numaranızı girin (opsiyonel)</span>
-            </div>
-
-            
-        </div>
+    <div class="brand-logo-section">
+      <img
+        src="{{ url_for('static', filename='images/logo.png') }}"
+        alt="Shuttle Call Logo"
+        class="small-logo"
+      />
+    </div>
+    <!-- Brand Title -->
+    <div class="brand-title-section">
+      <!-- Small Logo -->
+      <p class="brand-title-text" data-i18n="brand.name">Shuttle Call System</p>
     </div>
 
-    <!-- Footer Section -->
-    <footer class="footer-section">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-            <img src="{{ url_for('static', filename='images/Merit_International.png') }}" 
-                 alt="Merit International Hotels & Resorts" 
-                 style="height: 50px; width: auto; object-fit: contain;">
-            <p class="hotel-name">MERIT INTERNATIONAL HOTELS & RESORTS © 2025 COPYRIGHT</p>
-            
-            <!-- Optimist Branding -->
-            <div class="optimist-branding" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(26, 43, 74, 0.1); width: 100%; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-                <div style="display: flex; align-items: center; gap: 0.75rem; opacity: 0.75;">
-                    <img src="{{ url_for('static', filename='images/opti.png') }}" 
-                         alt="Optimist Bilişim & Elektronik" 
-                         style="height: 24px; width: auto; object-fit: contain; filter: brightness(0) opacity(0.7);">
-                    <div style="text-align: left; line-height: 1.3;">
-                        <p style="margin: 0; font-size: 0.65rem; color: #6B7280; font-weight: 500;">Sistem Geliştirme & Teknik Destek</p>
-                        <p style="margin: 0; font-size: 0.6rem; color: #9CA3AF; font-weight: 400;">Optimist Bilişim & Elektronik</p>
-                    </div>
-                </div>
-            </div>
+    <!-- Location Image (Large) -->
+    <div class="location-image-wrapper" id="location-image-wrapper">
+      <div id="location-main-image-container" style="display: none">
+        <img id="location-main-image" alt="Lokasyon görseli" />
+      </div>
+      <div id="location-main-icon-container" style="display: flex">
+        <i class="fas fa-map-marker-alt"></i>
+      </div>
+    </div>
+
+    <!-- Location Name -->
+    <div class="location-name-display">
+      <span id="location-name-display">Lokasyon yükleniyor...</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content-section">
+    <!-- QR Scanner Card -->
+    <div
+      class="qr-card"
+      id="qr-scanner-card"
+      {%
+      if
+      location_id
+      %}style="display: none;"
+      {%
+      endif
+      %}
+    >
+      <div class="qr-icon-wrapper" role="img" aria-label="QR Kod İkonu">
+        <i class="fas fa-qrcode" aria-hidden="true"></i>
+      </div>
+      <h2 data-i18n="call.scan_qr">QR Kod Okutun</h2>
+      <p>
+        Bulunduğunuz lokasyondaki QR kodu okutarak kolayca shuttle
+        çağırabilirsiniz
+      </p>
+      <button
+        class="btn-primary-modern"
+        onclick="GuestCall.startQRScanner()"
+        aria-label="QR kod okuyucuyu başlat"
+        type="button"
+      >
+        <i class="fas fa-camera" aria-hidden="true"></i>
+        <span data-i18n="call.scan_qr">QR Kod Okut</span>
+      </button>
+    </div>
+
+    <!-- Call Form Card (shown after QR scan) -->
+    <div
+      class="call-form-card"
+      id="call-form-card"
+      role="region"
+      aria-label="Shuttle çağırma formu"
+      {%
+      if
+      location_id
+      %}style="display: block; opacity: 1; transform: translateY(0);"
+      {%
+      endif
+      %}
+    >
+      <!-- Call Button -->
+      <button
+        class="btn-primary-modern"
+        onclick="GuestCall.showConfirmationModal()"
+        aria-label="Shuttle çağır"
+        style="margin-bottom: 24px"
+        type="button"
+      >
+        <i class="fas fa-paper-plane" aria-hidden="true"></i>
+        <span data-i18n="call.call_shuttle">Shuttle Çağır</span>
+      </button>
+
+      <!-- Room Number Input -->
+
+      <div class="input-section" style="display: none">
+        <div class="input-header">
+          <div class="input-icon" role="img" aria-label="Oda ikonu">
+            <i class="fas fa-door-open" aria-hidden="true"></i>
+          </div>
+          <h3 class="input-label" data-i18n="call.room_number">
+            Oda Numaranız (Opsiyonel)
+          </h3>
         </div>
-    </footer>
+        <label for="room-number" class="sr-only" data-i18n="call.room_number"
+          >Oda numaranız (opsiyonel)</label
+        >
+        <input
+          type="text"
+          class="modern-input"
+          id="room-number"
+          placeholder="Örn: A-101"
+          maxlength="20"
+          aria-label="Oda numaranız"
+          aria-describedby="room-number-help"
+          autocomplete="off"
+        />
+        <span id="room-number-help" class="sr-only"
+          >Oda numaranızı girin (opsiyonel)</span
+        >
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Section -->
+  <footer class="footer-section">
+    <div
+      style="
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      "
+    >
+      <img
+        src="{{ url_for('static', filename='images/Merit_International.png') }}"
+        alt="Merit International Hotels & Resorts"
+        style="height: 50px; width: auto; object-fit: contain"
+      />
+      <p class="hotel-name">
+        MERIT INTERNATIONAL HOTELS & RESORTS © 2025 COPYRIGHT
+      </p>
+
+      <!-- Optimist Branding -->
+      <div
+        class="optimist-branding"
+        style="
+          margin-top: 1rem;
+          padding-top: 1rem;
+          border-top: 1px solid rgba(26, 43, 74, 0.1);
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+        "
+      >
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            opacity: 0.75;
+          "
+        >
+          <img
+            src="{{ url_for('static', filename='images/opti.png') }}"
+            alt="Optimist Bilişim & Elektronik"
+            style="
+              height: 24px;
+              width: auto;
+              object-fit: contain;
+              filter: brightness(0) opacity(0.7);
+            "
+          />
+          <div style="text-align: left; line-height: 1.3">
+            <p
+              style="
+                margin: 0;
+                font-size: 0.65rem;
+                color: #6b7280;
+                font-weight: 500;
+              "
+            >
+              Sistem Geliştirme & Teknik Destek
+            </p>
+            <p
+              style="
+                margin: 0;
+                font-size: 0.6rem;
+                color: #9ca3af;
+                font-weight: 400;
+              "
+            >
+              Optimist Bilişim & Elektronik
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
 </div>
 
 <!-- QR Scanner Modal -->
-<div id="qr-scanner-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
-    <div class="modal-content-modern">
-        <div class="modal-header-modern">
-            <h3 class="modal-title-modern" id="qr-modal-title">
-                <i class="fas fa-qrcode" aria-hidden="true"></i>
-                <span>QR Kod Okut</span>
-            </h3>
-            <button
-                class="modal-close-btn"
-                onclick="GuestCall.closeQRScanner()"
-                aria-label="Modalı kapat"
-                type="button">
-                <i class="fas fa-times" aria-hidden="true"></i>
-            </button>
-        </div>
-        <div class="modal-body-modern">
-            <div id="qr-reader" role="region" aria-label="QR kod okuyucu"></div>
-            <p class="qr-reader-hint" role="status" aria-live="polite">
-                <i class="fas fa-info-circle" aria-hidden="true"></i>
-                <span>QR kodu kameranıza gösterin</span>
-            </p>
-        </div>
+<div
+  id="qr-scanner-modal"
+  class="modal-overlay"
+  style="display: none"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="qr-modal-title"
+>
+  <div class="modal-content-modern">
+    <div class="modal-header-modern">
+      <h3 class="modal-title-modern" id="qr-modal-title">
+        <i class="fas fa-qrcode" aria-hidden="true"></i>
+        <span>QR Kod Okut</span>
+      </h3>
+      <button
+        class="modal-close-btn"
+        onclick="GuestCall.closeQRScanner()"
+        aria-label="Modalı kapat"
+        type="button"
+      >
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
     </div>
+    <div class="modal-body-modern">
+      <div id="qr-reader" role="region" aria-label="QR kod okuyucu"></div>
+      <p class="qr-reader-hint" role="status" aria-live="polite">
+        <i class="fas fa-info-circle" aria-hidden="true"></i>
+        <span>QR kodu kameranıza gösterin</span>
+      </p>
+    </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
+{% endblock %} {% block extra_js %}
 <!-- HTML5 QR Code Scanner -->
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
-        crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
+  crossorigin="anonymous"
+></script>
 
 <script>
-// Firebase Configuration from Backend
-window.firebaseVapidKey = '{{ firebase_vapid_key }}';
+  // Firebase Configuration from Backend
+  window.firebaseVapidKey = "{{ firebase_vapid_key }}";
 
-/**
- * Guest Call Premium - Enhanced JavaScript Module
- * Optimized for performance, accessibility, and maintainability
- * @author Erkan ERDEM
- * @version 2.0.0
- */
+  /**
+   * Guest Call Premium - Enhanced JavaScript Module
+   * Optimized for performance, accessibility, and maintainability
+   * @author Erkan ERDEM
+   * @version 2.0.0
+   */
 
-const GuestCall = (() => {
-    'use strict';
+  const GuestCall = (() => {
+    "use strict";
 
     // ==================== CONSTANTS ====================
     const ENDPOINTS = {
-        LOCATIONS: '/api/locations',
-        LOCATION_DETAIL: '/api/locations/{id}',
-        REQUESTS: '/api/requests'
+      LOCATIONS: "/api/locations",
+      LOCATION_DETAIL: "/api/locations/{id}",
+      REQUESTS: "/api/requests",
     };
 
     const SELECTORS = {
-        QR_SCANNER_CARD: 'qr-scanner-card',
-        CALL_FORM_CARD: 'call-form-card',
-        ROOM_NUMBER: 'room-number',
-        LOCATION_DISPLAY: 'location-name-display',
-        HOTEL_NAME: 'hotel-name',
-        QR_SCANNER_MODAL: 'qr-scanner-modal',
-        QR_READER: 'qr-reader'
+      QR_SCANNER_CARD: "qr-scanner-card",
+      CALL_FORM_CARD: "call-form-card",
+      ROOM_NUMBER: "room-number",
+      LOCATION_DISPLAY: "location-name-display",
+      HOTEL_NAME: "hotel-name",
+      QR_SCANNER_MODAL: "qr-scanner-modal",
+      QR_READER: "qr-reader",
     };
 
     const ANIMATION_DURATION = 400;
@@ -756,10 +945,10 @@ const GuestCall = (() => {
 
     // ==================== STATE ====================
     let state = {
-        html5QrCode: null,
-        selectedLocationId: null,
-        selectedLocationName: null,
-        isProcessing: false
+      html5QrCode: null,
+      selectedLocationId: null,
+      selectedLocationName: null,
+      isProcessing: false,
     };
 
     // ==================== UTILITY FUNCTIONS ====================
@@ -767,422 +956,481 @@ const GuestCall = (() => {
     const $$ = (selector) => document.querySelectorAll(selector);
 
     const getCsrfToken = () => {
-        const meta = document.querySelector('meta[name="csrf-token"]');
-        return meta ? meta.getAttribute('content') : '';
+      const meta = document.querySelector('meta[name="csrf-token"]');
+      return meta ? meta.getAttribute("content") : "";
     };
 
-    const showElement = (element, display = 'block') => {
-        if (element) element.style.display = display;
+    const showElement = (element, display = "block") => {
+      if (element) element.style.display = display;
     };
 
     const hideElement = (element) => {
-        if (element) element.style.display = 'none';
+      if (element) element.style.display = "none";
     };
 
     const fetchJSON = async (url, options = {}) => {
-        try {
-            const response = await fetch(url, {
-                ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCsrfToken(),
-                    ...options.headers
-                }
-            });
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCsrfToken(),
+            ...options.headers,
+          },
+        });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Fetch error:', error);
-            throw error;
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        return await response.json();
+      } catch (error) {
+        console.error("Fetch error:", error);
+        throw error;
+      }
     };
 
     // ==================== DEBUG: CHECK ACTIVE DRIVERS ====================
     const checkActiveDrivers = async () => {
-        try {
-            const hotelId = parseInt('{{ hotel_id }}') || 1;
-            const locationId = state.selectedLocationId || '';
-            const response = await fetch(`/api/drivers/active?hotel_id=${hotelId}&notify=true&location_id=${locationId}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                console.log('🚗 ==================== ACTIVE DRIVERS DEBUG ====================');
-                console.log(`📊 Hotel ID: ${data.hotel_id}`);
-                console.log(`👥 Active Drivers Count: ${data.active_drivers_count}`);
-                
-                if (data.active_drivers_count > 0) {
-                    console.log('✅ Active Drivers:');
-                    data.active_drivers.forEach((driver, index) => {
-                        console.log(`\n  ${index + 1}. ${driver.driver_name}`);
-                        console.log(`     🚗 Buggy: ${driver.buggy_icon || '🚗'} ${driver.buggy_code}`);
-                        console.log(`     📱 FCM Token: ${driver.has_fcm_token ? '✅ Yes' : '❌ No'}`);
-                        console.log(`     🟢 Status: ${driver.buggy_status}`);
-                        console.log(`     ⏰ Last Active: ${driver.last_active || 'N/A'}`);
-                    });
-                } else {
-                    console.warn('⚠️ NO ACTIVE DRIVERS FOUND!');
-                    console.warn('   Possible reasons:');
-                    console.warn('   - No drivers logged in');
-                    console.warn('   - BuggyDriver.is_active = False');
-                    console.warn('   - No available buggies');
-                }
-                console.log('🚗 ============================================================');
-            }
-        } catch (error) {
-            console.error('❌ Error checking active drivers:', error);
+      try {
+        const hotelId = parseInt("{{ hotel_id }}") || 1;
+        const locationId = state.selectedLocationId || "";
+        const response = await fetch(
+          `/api/drivers/active?hotel_id=${hotelId}&notify=true&location_id=${locationId}`
+        );
+        const data = await response.json();
+
+        if (data.success) {
+          console.log(
+            "🚗 ==================== ACTIVE DRIVERS DEBUG ===================="
+          );
+          console.log(`📊 Hotel ID: ${data.hotel_id}`);
+          console.log(`👥 Active Drivers Count: ${data.active_drivers_count}`);
+
+          if (data.active_drivers_count > 0) {
+            console.log("✅ Active Drivers:");
+            data.active_drivers.forEach((driver, index) => {
+              console.log(`\n  ${index + 1}. ${driver.driver_name}`);
+              console.log(
+                `     🚗 Buggy: ${driver.buggy_icon || "🚗"} ${
+                  driver.buggy_code
+                }`
+              );
+              console.log(
+                `     📱 FCM Token: ${
+                  driver.has_fcm_token ? "✅ Yes" : "❌ No"
+                }`
+              );
+              console.log(`     🟢 Status: ${driver.buggy_status}`);
+              console.log(
+                `     ⏰ Last Active: ${driver.last_active || "N/A"}`
+              );
+            });
+          } else {
+            console.warn("⚠️ NO ACTIVE DRIVERS FOUND!");
+            console.warn("   Possible reasons:");
+            console.warn("   - No drivers logged in");
+            console.warn("   - BuggyDriver.is_active = False");
+            console.warn("   - No available buggies");
+          }
+          console.log(
+            "🚗 ============================================================"
+          );
         }
+      } catch (error) {
+        console.error("❌ Error checking active drivers:", error);
+      }
     };
 
     // ==================== INITIALIZATION ====================
     const initializePage = () => {
-        // Flask template'den gelen location_id'yi öncelikli kullan
-        const container = document.querySelector('.guest-call-container');
-        const templateLocationId = container ? container.dataset.locationId : null;
+      // Flask template'den gelen location_id'yi öncelikli kullan
+      const container = document.querySelector(".guest-call-container");
+      const templateLocationId = container
+        ? container.dataset.locationId
+        : null;
 
-        // Eğer template'den gelmemişse URL'den oku
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlLocationId = urlParams.get('location') || urlParams.get('l');  // Support both ?location= and ?l=
+      // Eğer template'den gelmemişse URL'den oku
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlLocationId = urlParams.get("location") || urlParams.get("l"); // Support both ?location= and ?l=
 
-        // Template veya URL'den location ID al
-        const locationId = templateLocationId || urlLocationId;
+      // Template veya URL'den location ID al
+      const locationId = templateLocationId || urlLocationId;
 
-        console.log('🔍 DEBUG - initializePage:', {
-            templateLocationId,
-            urlLocationId,
-            finalLocationId: locationId,
-            willShowForm: !!locationId
-        });
+      console.log("🔍 DEBUG - initializePage:", {
+        templateLocationId,
+        urlLocationId,
+        finalLocationId: locationId,
+        willShowForm: !!locationId,
+      });
 
-        if (locationId) {
-            console.log('✅ Location ID bulundu, form gösteriliyor:', locationId);
-            state.selectedLocationId = parseInt(locationId, 10);
+      if (locationId) {
+        console.log("✅ Location ID bulundu, form gösteriliyor:", locationId);
+        state.selectedLocationId = parseInt(locationId, 10);
 
-            // ✅ CRITICAL: Set location ID BEFORE checking active drivers
-            // This ensures notify event includes correct location name
-            checkActiveDrivers();
+        // ✅ CRITICAL: Set location ID BEFORE checking active drivers
+        // This ensures notify event includes correct location name
+        checkActiveDrivers();
 
-            transitionToCallForm();
-            // DOM'un hazır olması için kısa bir gecikme
-            setTimeout(() => {
-                loadLocationInfo(locationId);
-            }, 100);
-        } else {
-            console.log('❌ Location ID bulunamadı, QR scanner gösteriliyor');
-            loadHotelName();
+        transitionToCallForm();
+        // DOM'un hazır olması için kısa bir gecikme
+        setTimeout(() => {
+          loadLocationInfo(locationId);
+        }, 100);
+      } else {
+        console.log("❌ Location ID bulunamadı, QR scanner gösteriliyor");
+        loadHotelName();
 
-            // Check drivers without location
-            checkActiveDrivers();
-        }
+        // Check drivers without location
+        checkActiveDrivers();
+      }
     };
 
     // ==================== UI TRANSITIONS ====================
     const transitionToCallForm = () => {
-        const qrCard = $(SELECTORS.QR_SCANNER_CARD);
-        const callCard = $(SELECTORS.CALL_FORM_CARD);
+      const qrCard = $(SELECTORS.QR_SCANNER_CARD);
+      const callCard = $(SELECTORS.CALL_FORM_CARD);
 
-        if (!qrCard || !callCard) return;
+      if (!qrCard || !callCard) return;
 
-        qrCard.style.transition = `all ${ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
-        qrCard.style.opacity = '0';
-        qrCard.style.transform = 'translateY(-30px)';
+      qrCard.style.transition = `all ${ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+      qrCard.style.opacity = "0";
+      qrCard.style.transform = "translateY(-30px)";
 
-        setTimeout(() => {
-            hideElement(qrCard);
-            showElement(callCard);
+      setTimeout(() => {
+        hideElement(qrCard);
+        showElement(callCard);
 
-            requestAnimationFrame(() => {
-                callCard.style.opacity = '1';
-                callCard.style.transform = 'translateY(0)';
-            });
-        }, ANIMATION_DURATION);
+        requestAnimationFrame(() => {
+          callCard.style.opacity = "1";
+          callCard.style.transform = "translateY(0)";
+        });
+      }, ANIMATION_DURATION);
     };
 
     // ==================== DATA LOADING ====================
     const loadLocationInfo = async (locationId) => {
-        const displayEl = $(SELECTORS.LOCATION_DISPLAY);
-        if (!displayEl) return;
+      const displayEl = $(SELECTORS.LOCATION_DISPLAY);
+      if (!displayEl) return;
 
-        updateLocationDisplay('<i class="fas fa-spinner fa-spin"></i> Lokasyon yükleniyor...', '#6B7280', null);
+      updateLocationDisplay(
+        '<i class="fas fa-spinner fa-spin"></i> Lokasyon yükleniyor...',
+        "#6B7280",
+        null
+      );
 
-        try {
-            // Ensure locationId is integer
-            const numericLocationId = parseInt(locationId, 10);
-            const url = ENDPOINTS.LOCATION_DETAIL.replace('{id}', numericLocationId);
-            
-            console.log('🔍 DEBUG - loadLocationInfo:', {
-                originalLocationId: locationId,
-                numericLocationId,
-                url
-            });
-            
-            const data = await fetchJSON(url);
-            
-            console.log('📡 DEBUG - API Response:', data);
+      try {
+        // Ensure locationId is integer
+        const numericLocationId = parseInt(locationId, 10);
+        const url = ENDPOINTS.LOCATION_DETAIL.replace(
+          "{id}",
+          numericLocationId
+        );
 
-            // API response format: {success: true, data: {location: {...}}}
-            const location = data.data?.location || data.location;
+        console.log("🔍 DEBUG - loadLocationInfo:", {
+          originalLocationId: locationId,
+          numericLocationId,
+          url,
+        });
 
-            if (data.success && location) {
-                console.log('✅ Location found:', location);
-                console.log('📸 Location image (raw):', location.location_image);
-                
-                state.selectedLocationName = location.name;
-                
-                // Resim yolunu tam URL'e çevir
-                let imageUrl = null;
-                if (location.location_image) {
-                    // Eğer relative path ise tam URL yap
-                    if (location.location_image.startsWith('/')) {
-                        imageUrl = window.location.origin + location.location_image;
-                    } else if (location.location_image.startsWith('http')) {
-                        // Zaten tam URL
-                        imageUrl = location.location_image;
-                    } else {
-                        // Relative path (static/ ile başlıyor olabilir)
-                        imageUrl = window.location.origin + '/' + location.location_image;
-                    }
-                    console.log('📸 Location image (full URL):', imageUrl);
-                }
-                
-                updateLocationDisplay(`<strong>${location.name}</strong>`, '#1A2B4A', imageUrl);
-                console.log('✅ updateLocationDisplay called');
-           
+        const data = await fetchJSON(url);
+
+        console.log("📡 DEBUG - API Response:", data);
+
+        // API response format: {success: true, data: {location: {...}}}
+        const location = data.data?.location || data.location;
+
+        if (data.success && location) {
+          console.log("✅ Location found:", location);
+          console.log("📸 Location image (raw):", location.location_image);
+
+          state.selectedLocationName = location.name;
+
+          // Resim yolunu tam URL'e çevir
+          let imageUrl = null;
+          if (location.location_image) {
+            // Eğer relative path ise tam URL yap
+            if (location.location_image.startsWith("/")) {
+              imageUrl = window.location.origin + location.location_image;
+            } else if (location.location_image.startsWith("http")) {
+              // Zaten tam URL
+              imageUrl = location.location_image;
             } else {
-                console.error('❌ Location not found in response:', data);
-                updateLocationDisplay('<i class="fas fa-exclamation-circle"></i> Lokasyon bulunamadı', '#E74C3C', null);
+              // Relative path (static/ ile başlıyor olabilir)
+              imageUrl = window.location.origin + "/" + location.location_image;
             }
-        } catch (error) {
-            console.error('❌ Error loading location:', error);
-            updateLocationDisplay('<i class="fas fa-exclamation-circle"></i> Yükleme hatası', '#E74C3C', null);
+            console.log("📸 Location image (full URL):", imageUrl);
+          }
+
+          updateLocationDisplay(
+            `<strong>${location.name}</strong>`,
+            "#1A2B4A",
+            imageUrl
+          );
+          console.log("✅ updateLocationDisplay called");
+        } else {
+          console.error("❌ Location not found in response:", data);
+          updateLocationDisplay(
+            '<i class="fas fa-exclamation-circle"></i> Lokasyon bulunamadı',
+            "#E74C3C",
+            null
+          );
         }
+      } catch (error) {
+        console.error("❌ Error loading location:", error);
+        updateLocationDisplay(
+          '<i class="fas fa-exclamation-circle"></i> Yükleme hatası',
+          "#E74C3C",
+          null
+        );
+      }
     };
 
     const loadHotelName = async () => {
-        try {
-            const data = await fetchJSON(ENDPOINTS.LOCATIONS);
+      try {
+        const data = await fetchJSON(ENDPOINTS.LOCATIONS);
 
-            if (data.success && data.data?.items?.length > 0) {
-                const hotelNameEl = $(SELECTORS.HOTEL_NAME);
-                if (hotelNameEl) {
-                    hotelNameEl.textContent = 'Shuttle Call System';
-                }
-            }
-        } catch (error) {
-            console.error('Error loading hotel:', error);
+        if (data.success && data.data?.items?.length > 0) {
+          const hotelNameEl = $(SELECTORS.HOTEL_NAME);
+          if (hotelNameEl) {
+            hotelNameEl.textContent = "Shuttle Call System";
+          }
         }
+      } catch (error) {
+        console.error("Error loading hotel:", error);
+      }
     };
 
     // ==================== UI UPDATES ====================
     const updateLocationDisplay = (content, color, locationImage = null) => {
-        console.log('🔧 updateLocationDisplay called with:', {content, color, locationImage: locationImage ? 'YES' : 'NO'});
-        
-        const nameDisplay = document.getElementById('location-name-display');
-        const mainImageContainer = document.getElementById('location-main-image-container');
-        const mainImage = document.getElementById('location-main-image');
-        const mainIconContainer = document.getElementById('location-main-icon-container');
-        
-        console.log('🔍 Elements found:', {
-            nameDisplay: !!nameDisplay,
-            mainImageContainer: !!mainImageContainer,
-            mainImage: !!mainImage,
-            mainIconContainer: !!mainIconContainer
-        });
-        
-        if (nameDisplay) {
-            nameDisplay.innerHTML = content;
-            nameDisplay.style.color = color;
-            console.log('✅ Name updated:', nameDisplay.innerHTML);
-        } else {
-            console.error('❌ nameDisplay not found!');
+      console.log("🔧 updateLocationDisplay called with:", {
+        content,
+        color,
+        locationImage: locationImage ? "YES" : "NO",
+      });
+
+      const nameDisplay = document.getElementById("location-name-display");
+      const mainImageContainer = document.getElementById(
+        "location-main-image-container"
+      );
+      const mainImage = document.getElementById("location-main-image");
+      const mainIconContainer = document.getElementById(
+        "location-main-icon-container"
+      );
+
+      console.log("🔍 Elements found:", {
+        nameDisplay: !!nameDisplay,
+        mainImageContainer: !!mainImageContainer,
+        mainImage: !!mainImage,
+        mainIconContainer: !!mainIconContainer,
+      });
+
+      if (nameDisplay) {
+        nameDisplay.innerHTML = content;
+        nameDisplay.style.color = color;
+        console.log("✅ Name updated:", nameDisplay.innerHTML);
+      } else {
+        console.error("❌ nameDisplay not found!");
+      }
+
+      // Büyük görsel varsa göster, yoksa icon göster
+      if (
+        locationImage &&
+        locationImage.trim() !== "" &&
+        mainImageContainer &&
+        mainImage &&
+        mainIconContainer
+      ) {
+        console.log("🖼️ Setting image src:", locationImage);
+
+        // Önce icon göster, resim yüklenince değiştir
+        mainImageContainer.style.display = "none";
+        mainIconContainer.style.display = "flex";
+
+        mainImage.onerror = () => {
+          console.warn(
+            "⚠️ Image failed to load, using icon fallback:",
+            locationImage
+          );
+          mainImageContainer.style.display = "none";
+          mainIconContainer.style.display = "flex";
+        };
+
+        mainImage.onload = () => {
+          console.log("✅ Image loaded successfully");
+          mainImageContainer.style.display = "block";
+          mainIconContainer.style.display = "none";
+        };
+
+        // Resmi yükle - önce icon göster
+        mainImage.src = locationImage;
+      } else {
+        // Resim yoksa icon göster
+        if (mainImageContainer && mainIconContainer) {
+          mainImageContainer.style.display = "none";
+          mainIconContainer.style.display = "flex";
+          console.log("✅ Icon displayed (no image)");
         }
-        
-        // Büyük görsel varsa göster, yoksa icon göster
-        if (locationImage && locationImage.trim() !== '' && mainImageContainer && mainImage && mainIconContainer) {
-            console.log('🖼️ Setting image src:', locationImage);
-            
-            // Önce icon göster, resim yüklenince değiştir
-            mainImageContainer.style.display = 'none';
-            mainIconContainer.style.display = 'flex';
-            
-            mainImage.onerror = () => {
-                console.warn('⚠️ Image failed to load, using icon fallback:', locationImage);
-                mainImageContainer.style.display = 'none';
-                mainIconContainer.style.display = 'flex';
-            };
-            
-            mainImage.onload = () => {
-                console.log('✅ Image loaded successfully');
-                mainImageContainer.style.display = 'block';
-                mainIconContainer.style.display = 'none';
-            };
-            
-            // Resmi yükle - önce icon göster
-            mainImage.src = locationImage;
-        } else {
-            // Resim yoksa icon göster
-            if (mainImageContainer && mainIconContainer) {
-                mainImageContainer.style.display = 'none';
-                mainIconContainer.style.display = 'flex';
-                console.log('✅ Icon displayed (no image)');
-            }
-        }
+      }
     };
 
-   
     // ==================== QR SCANNER ====================
     const startQRScanner = async () => {
-        const modal = $(SELECTORS.QR_SCANNER_MODAL);
-        if (!modal) return;
+      const modal = $(SELECTORS.QR_SCANNER_MODAL);
+      if (!modal) return;
 
-        showElement(modal, 'flex');
+      showElement(modal, "flex");
 
-        try {
-            state.html5QrCode = new Html5Qrcode(SELECTORS.QR_READER);
+      try {
+        state.html5QrCode = new Html5Qrcode(SELECTORS.QR_READER);
 
-            const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
-            };
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        };
 
-            await state.html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                onScanSuccess,
-                onScanError
-            );
-        } catch (err) {
-            console.error('QR Scanner error:', err);
-            showToast('Kamera erişimi reddedildi. Lütfen tarayıcı ayarlarından kamera iznini kontrol edin.', 'error');
-            closeQRScanner();
-        }
+        await state.html5QrCode.start(
+          { facingMode: "environment" },
+          config,
+          onScanSuccess,
+          onScanError
+        );
+      } catch (err) {
+        console.error("QR Scanner error:", err);
+        showToast(
+          "Kamera erişimi reddedildi. Lütfen tarayıcı ayarlarından kamera iznini kontrol edin.",
+          "error"
+        );
+        closeQRScanner();
+      }
     };
 
     const onScanSuccess = (decodedText) => {
-        console.log('QR Code scanned:', decodedText);
+      console.log("QR Code scanned:", decodedText);
 
-        if (state.html5QrCode) {
-            state.html5QrCode.stop()
-                .then(() => {
-                    closeQRScanner();
-                    processQRCode(decodedText);
-                })
-                .catch(err => {
-                    console.error('Error stopping scanner:', err);
-                    closeQRScanner();
-                    processQRCode(decodedText);
-                });
-        }
+      if (state.html5QrCode) {
+        state.html5QrCode
+          .stop()
+          .then(() => {
+            closeQRScanner();
+            processQRCode(decodedText);
+          })
+          .catch((err) => {
+            console.error("Error stopping scanner:", err);
+            closeQRScanner();
+            processQRCode(decodedText);
+          });
+      }
     };
 
     const onScanError = (errorMessage) => {
-        // Silently handle scan errors (normal during scanning)
+      // Silently handle scan errors (normal during scanning)
     };
 
     const closeQRScanner = () => {
-        const modal = $(SELECTORS.QR_SCANNER_MODAL);
+      const modal = $(SELECTORS.QR_SCANNER_MODAL);
 
-        if (state.html5QrCode) {
-            state.html5QrCode.stop()
-                .then(() => state.html5QrCode.clear())
-                .catch(err => console.error('Error clearing scanner:', err))
-                .finally(() => {
-                    state.html5QrCode = null;
-                });
-        }
+      if (state.html5QrCode) {
+        state.html5QrCode
+          .stop()
+          .then(() => state.html5QrCode.clear())
+          .catch((err) => console.error("Error clearing scanner:", err))
+          .finally(() => {
+            state.html5QrCode = null;
+          });
+      }
 
-        if (modal) {
-            modal.style.animation = 'fadeOut 0.3s ease';
-            setTimeout(() => {
-                hideElement(modal);
-                modal.style.animation = '';
-            }, 300);
-        }
+      if (modal) {
+        modal.style.animation = "fadeOut 0.3s ease";
+        setTimeout(() => {
+          hideElement(modal);
+          modal.style.animation = "";
+        }, 300);
+      }
     };
 
     const processQRCode = async (qrData) => {
-        // URL format - redirect directly
-        if (qrData.startsWith('http://') || qrData.startsWith('https://')) {
-            console.log('URL format detected, redirecting...');
-            showLoadingOverlay('Yönlendiriliyor...');
-            window.location.href = qrData;
-            return;
-        }
+      // URL format - redirect directly
+      if (qrData.startsWith("http://") || qrData.startsWith("https://")) {
+        console.log("URL format detected, redirecting...");
+        showLoadingOverlay("Yönlendiriliyor...");
+        window.location.href = qrData;
+        return;
+      }
 
-        // Legacy LOC format
-        if (qrData.startsWith('LOC')) {
-            console.log('Legacy LOC format detected');
-            showLoadingOverlay('Lokasyon doğrulanıyor...');
+      // Legacy LOC format
+      if (qrData.startsWith("LOC")) {
+        console.log("Legacy LOC format detected");
+        showLoadingOverlay("Lokasyon doğrulanıyor...");
 
-            try {
-                const data = await fetchJSON(ENDPOINTS.LOCATIONS);
-                hideLoadingOverlay();
+        try {
+          const data = await fetchJSON(ENDPOINTS.LOCATIONS);
+          hideLoadingOverlay();
 
-                if (data.success && data.data?.items) {
-                    const location = data.data.items.find(loc => loc.qr_code_data === qrData);
+          if (data.success && data.data?.items) {
+            const location = data.data.items.find(
+              (loc) => loc.qr_code_data === qrData
+            );
 
-                    if (location) {
-                        state.selectedLocationId = location.id;
-                        state.selectedLocationName = location.name;
-                        transitionToCallForm();
-                        loadLocationInfo(location.id);
-                        showToast(`Lokasyon seçildi: ${location.name}`, 'success');
-                    } else {
-                        showToast('Lokasyon bulunamadı', 'error');
-                    }
-                } else {
-                    showToast('Lokasyon yüklenemedi', 'error');
-                }
-            } catch (error) {
-                hideLoadingOverlay();
-                console.error('Error loading locations:', error);
-                showToast('Bir hata oluştu', 'error');
+            if (location) {
+              state.selectedLocationId = location.id;
+              state.selectedLocationName = location.name;
+              transitionToCallForm();
+              loadLocationInfo(location.id);
+              showToast(`Lokasyon seçildi: ${location.name}`, "success");
+            } else {
+              showToast("Lokasyon bulunamadı", "error");
             }
-            return;
+          } else {
+            showToast("Lokasyon yüklenemedi", "error");
+          }
+        } catch (error) {
+          hideLoadingOverlay();
+          console.error("Error loading locations:", error);
+          showToast("Bir hata oluştu", "error");
         }
+        return;
+      }
 
-        // Invalid format
-        console.error('Invalid QR code format:', qrData);
-        showToast('Geçersiz QR kod formatı', 'error');
+      // Invalid format
+      console.error("Invalid QR code format:", qrData);
+      showToast("Geçersiz QR kod formatı", "error");
     };
 
     // ==================== REQUEST SUBMISSION ====================
     const showConfirmationModal = () => {
-        if (!state.selectedLocationId) {
-            showToast('Lütfen önce QR kod okutun', 'error');
-            return;
-        }
+      if (!state.selectedLocationId) {
+        showToast("Lütfen önce QR kod okutun", "error");
+        return;
+      }
 
-        if (state.isProcessing) return;
+      if (state.isProcessing) return;
 
-        const roomNumber = $(SELECTORS.ROOM_NUMBER)?.value || '';
-        const locationName = state.selectedLocationName || 'Seçili Lokasyon';
+      const roomNumber = $(SELECTORS.ROOM_NUMBER)?.value || "";
+      const locationName = state.selectedLocationName || "Seçili Lokasyon";
 
-        const roomInfo = roomNumber
-            ? `<div class="confirm-detail">
+      const roomInfo = roomNumber
+        ? `<div class="confirm-detail">
                    <i class="fas fa-door-open"></i>
                    <span><strong>Oda:</strong> ${escapeHtml(roomNumber)}</span>
                </div>`
-            : '';
+        : "";
 
-        const modal = createConfirmationModal(locationName, roomInfo);
-        document.body.appendChild(modal);
+      const modal = createConfirmationModal(locationName, roomInfo);
+      document.body.appendChild(modal);
 
-        setupModalHandlers(modal);
+      setupModalHandlers(modal);
     };
 
     const createConfirmationModal = (locationName, roomInfo) => {
-        const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
-        overlay.setAttribute('role', 'dialog');
-        overlay.setAttribute('aria-modal', 'true');
-        overlay.setAttribute('aria-labelledby', 'confirm-modal-title');
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-labelledby", "confirm-modal-title");
 
-        overlay.innerHTML = `
+      overlay.innerHTML = `
             <div style="
                 background: white;
                 border-radius: 24px;
@@ -1284,7 +1532,9 @@ const GuestCall = (() => {
                     ">
                         <div class="confirm-detail">
                             <i class="fas fa-map-marker-alt"></i>
-                            <span><strong>Lokasyon:</strong> ${escapeHtml(locationName)}</span>
+                            <span><strong>Lokasyon:</strong> ${escapeHtml(
+                              locationName
+                            )}</span>
                         </div>
                         ${roomInfo}
                     </div>
@@ -1303,144 +1553,160 @@ const GuestCall = (() => {
             </div>
         `;
 
-        return overlay;
+      return overlay;
     };
 
     const setupModalHandlers = (modal) => {
-        const confirmBtn = modal.querySelector('[data-action="confirm"]');
-        const cancelBtn = modal.querySelector('[data-action="cancel"]');
+      const confirmBtn = modal.querySelector('[data-action="confirm"]');
+      const cancelBtn = modal.querySelector('[data-action="cancel"]');
 
-        const closeModal = () => {
-            modal.style.animation = 'fadeOut 0.3s ease';
-            setTimeout(() => modal.remove(), 300);
-        };
+      const closeModal = () => {
+        modal.style.animation = "fadeOut 0.3s ease";
+        setTimeout(() => modal.remove(), 300);
+      };
 
-        confirmBtn?.addEventListener('click', () => {
-            closeModal();
-            submitRequest();
-        });
+      confirmBtn?.addEventListener("click", () => {
+        closeModal();
+        submitRequest();
+      });
 
-        cancelBtn?.addEventListener('click', closeModal);
+      cancelBtn?.addEventListener("click", closeModal);
 
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
 
-        // Trap focus in modal
-        const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
+      // Trap focus in modal
+      const focusableElements = modal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
 
-        modal.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeModal();
-            } else if (e.key === 'Tab') {
-                if (e.shiftKey && document.activeElement === firstElement) {
-                    e.preventDefault();
-                    lastElement.focus();
-                } else if (!e.shiftKey && document.activeElement === lastElement) {
-                    e.preventDefault();
-                    firstElement.focus();
-                }
-            }
-        });
+      modal.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeModal();
+        } else if (e.key === "Tab") {
+          if (e.shiftKey && document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+          } else if (!e.shiftKey && document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
+      });
 
-        // Focus first button
-        requestAnimationFrame(() => firstElement?.focus());
+      // Focus first button
+      requestAnimationFrame(() => firstElement?.focus());
     };
 
     const submitRequest = async () => {
-        if (state.isProcessing) return;
+      if (state.isProcessing) return;
 
-        const roomNumber = $(SELECTORS.ROOM_NUMBER)?.value || '';
+      const roomNumber = $(SELECTORS.ROOM_NUMBER)?.value || "";
 
-        if (!state.selectedLocationId) {
-            showToast('Lütfen önce QR kod okutun', 'error');
-            return;
-        }
+      if (!state.selectedLocationId) {
+        showToast("Lütfen önce QR kod okutun", "error");
+        return;
+      }
 
-        state.isProcessing = true;
-        showLoadingOverlay('Shuttle çağrılıyor...');
+      state.isProcessing = true;
+      showLoadingOverlay("Shuttle çağrılıyor...");
 
-        try {
-            const data = await fetchJSON(ENDPOINTS.REQUESTS, {
-                method: 'POST',
-                body: JSON.stringify({
-                    location_id: state.selectedLocationId,
-                    room_number: roomNumber || null
-                })
-            });
+      try {
+        const data = await fetchJSON(ENDPOINTS.REQUESTS, {
+          method: "POST",
+          body: JSON.stringify({
+            location_id: state.selectedLocationId,
+            room_number: roomNumber || null,
+          }),
+        });
 
-            hideLoadingOverlay();
+        hideLoadingOverlay();
 
-            if (data.success && data.request) {
-                // ✅ TALEP OLUŞTURULDU
-                console.log('✅ Request created successfully!');
-                console.log('📋 Request ID:', data.request.id);
-                
-                // Sürücülere bildirim gönder (arka planda, blocking değil)
-                checkActiveDrivers().catch(err => {
-                    console.error('⚠️ Driver notification failed (non-blocking):', err);
-                });
+        if (data.success && data.request) {
+          // ✅ TALEP OLUŞTURULDU
+          console.log("✅ Request created successfully!");
+          console.log("📋 Request ID:", data.request.id);
 
-                // Bildirim izni iste (arka planda, blocking değil)
-                console.log('🔔 Requesting notification permission...');
-                requestNotificationPermissionForGuest(data.request.id).catch(err => {
-                    console.error('⚠️ Notification permission failed (non-blocking):', err);
-                });
-                
-                // Hemen success notification göster ve redirect et
-                console.log('🎉 Showing success notification and redirecting...');
-                showSuccessNotification(data.request.id);
-            } else {
-                console.error('❌ Request creation failed:', data.error);
-                showToast(data.error || 'Talep oluşturulamadı', 'error');
+          // Sürücülere bildirim gönder (arka planda, blocking değil)
+          checkActiveDrivers().catch((err) => {
+            console.error("⚠️ Driver notification failed (non-blocking):", err);
+          });
+
+          // Bildirim izni iste (arka planda, blocking değil)
+          console.log("🔔 Requesting notification permission...");
+          requestNotificationPermissionForGuest(data.request.id).catch(
+            (err) => {
+              console.error(
+                "⚠️ Notification permission failed (non-blocking):",
+                err
+              );
             }
-        } catch (error) {
-            hideLoadingOverlay();
-            console.error('Request submission error:', error);
-            showToast('Bir hata oluştu. Lütfen tekrar deneyin.', 'error');
-        } finally {
-            state.isProcessing = false;
+          );
+
+          // Hemen success notification göster ve redirect et
+          console.log("🎉 Showing success notification and redirecting...");
+          showSuccessNotification(data.request.id);
+        } else {
+          console.error("❌ Request creation failed:", data.error);
+          showToast(data.error || "Talep oluşturulamadı", "error");
         }
+      } catch (error) {
+        hideLoadingOverlay();
+        console.error("Request submission error:", error);
+        showToast("Bir hata oluştu. Lütfen tekrar deneyin.", "error");
+      } finally {
+        state.isProcessing = false;
+      }
     };
 
     // ==================== PUSH NOTIFICATIONS ====================
     const requestNotificationPermissionForGuest = async (requestId) => {
-        // Guest Notification Manager kullan (Firebase Admin SDK)
-        if (!window.guestNotificationManager) {
-            console.log('[Guest] Notification manager not available');
-            return;
-        }
+      // Guest Notification Manager kullan (Firebase Admin SDK)
+      if (!window.guestNotificationManager) {
+        console.log("[Guest] Notification manager not available");
+        return;
+      }
 
-        try {
-            // FCM token al ve kaydet
-            console.log('🔔 Getting FCM token for request:', requestId);
-            const token = await window.guestNotificationManager.requestPermissionAndGetToken(requestId);
-            
-            if (token) {
-                console.log('✅ FCM token received:', token.substring(0, 20) + '...');
-                showToast('✅ Shuttle yola çıktığında bildirim alacaksınız!', 'success');
-            } else {
-                console.log('⚠️ No FCM token received');
-            }
-        } catch (error) {
-            console.error('❌ [FCM] Notification error:', error);
-            // Don't block the flow, continue anyway
+      try {
+        // FCM token al ve kaydet
+        console.log("🔔 Getting FCM token for request:", requestId);
+        const token =
+          await window.guestNotificationManager.requestPermissionAndGetToken(
+            requestId
+          );
+
+        if (token) {
+          console.log("✅ FCM token received:", token.substring(0, 20) + "...");
+          showToast(
+            "✅ Shuttle yola çıktığında bildirim alacaksınız!",
+            "success"
+          );
+        } else {
+          console.log("⚠️ No FCM token received");
         }
+      } catch (error) {
+        console.error("❌ [FCM] Notification error:", error);
+        // Don't block the flow, continue anyway
+      }
     };
 
     // Eski push subscription kodu kaldırıldı - Firebase Admin SDK kullanıyoruz
 
     const showSuccessNotification = (requestId) => {
-        console.log('🎯 showSuccessNotification called with requestId:', requestId);
-        
-        const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
-        overlay.setAttribute('role', 'alert');
-        overlay.setAttribute('aria-live', 'assertive');
+      console.log(
+        "🎯 showSuccessNotification called with requestId:",
+        requestId
+      );
 
-        overlay.innerHTML = `
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay";
+      overlay.setAttribute("role", "alert");
+      overlay.setAttribute("aria-live", "assertive");
+
+      overlay.innerHTML = `
             <div style="
                 background: white;
                 border-radius: 24px;
@@ -1484,7 +1750,9 @@ const GuestCall = (() => {
                     Durumunu takip edebilirsiniz.
                 </p>
 
-                ${Notification.permission === 'granted' ? `
+                ${
+                  Notification.permission === "granted"
+                    ? `
                 <div style="
                     background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
                     border-left: 4px solid #3B82F6;
@@ -1506,7 +1774,9 @@ const GuestCall = (() => {
                         <span>Shuttle yola çıktığında bildirim alacaksınız!</span>
                     </p>
                 </div>
-                ` : ''}
+                `
+                    : ""
+                }
 
                 <div style="
                     background: linear-gradient(135deg, #FEF3C7, #FDE68A);
@@ -1542,30 +1812,32 @@ const GuestCall = (() => {
             </div>
         `;
 
-        document.body.appendChild(overlay);
-        console.log('✅ Success overlay added to DOM');
+      document.body.appendChild(overlay);
+      console.log("✅ Success overlay added to DOM");
 
-        // Redirect after delay
-        console.log(`⏳ Redirecting to /guest/status/${requestId} in ${REDIRECT_DELAY}ms...`);
-        setTimeout(() => {
-            console.log('🚀 Redirecting now...');
-            window.location.href = `/guest/status/${requestId}`;
-        }, REDIRECT_DELAY);
+      // Redirect after delay
+      console.log(
+        `⏳ Redirecting to /guest/status/${requestId} in ${REDIRECT_DELAY}ms...`
+      );
+      setTimeout(() => {
+        console.log("🚀 Redirecting now...");
+        window.location.href = `/guest/status/${requestId}`;
+      }, REDIRECT_DELAY);
     };
 
     // ==================== UTILITY MODALS ====================
     const showLoadingOverlay = (message) => {
-        const existing = $('loading-overlay-custom');
-        if (existing) existing.remove();
+      const existing = $("loading-overlay-custom");
+      if (existing) existing.remove();
 
-        const overlay = document.createElement('div');
-        overlay.id = 'loading-overlay-custom';
-        overlay.className = 'modal-overlay';
-        overlay.setAttribute('role', 'alert');
-        overlay.setAttribute('aria-live', 'assertive');
-        overlay.setAttribute('aria-busy', 'true');
+      const overlay = document.createElement("div");
+      overlay.id = "loading-overlay-custom";
+      overlay.className = "modal-overlay";
+      overlay.setAttribute("role", "alert");
+      overlay.setAttribute("aria-live", "assertive");
+      overlay.setAttribute("aria-busy", "true");
 
-        overlay.innerHTML = `
+      overlay.innerHTML = `
             <div style="text-align: center;">
                 <div style="
                     width: 64px;
@@ -1585,36 +1857,36 @@ const GuestCall = (() => {
             </div>
         `;
 
-        document.body.appendChild(overlay);
+      document.body.appendChild(overlay);
     };
 
     const hideLoadingOverlay = () => {
-        const overlay = $('loading-overlay-custom');
-        if (overlay) {
-            overlay.style.animation = 'fadeOut 0.3s ease';
-            setTimeout(() => overlay.remove(), 300);
-        }
+      const overlay = $("loading-overlay-custom");
+      if (overlay) {
+        overlay.style.animation = "fadeOut 0.3s ease";
+        setTimeout(() => overlay.remove(), 300);
+      }
     };
 
-    const showToast = (message, type = 'info') => {
-        // Try to use global toast if available
-        if (typeof ShuttleCall !== 'undefined' && ShuttleCall.Utils?.showToast) {
-            ShuttleCall.Utils.showToast(message, type);
-            return;
-        }
+    const showToast = (message, type = "info") => {
+      // Try to use global toast if available
+      if (typeof ShuttleCall !== "undefined" && ShuttleCall.Utils?.showToast) {
+        ShuttleCall.Utils.showToast(message, type);
+        return;
+      }
 
-        // Fallback to custom toast
-        const colors = {
-            success: '#10b981',
-            error: '#ef4444',
-            warning: '#f59e0b',
-            info: '#3b82f6'
-        };
+      // Fallback to custom toast
+      const colors = {
+        success: "#10b981",
+        error: "#ef4444",
+        warning: "#f59e0b",
+        info: "#3b82f6",
+      };
 
-        const toast = document.createElement('div');
-        toast.setAttribute('role', 'alert');
-        toast.setAttribute('aria-live', 'assertive');
-        toast.style.cssText = `
+      const toast = document.createElement("div");
+      toast.setAttribute("role", "alert");
+      toast.setAttribute("aria-live", "assertive");
+      toast.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
@@ -1630,40 +1902,40 @@ const GuestCall = (() => {
             animation: slideInRight 0.3s ease;
         `;
 
-        toast.textContent = message;
-        document.body.appendChild(toast);
+      toast.textContent = message;
+      document.body.appendChild(toast);
 
-        setTimeout(() => {
-            toast.style.animation = 'slideOutRight 0.3s ease';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
+      setTimeout(() => {
+        toast.style.animation = "slideOutRight 0.3s ease";
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
     };
 
     // ==================== HELPER FUNCTIONS ====================
     const escapeHtml = (text) => {
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, m => map[m])
-  };
+      const map = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      };
+      return text.replace(/[&<>"']/g, (m) => map[m]);
+    };
     // ==================== INITIALIZATION ====================
-    document.addEventListener('DOMContentLoaded', initializePage);
+    document.addEventListener("DOMContentLoaded", initializePage);
 
     // ==================== PUBLIC API ====================
     return {
-        startQRScanner,
-        closeQRScanner,
-        showConfirmationModal
+      startQRScanner,
+      closeQRScanner,
+      showConfirmationModal,
     };
-})();
+  })();
 
-// Add keyframe animations
-const animationStyles = document.createElement('style');
-animationStyles.textContent = `
+  // Add keyframe animations
+  const animationStyles = document.createElement("style");
+  animationStyles.textContent = `
     @keyframes slideInRight {
         from {
             transform: translateX(100%);
@@ -1686,7 +1958,52 @@ animationStyles.textContent = `
         }
     }
 `;
-document.head.appendChild(animationStyles);
+  document.head.appendChild(animationStyles);
+
+  // ==================== GUEST CLOCK ====================
+  function startGuestClock() {
+    const updateClock = () => {
+      const clockElement = document.getElementById("guest-clock-time");
+      if (!clockElement) return;
+
+      try {
+        // Cyprus timezone: Europe/Nicosia (GMT+2/+3)
+        const now = new Date();
+        const cyprusTime = new Date(
+          now.toLocaleString("en-US", {
+            timeZone: "Europe/Nicosia",
+          })
+        );
+
+        const hours = String(cyprusTime.getHours()).padStart(2, "0");
+        const minutes = String(cyprusTime.getMinutes()).padStart(2, "0");
+        const seconds = String(cyprusTime.getSeconds()).padStart(2, "0");
+
+        clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+      } catch (error) {
+        console.error("❌ Clock update error:", error);
+        // Fallback: Browser timezone
+        try {
+          const now = new Date();
+          const hours = String(now.getHours()).padStart(2, "0");
+          const minutes = String(now.getMinutes()).padStart(2, "0");
+          const seconds = String(now.getSeconds()).padStart(2, "0");
+          clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+        } catch (e) {
+          clockElement.textContent = "--:--:--";
+        }
+      }
+    };
+
+    // Update immediately
+    updateClock();
+
+    // Update every second
+    setInterval(updateClock, 1000);
+  }
+
+  // Start clock on page load
+  document.addEventListener("DOMContentLoaded", startGuestClock);
 </script>
 
 <!-- Multi-Language Support (Load First) -->
@@ -1703,83 +2020,102 @@ document.head.appendChild(animationStyles);
 <script src="{{ url_for('static', filename='js/guest-notifications.js') }}"></script>
 
 <script>
-// Guest için bildirim sistemi başlat
-(async function() {
-    'use strict';
-    
-    console.log('[Guest] Initializing notification system...');
-    
+  // Guest için bildirim sistemi başlat
+  (async function () {
+    "use strict";
+
+    console.log("[Guest] Initializing notification system...");
+
     // iOS kontrolü
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const isPWA =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true;
 
     if (isIOS && !isPWA) {
-        console.log('[Guest] iOS detected - PWA required for notifications');
+      console.log("[Guest] iOS detected - PWA required for notifications");
     }
 
     // ✅ Guest notification manager instance oluştur ve başlat
     if (!window.guestNotificationManager) {
-        window.guestNotificationManager = new GuestNotificationManager();
+      window.guestNotificationManager = new GuestNotificationManager();
     }
     const initialized = await window.guestNotificationManager.init();
 
     if (initialized) {
-        // ✅ Setup foreground message listener
-        window.guestNotificationManager.setupMessageListener((payload) => {
-            console.log('📬 [GUEST_CALL] Foreground notification received!', payload);
+      // ✅ Setup foreground message listener
+      window.guestNotificationManager.setupMessageListener((payload) => {
+        console.log(
+          "📬 [GUEST_CALL] Foreground notification received!",
+          payload
+        );
 
-            // Show toast notification
-            if (payload.notification?.title && payload.notification?.body) {
-                showSuccessToast(payload.notification.title + '\n' + payload.notification.body);
-            }
-
-            // Dispatch custom event for backward compatibility
-            const event = new CustomEvent('guest-fcm-message', {
-                detail: payload
-            });
-            window.dispatchEvent(event);
-        });
-
-        // ✅ CRITICAL: Try to get token on page load (if permission already granted)
-        console.log('🔄 [GUEST] Checking notification permission on page load...');
-        if (Notification.permission === 'granted') {
-            try {
-                console.log('✅ [GUEST] Permission already granted, getting fresh token...');
-                const token = await window.guestNotificationManager.requestPermissionAndGetToken();
-                if (token) {
-                    console.log('✅ [GUEST] Fresh FCM token obtained on page load');
-                    // Store in session for later use when request is created
-                    sessionStorage.setItem('guest_fcm_token_ready', 'true');
-                }
-            } catch (error) {
-                console.error('❌ [GUEST] Failed to get token on page load:', error);
-            }
-        } else {
-            console.log('ℹ️ [GUEST] Permission not granted yet, will request when creating request');
+        // Show toast notification
+        if (payload.notification?.title && payload.notification?.body) {
+          showSuccessToast(
+            payload.notification.title + "\n" + payload.notification.body
+          );
         }
 
-        // Request oluşturulduğunda bildirim izni iste
-        window.addEventListener('request-created', async (event) => {
-            const requestId = event.detail.requestId;
-
-            // Bildirim izni iste ve token al (request ID ile)
-            console.log('🔔 [GUEST] Request created, registering token with request ID:', requestId);
-            await window.guestNotificationManager.requestPermissionAndGetToken(requestId);
+        // Dispatch custom event for backward compatibility
+        const event = new CustomEvent("guest-fcm-message", {
+          detail: payload,
         });
+        window.dispatchEvent(event);
+      });
 
-        // FCM mesajlarını dinle ve UI'ı güncelle
-        window.addEventListener('guest-fcm-message', (event) => {
-            const payload = event.detail;
+      // ✅ CRITICAL: Try to get token on page load (if permission already granted)
+      console.log(
+        "🔄 [GUEST] Checking notification permission on page load..."
+      );
+      if (Notification.permission === "granted") {
+        try {
+          console.log(
+            "✅ [GUEST] Permission already granted, getting fresh token..."
+          );
+          const token =
+            await window.guestNotificationManager.requestPermissionAndGetToken();
+          if (token) {
+            console.log("✅ [GUEST] Fresh FCM token obtained on page load");
+            // Store in session for later use when request is created
+            sessionStorage.setItem("guest_fcm_token_ready", "true");
+          }
+        } catch (error) {
+          console.error("❌ [GUEST] Failed to get token on page load:", error);
+        }
+      } else {
+        console.log(
+          "ℹ️ [GUEST] Permission not granted yet, will request when creating request"
+        );
+      }
 
-            // Status güncellemesi varsa UI'ı güncelle
-            if (payload.data?.type === 'status_update' && payload.data?.status) {
-                // Guest.js'deki updateStatus fonksiyonunu çağır
-                if (window.Guest && typeof window.Guest.updateStatus === 'function') {
-                    window.Guest.updateStatus(payload.data.status, payload.data);
-                }
-            }
-        });
+      // Request oluşturulduğunda bildirim izni iste
+      window.addEventListener("request-created", async (event) => {
+        const requestId = event.detail.requestId;
+
+        // Bildirim izni iste ve token al (request ID ile)
+        console.log(
+          "🔔 [GUEST] Request created, registering token with request ID:",
+          requestId
+        );
+        await window.guestNotificationManager.requestPermissionAndGetToken(
+          requestId
+        );
+      });
+
+      // FCM mesajlarını dinle ve UI'ı güncelle
+      window.addEventListener("guest-fcm-message", (event) => {
+        const payload = event.detail;
+
+        // Status güncellemesi varsa UI'ı güncelle
+        if (payload.data?.type === "status_update" && payload.data?.status) {
+          // Guest.js'deki updateStatus fonksiyonunu çağır
+          if (window.Guest && typeof window.Guest.updateStatus === "function") {
+            window.Guest.updateStatus(payload.data.status, payload.data);
+          }
+        }
+      });
     }
-})();
+  })();
 </script>
 {% endblock %}

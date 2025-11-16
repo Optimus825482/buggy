@@ -1,521 +1,2004 @@
-{% extends "base.html" %}
-
-{% block title %}Raporlar{% endblock %}
-
-{% block header_nav %}
+{% extends "base.html" %} {% block title %}Raporlar{% endblock %} {% block
+header_nav %}
 <nav class="nav">
-    <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
-        <i class="fas fa-home"></i> Dashboard
-    </a>
-    <a href="{{ url_for('admin.locations') }}" class="nav-link">
-        <i class="fas fa-map-marker-alt"></i> Lokasyonlar
-    </a>
-    <a href="{{ url_for('admin.buggies') }}" class="nav-link">
-        <i class="fas fa-car-alt"></i> Shuttle'lar
-    </a>
-    <a href="{{ url_for('admin.reports') }}" class="nav-link active">
-        <i class="fas fa-chart-bar"></i> Raporlar
-    </a>
-    <a href="#" onclick="logout()" class="nav-link">
-        <i class="fas fa-sign-out-alt"></i> Çıkış
-    </a>
+  <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
+    <i class="fas fa-home"></i> Dashboard
+  </a>
+  <a href="{{ url_for('admin.locations') }}" class="nav-link">
+    <i class="fas fa-map-marker-alt"></i> Lokasyonlar
+  </a>
+  <a href="{{ url_for('admin.buggies') }}" class="nav-link">
+    <i class="fas fa-car-alt"></i> Shuttle'lar
+  </a>
+  <a href="{{ url_for('admin.reports') }}" class="nav-link active">
+    <i class="fas fa-chart-bar"></i> Raporlar
+  </a>
+  <a href="#" onclick="logout()" class="nav-link">
+    <i class="fas fa-sign-out-alt"></i> Çıkış
+  </a>
 </nav>
-{% endblock %}
-
-{% block extra_css %}
+{% endblock %} {% block extra_css %}
 <style>
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
+  /* Professional Stats Grid - Flat Design, No Gradients, No Animations */
+  .stats-grid-pro {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .stat-card-pro {
+    background: white;
+    border-radius: 12px;
+    padding: 1.75rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-left: 5px solid;
+    transition: box-shadow 0.2s ease;
+  }
+
+  .stat-card-pro:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .stat-icon-pro {
+    width: 70px;
+    height: 70px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+  }
+
+  .stat-content-pro {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .stat-label-pro {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.625rem;
+  }
+
+  .stat-value-pro {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+  }
+
+  /* Color Variants - Solid Flat Colors, High Contrast */
+  .stat-card-teal {
+    border-left-color: #0d9488;
+  }
+  .stat-card-teal .stat-icon-pro {
+    background: #ccfbf1;
+    color: #0d9488;
+  }
+
+  .stat-card-green {
+    border-left-color: #16a34a;
+  }
+  .stat-card-green .stat-icon-pro {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+
+  .stat-card-red {
+    border-left-color: #dc2626;
+  }
+  .stat-card-red .stat-icon-pro {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  .stat-card-orange {
+    border-left-color: #ea580c;
+  }
+  .stat-card-orange .stat-icon-pro {
+    background: #ffedd5;
+    color: #ea580c;
+  }
+
+  .stat-card-purple {
+    border-left-color: #9333ea;
+  }
+  .stat-card-purple .stat-icon-pro {
+    background: #f3e8ff;
+    color: #9333ea;
+  }
+
+  .stat-card-yellow {
+    border-left-color: #ca8a04;
+  }
+  .stat-card-yellow .stat-icon-pro {
+    background: #fef9c3;
+    color: #ca8a04;
+  }
+
+  .stat-card-blue {
+    border-left-color: #2563eb;
+  }
+  .stat-card-blue .stat-icon-pro {
+    background: #dbeafe;
+    color: #2563eb;
+  }
+
+  .stat-card-darkorange {
+    border-left-color: #c2410c;
+  }
+  .stat-card-darkorange .stat-icon-pro {
+    background: #fed7aa;
+    color: #c2410c;
+  }
+
+  /* Old stat-card styles - Keep for compatibility */
+  .stat-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .stat-label i {
+    font-size: 1.25rem;
+    opacity: 0.9;
+  }
+
+  /* Rota Analizi Kartları */
+  .route-stat-card .stat-label,
+  .route-stat-card .stat-value {
+    color: white !important;
+  }
+
+  .route-stat-card .stat-value.route-name {
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    line-height: 1.4;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .chart-container {
+    position: relative;
+    height: 350px;
+    margin: 1rem 0;
+    padding: 1rem;
+    background: #fafbfc;
+    border-radius: 8px;
+  }
+
+  .filter-bar {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+  }
+
+  .filter-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .filter-group label {
+    color: #1a2b4a;
+    font-weight: 600;
+  }
+
+  .table-scroll {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  .table-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .table-scroll::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+  }
+
+  .table-scroll::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+  }
+
+  .table-scroll::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  .table {
+    font-size: 0.9rem;
+  }
+
+  .table thead th {
+    background: linear-gradient(135deg, #1ba5a8 0%, #158587 100%);
+    color: white;
+    font-weight: 700;
+    padding: 1rem;
+    border: none;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+  }
+
+  .table tbody tr {
+    transition: all 0.2s ease;
+    background: white;
+  }
+
+  .table tbody tr:nth-child(even) {
+    background: #f8fafc;
+  }
+
+  .table tbody tr:hover {
+    background: #e0f5f5 !important;
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(27, 165, 168, 0.15);
+  }
+
+  .table tbody td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    color: #1a2b4a;
+    font-weight: 500;
+  }
+
+  .badge {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .badge-success {
+    background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%);
+    color: white;
+  }
+
+  .badge-danger {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+  }
+
+  .badge-warning {
+    background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);
+    color: white;
+  }
+
+  .badge-info {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+  }
+
+  .badge-secondary {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    color: white;
+  }
+
+  .card {
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+  }
+
+  .card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-bottom: 3px solid #1ba5a8;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .card-title {
+    color: #1a2b4a;
+    font-weight: 700;
+    font-size: 1.25rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .card-title i {
+    color: #1ba5a8;
+    font-size: 1.5rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(27, 165, 168, 0.1);
+    border-radius: 8px;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .stats-grid-pro {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
     }
 
-    .stat-card {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-        color: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: var(--shadow-md);
+    .stat-card-pro {
+      padding: 1.25rem;
+      gap: 1rem;
     }
 
-    .stat-card.accent {
-        background: linear-gradient(135deg, var(--accent-color) 0%, #d97a2a 100%);
+    .stat-icon-pro {
+      width: 55px;
+      height: 55px;
+      font-size: 1.5rem;
     }
 
-    .stat-card.success {
-        background: linear-gradient(135deg, var(--success-color) 0%, #1e8449 100%);
+    .stat-label-pro {
+      font-size: 0.75rem;
     }
 
-    .stat-card.warning {
-        background: linear-gradient(135deg, var(--warning-color) 0%, #d68910 100%);
-    }
-
-    .stat-value {
-        font-size: 2.5rem;
-        font-weight: bold;
-        margin: 0.5rem 0;
-    }
-
-    .stat-label {
-        font-size: 0.875rem;
-        opacity: 0.9;
-    }
-
-    .chart-container {
-        position: relative;
-        height: 300px;
-        margin: 1rem 0;
+    .stat-value-pro {
+      font-size: 1.75rem;
     }
 
     .filter-bar {
-        background: white;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 2rem;
-        box-shadow: var(--shadow-sm);
+      padding: 1rem;
     }
 
     .filter-group {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        flex-wrap: wrap;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .filter-group select,
+    .filter-group input {
+      width: 100%;
+    }
+
+    .chart-container {
+      height: 280px !important;
+      padding: 0.5rem;
     }
 
     .table-scroll {
-        max-height: 400px;
-        overflow-y: auto;
+      max-height: 300px;
     }
+
+    .grid-2 {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stats-grid-pro {
+      grid-template-columns: 1fr;
+    }
+
+    .stat-card-pro {
+      padding: 1.5rem;
+      gap: 1.25rem;
+    }
+
+    .stat-icon-pro {
+      width: 60px;
+      height: 60px;
+      font-size: 1.75rem;
+    }
+
+    .stat-label-pro {
+      font-size: 0.8rem;
+    }
+
+    .stat-value-pro {
+      font-size: 2rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    .d-flex.justify-between {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .btn {
+      width: 100%;
+    }
+  }
 </style>
-{% endblock %}
+{% endblock %} {% block content %}
+<div class="container" style="padding: 2rem 0">
+  <div class="d-flex justify-between align-center" style="margin-bottom: 2rem">
+    <h1><i class="fas fa-chart-bar text-primary"></i> Raporlar & Analitik</h1>
+    <div class="d-flex" style="gap: 0.75rem">
+      <button
+        class="btn btn-success"
+        onclick="exportToExcel()"
+        id="export-excel-btn"
+      >
+        <i class="fas fa-file-excel"></i> Excel İndir
+      </button>
+      <button
+        class="btn btn-danger"
+        onclick="exportToPDF()"
+        id="export-pdf-btn"
+      >
+        <i class="fas fa-file-pdf"></i> PDF İndir
+      </button>
+    </div>
+  </div>
 
-{% block content %}
-<div class="container" style="padding: 2rem 0;">
-    <div class="d-flex justify-between align-center" style="margin-bottom: 2rem;">
-        <h1><i class="fas fa-chart-bar text-primary"></i> Raporlar & Analitik</h1>
-        <button class="btn btn-primary" onclick="exportReport()">
-            <i class="fas fa-download"></i> Rapor İndir
-        </button>
+  <!-- Date Filter -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label><strong>Tarih Aralığı:</strong></label>
+      <select
+        id="date-range"
+        class="form-control"
+        style="width: 200px"
+        onchange="loadReports()"
+      >
+        <option value="today">Bugün</option>
+        <option value="yesterday">Dün</option>
+        <option value="week" selected>Son 7 Gün</option>
+        <option value="month">Son 30 Gün</option>
+        <option value="custom">Özel Tarih</option>
+      </select>
+      <input
+        type="date"
+        id="start-date"
+        class="form-control d-none"
+        style="width: 180px"
+      />
+      <input
+        type="date"
+        id="end-date"
+        class="form-control d-none"
+        style="width: 180px"
+      />
+      <button class="btn btn-secondary" onclick="loadReports()">
+        <i class="fas fa-sync"></i> Yenile
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Cards - Professional Flat Design -->
+  <div class="stats-grid-pro">
+    <!-- Toplam Talep -->
+    <div class="stat-card-pro stat-card-teal">
+      <div class="stat-icon-pro">
+        <i class="fas fa-phone"></i>
+      </div>
+      <div class="stat-content-pro">
+        <div class="stat-label-pro">Toplam Talep</div>
+        <div class="stat-value-pro" id="total-requests">0</div>
+      </div>
     </div>
 
-    <!-- Date Filter -->
-    <div class="filter-bar">
-        <div class="filter-group">
-            <label><strong>Tarih Aralığı:</strong></label>
-            <select id="date-range" class="form-control" style="width: 200px;" onchange="loadReports()">
-                <option value="today">Bugün</option>
-                <option value="yesterday">Dün</option>
-                <option value="week" selected>Son 7 Gün</option>
-                <option value="month">Son 30 Gün</option>
-                <option value="custom">Özel Tarih</option>
-            </select>
-            <input type="date" id="start-date" class="form-control d-none" style="width: 180px;">
-            <input type="date" id="end-date" class="form-control d-none" style="width: 180px;">
-            <button class="btn btn-secondary" onclick="loadReports()">
-                <i class="fas fa-sync"></i> Yenile
-            </button>
-        </div>
+    <!-- Tamamlanan -->
+    <div class="stat-card-pro stat-card-green">
+      <div class="stat-icon-pro">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content-pro">
+        <div class="stat-label-pro">Tamamlanan</div>
+        <div class="stat-value-pro" id="completed-requests">0</div>
+      </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label"><i class="fas fa-phone"></i> Toplam Talep</div>
-            <div class="stat-value" id="total-requests">0</div>
-        </div>
-        <div class="stat-card success">
-            <div class="stat-label"><i class="fas fa-check-circle"></i> Tamamlanan</div>
-            <div class="stat-value" id="completed-requests">0</div>
-        </div>
-        <div class="stat-card accent">
-            <div class="stat-label"><i class="fas fa-clock"></i> Ortalama Süre</div>
-            <div class="stat-value" id="avg-time">0 dk</div>
-        </div>
-        <div class="stat-card warning">
-            <div class="stat-label"><i class="fas fa-star"></i> Başarı Oranı</div>
-            <div class="stat-value" id="success-rate">0%</div>
-        </div>
+    <!-- İptal Edilen -->
+    <div class="stat-card-pro stat-card-red">
+      <div class="stat-icon-pro">
+        <i class="fas fa-times-circle"></i>
+      </div>
+      <div class="stat-content-pro">
+        <div class="stat-label-pro">İptal Edilen</div>
+        <div class="stat-value-pro" id="cancelled-requests">0</div>
+      </div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="grid grid-2" style="margin-bottom: 2rem;">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-chart-line"></i> Günlük Trendler</h3>
-            </div>
-            <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="daily-chart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-chart-pie"></i> Durum Dağılımı</h3>
-            </div>
-            <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="status-chart"></canvas>
-                </div>
-            </div>
-        </div>
+    <!-- Ortalama Yanıt -->
+    <div class="stat-card-pro stat-card-orange">
+      <div class="stat-icon-pro">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="stat-content-pro">
+        <div class="stat-label-pro">Ortalama Yanıt</div>
+        <div class="stat-value-pro" id="avg-response-time">0 dk</div>
+      </div>
     </div>
 
-    <!-- Location Performance -->
-    <div class="card" style="margin-bottom: 2rem;">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-map-marker-alt"></i> Lokasyon Performansı</h3>
-        </div>
-        <div class="card-body">
-            <div class="chart-container" style="height: 250px;">
-                <canvas id="location-chart"></canvas>
-            </div>
-        </div>
+    <!-- Ortalama Tamamlanma -->
+    <div class="stat-card-pro stat-card-purple">
+      <div class="stat-icon-pro">
+        <i class="fas fa-hourglass-half"></i>
+      </div>
+      <div class="stat-content-pro">
+        <div class="stat-label-pro">Ortalama Tamamlanma</div>
+        <div class="stat-value-pro" id="avg-completion-time">0 dk</div>
+      </div>
     </div>
 
-    <!-- Recent Requests Table -->
+    <!-- Başarı Oranı -->
+    <div class="stat-card-pro stat-card-yellow">
+      <div class="stat-icon-pro">
+        <i class="fas fa-star"></i>
+      </div>
+      <div class="stat-content-pro">
+        <div class="stat-label-pro">Başarı Oranı</div>
+        <div class="stat-value-pro" id="success-rate">0%</div>
+      </div>
+    </div>
+
+    <!-- Bekleyen -->
+    <div class="stat-card-pro stat-card-blue">
+      <div class="stat-icon-pro">
+        <i class="fas fa-hourglass-start"></i>
+      </div>
+      <div class="stat-content-pro">
+        <div class="stat-label-pro">Bekleyen</div>
+        <div class="stat-value-pro" id="pending-requests">0</div>
+      </div>
+    </div>
+
+    <!-- Cevapsız -->
+    <div class="stat-card-pro stat-card-darkorange">
+      <div class="stat-icon-pro">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="stat-content-pro">
+        <div class="stat-label-pro">Cevapsız</div>
+        <div class="stat-value-pro" id="unanswered-requests">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="grid grid-2" style="margin-bottom: 2rem">
     <div class="card">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-list"></i> Son Talepler</h3>
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-chart-line"></i> Günlük Trendler
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="daily-chart"></canvas>
         </div>
-        <div class="card-body">
-            <div class="table-scroll">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Tarih/Saat</th>
-                            <th>Lokasyon</th>
-                            <th>Shuttle</th>
-                            <th>Yanıt Süresi</th>
-                            <th>Tamamlanma Süresi</th>
-                            <th>Durum</th>
-                        </tr>
-                    </thead>
-                    <tbody id="recent-requests-table">
-                        <tr>
-                            <td colspan="6" class="text-center">Yükleniyor...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+      </div>
     </div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-chart-pie"></i> Durum Dağılımı
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="status-chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location Performance -->
+  <div class="card" style="margin-bottom: 2rem">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fas fa-map-marker-alt"></i> Lokasyon Performansı
+      </h3>
+    </div>
+    <div class="card-body">
+      <div class="chart-container" style="height: 250px">
+        <canvas id="location-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Route Analytics - YENİ -->
+  <div class="card" style="margin-bottom: 2rem">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-route"></i> Rota Analizi</h3>
+    </div>
+    <div class="card-body">
+      <div
+        class="stats-grid"
+        style="
+          margin-bottom: 1.5rem;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        "
+      >
+        <div
+          class="stat-card route-stat-card"
+          style="background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%)"
+        >
+          <div class="stat-label"><i class="fas fa-route"></i> Toplam Rota</div>
+          <div class="stat-value" id="total-routes">0</div>
+        </div>
+        <div
+          class="stat-card route-stat-card"
+          style="background: linear-gradient(135deg, #16a085 0%, #138d75 100%)"
+        >
+          <div class="stat-label">
+            <i class="fas fa-fire"></i> En Popüler Rota
+          </div>
+          <div class="stat-value route-name" id="popular-route">-</div>
+        </div>
+        <div
+          class="stat-card route-stat-card"
+          style="background: linear-gradient(135deg, #2980b9 0%, #1f618d 100%)"
+        >
+          <div class="stat-label">
+            <i class="fas fa-clock"></i> Ort. Tamamlanma
+          </div>
+          <div class="stat-value" id="avg-route-time">0 dk</div>
+        </div>
+      </div>
+
+      <div class="chart-container" style="height: 300px">
+        <canvas id="route-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Driver Performance - YENİ -->
+  <div class="card" style="margin-bottom: 2rem">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fas fa-user-tie"></i> Sürücü Performansı
+      </h3>
+    </div>
+    <div class="card-body">
+      <div class="chart-container" style="height: 300px">
+        <canvas id="driver-performance-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Peak Hours Analysis -->
+  <div class="card" style="margin-bottom: 2rem">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fas fa-clock"></i> Saatlik Yoğunluk Analizi
+      </h3>
+    </div>
+    <div class="card-body">
+      <div class="chart-container" style="height: 300px">
+        <canvas id="hourly-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buggy Performance -->
+  <div class="card" style="margin-bottom: 2rem">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fas fa-car-alt"></i> Shuttle Performansı
+      </h3>
+    </div>
+    <div class="card-body">
+      <div class="chart-container" style="height: 300px">
+        <canvas id="buggy-performance-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Requests Table -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-list"></i> Son Talepler</h3>
+    </div>
+    <div class="card-body">
+      <div class="table-scroll">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Tarih/Saat</th>
+              <th>Başlangıç</th>
+              <th>Bitiş</th>
+              <th>Shuttle</th>
+              <th>Sürücü</th>
+              <th>Yanıt Süresi</th>
+              <th>Tamamlanma Süresi</th>
+              <th>Durum</th>
+            </tr>
+          </thead>
+          <tbody id="recent-requests-table">
+            <tr>
+              <td colspan="8" class="text-center">Yükleniyor...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    // Admin sayfası olduğunu işaretle
-    document.body.dataset.page = 'admin';
-    
-    let dailyChart, statusChart, locationChart;
-    let reportData = {
-        requests: [],
-        stats: {}
+  // Admin sayfası olduğunu işaretle
+  document.body.dataset.page = "admin";
+
+  let dailyChart,
+    statusChart,
+    locationChart,
+    routeChart,
+    driverPerformanceChart,
+    hourlyChart,
+    buggyPerformanceChart;
+  let reportData = {
+    requests: [],
+    stats: {},
+    routeAnalytics: null,
+  };
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initCharts();
+    loadReports();
+    loadRouteAnalytics();
+
+    // Handle custom date range
+    document.getElementById("date-range").addEventListener("change", (e) => {
+      const customDates = e.target.value === "custom";
+      document
+        .getElementById("start-date")
+        .classList.toggle("d-none", !customDates);
+      document
+        .getElementById("end-date")
+        .classList.toggle("d-none", !customDates);
+    });
+  });
+
+  function initCharts() {
+    // Chart.js global ayarları
+    Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
+    Chart.defaults.font.size = 13;
+    Chart.defaults.color = "#1a2b4a";
+
+    // Daily Trend Chart
+    const dailyCtx = document.getElementById("daily-chart").getContext("2d");
+    dailyChart = new Chart(dailyCtx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Talepler",
+            data: [],
+            borderColor: "#1BA5A8",
+            backgroundColor: "rgba(27, 165, 168, 0.2)",
+            borderWidth: 3,
+            tension: 0.4,
+            fill: true,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            pointBackgroundColor: "#1BA5A8",
+            pointBorderColor: "#fff",
+            pointBorderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              font: { size: 14, weight: "bold" },
+              color: "#1a2b4a",
+              padding: 15,
+            },
+          },
+          tooltip: {
+            backgroundColor: "rgba(26, 43, 74, 0.95)",
+            titleFont: { size: 14, weight: "bold" },
+            bodyFont: { size: 13 },
+            padding: 12,
+            cornerRadius: 8,
+            displayColors: true,
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              font: { size: 13, weight: "600" },
+              color: "#1a2b4a",
+              padding: 8,
+            },
+            grid: {
+              color: "rgba(0, 0, 0, 0.05)",
+              drawBorder: false,
+            },
+          },
+          x: {
+            ticks: {
+              font: { size: 12, weight: "600" },
+              color: "#1a2b4a",
+              padding: 8,
+            },
+            grid: {
+              display: false,
+            },
+          },
+        },
+      },
+    });
+
+    // Status Pie Chart
+    const statusCtx = document.getElementById("status-chart").getContext("2d");
+    statusChart = new Chart(statusCtx, {
+      type: "doughnut",
+      data: {
+        labels: ["Tamamlandı", "İptal Edildi", "Bekleyen"],
+        datasets: [
+          {
+            data: [0, 0, 0],
+            backgroundColor: ["#27AE60", "#E74C3C", "#F39C12"],
+            borderWidth: 3,
+            borderColor: "#fff",
+            hoverOffset: 15,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              font: { size: 14, weight: "bold" },
+              color: "#1a2b4a",
+              padding: 15,
+              usePointStyle: true,
+              pointStyle: "circle",
+            },
+          },
+          tooltip: {
+            backgroundColor: "rgba(26, 43, 74, 0.95)",
+            titleFont: { size: 14, weight: "bold" },
+            bodyFont: { size: 13 },
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+              label: function (context) {
+                const label = context.label || "";
+                const value = context.parsed || 0;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage =
+                  total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return `${label}: ${value} (${percentage}%)`;
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Location Bar Chart
+    const locationCtx = document
+      .getElementById("location-chart")
+      .getContext("2d");
+    locationChart = new Chart(locationCtx, {
+      type: "bar",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Talep Sayısı",
+            data: [],
+            backgroundColor: "rgba(242, 140, 56, 0.8)",
+            borderColor: "#F28C38",
+            borderWidth: 2,
+            borderRadius: 8,
+            hoverBackgroundColor: "#F28C38",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              font: { size: 14, weight: "bold" },
+              color: "#1a2b4a",
+              padding: 15,
+            },
+          },
+          tooltip: {
+            backgroundColor: "rgba(26, 43, 74, 0.95)",
+            titleFont: { size: 14, weight: "bold" },
+            bodyFont: { size: 13 },
+            padding: 12,
+            cornerRadius: 8,
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              font: { size: 13, weight: "600" },
+              color: "#1a2b4a",
+              padding: 8,
+            },
+            grid: {
+              color: "rgba(0, 0, 0, 0.05)",
+              drawBorder: false,
+            },
+          },
+          x: {
+            ticks: {
+              font: { size: 12, weight: "600" },
+              color: "#1a2b4a",
+              padding: 8,
+              maxRotation: 45,
+              minRotation: 0,
+            },
+            grid: {
+              display: false,
+            },
+          },
+        },
+      },
+    });
+
+    // Route Chart - YENİ
+    const routeCtx = document.getElementById("route-chart").getContext("2d");
+    routeChart = new Chart(routeCtx, {
+      type: "bar",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Kullanım Sayısı",
+            data: [],
+            backgroundColor: "rgba(142, 68, 173, 0.8)",
+            borderColor: "#8e44ad",
+            borderWidth: 2,
+            borderRadius: 8,
+            hoverBackgroundColor: "#8e44ad",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: "y",
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              font: { size: 14, weight: "bold" },
+              color: "#1a2b4a",
+              padding: 15,
+            },
+          },
+          tooltip: {
+            backgroundColor: "rgba(26, 43, 74, 0.95)",
+            titleFont: { size: 14, weight: "bold" },
+            bodyFont: { size: 13 },
+            padding: 12,
+            cornerRadius: 8,
+          },
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: {
+              font: { size: 13, weight: "600" },
+              color: "#1a2b4a",
+              padding: 8,
+            },
+            grid: {
+              color: "rgba(0, 0, 0, 0.05)",
+              drawBorder: false,
+            },
+          },
+          y: {
+            ticks: {
+              font: { size: 12, weight: "600" },
+              color: "#1a2b4a",
+              padding: 8,
+            },
+            grid: {
+              display: false,
+            },
+          },
+        },
+      },
+    });
+
+    // Driver Performance Chart - YENİ
+    const driverCtx = document
+      .getElementById("driver-performance-chart")
+      .getContext("2d");
+    driverPerformanceChart = new Chart(driverCtx, {
+      type: "bar",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Tamamlanan Talep",
+            data: [],
+            backgroundColor: "rgba(22, 160, 133, 0.8)",
+            borderColor: "#16a085",
+            borderWidth: 2,
+            borderRadius: 8,
+            hoverBackgroundColor: "#16a085",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              font: { size: 14, weight: "bold" },
+              color: "#1a2b4a",
+              padding: 15,
+            },
+          },
+          tooltip: {
+            backgroundColor: "rgba(26, 43, 74, 0.95)",
+            titleFont: { size: 14, weight: "bold" },
+            bodyFont: { size: 13 },
+            padding: 12,
+            cornerRadius: 8,
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              font: { size: 13, weight: "600" },
+              color: "#1a2b4a",
+              padding: 8,
+            },
+            grid: {
+              color: "rgba(0, 0, 0, 0.05)",
+              drawBorder: false,
+            },
+          },
+          x: {
+            ticks: {
+              font: { size: 12, weight: "600" },
+              color: "#1a2b4a",
+              padding: 8,
+              maxRotation: 45,
+              minRotation: 0,
+            },
+            grid: {
+              display: false,
+            },
+          },
+        },
+      },
+    });
+
+    // Buggy Performance Chart
+    const buggyCtx = document
+      .getElementById("buggy-performance-chart")
+      .getContext("2d");
+    buggyPerformanceChart = new Chart(buggyCtx, {
+      type: "bar",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Tamamlanan Talep",
+            data: [],
+            backgroundColor: "rgba(27, 165, 168, 0.8)",
+            borderColor: "#1BA5A8",
+            borderWidth: 2,
+            borderRadius: 8,
+            hoverBackgroundColor: "#1BA5A8",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              font: { size: 14, weight: "bold" },
+              color: "#1a2b4a",
+              padding: 15,
+            },
+          },
+          tooltip: {
+            backgroundColor: "rgba(26, 43, 74, 0.95)",
+            titleFont: { size: 14, weight: "bold" },
+            bodyFont: { size: 13 },
+            padding: 12,
+            cornerRadius: 8,
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              font: { size: 13, weight: "600" },
+              color: "#1a2b4a",
+              padding: 8,
+            },
+            grid: {
+              color: "rgba(0, 0, 0, 0.05)",
+              drawBorder: false,
+            },
+          },
+          x: {
+            ticks: {
+              font: { size: 12, weight: "600" },
+              color: "#1a2b4a",
+              padding: 8,
+              maxRotation: 45,
+              minRotation: 0,
+            },
+            grid: {
+              display: false,
+            },
+          },
+        },
+      },
+    });
+
+    // Hourly Chart - Saatlik yoğunluk
+    const hourlyCtx = document.getElementById("hourly-chart").getContext("2d");
+    hourlyChart = new Chart(hourlyCtx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Talep Sayısı",
+            data: [],
+            borderColor: "#F28C38",
+            backgroundColor: "rgba(242, 140, 56, 0.2)",
+            borderWidth: 3,
+            tension: 0.4,
+            fill: true,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            pointBackgroundColor: "#F28C38",
+            pointBorderColor: "#fff",
+            pointBorderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              font: { size: 14, weight: "bold" },
+              color: "#1a2b4a",
+              padding: 15,
+            },
+          },
+          tooltip: {
+            backgroundColor: "rgba(26, 43, 74, 0.95)",
+            titleFont: { size: 14, weight: "bold" },
+            bodyFont: { size: 13 },
+            padding: 12,
+            cornerRadius: 8,
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              font: { size: 13, weight: "600" },
+              color: "#1a2b4a",
+              padding: 8,
+            },
+            grid: {
+              color: "rgba(0, 0, 0, 0.05)",
+              drawBorder: false,
+            },
+          },
+          x: {
+            ticks: {
+              font: { size: 12, weight: "600" },
+              color: "#1a2b4a",
+              padding: 8,
+              maxRotation: 45,
+              minRotation: 0,
+            },
+            grid: {
+              display: false,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async function loadReports() {
+    try {
+      ShuttleCall.Utils.showLoading();
+
+      const dateRange = document.getElementById("date-range").value;
+      let url = `/api/requests`;
+
+      // Fetch all requests
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.success) {
+        reportData.requests = filterRequestsByDateRange(
+          data.requests || [],
+          dateRange
+        );
+
+        // Debug: İlk talebi console'a yazdır
+        if (reportData.requests.length > 0) {
+          console.log("📊 İlk talep verisi:", reportData.requests[0]);
+          console.log("🚗 Buggy bilgisi:", reportData.requests[0].buggy);
+          console.log("👤 Driver bilgisi:", reportData.requests[0].driver);
+          console.log(
+            "✅ Accepted by:",
+            reportData.requests[0].accepted_by_driver
+          );
+        }
+
+        calculateStats();
+        updateCharts();
+        renderRecentRequests();
+      }
+
+      // Rota analizini de yükle
+      await loadRouteAnalytics();
+
+      ShuttleCall.Utils.hideLoading();
+    } catch (error) {
+      console.error("Error loading reports:", error);
+      ShuttleCall.Utils.showToast("Raporlar yüklenemedi", "danger");
+      ShuttleCall.Utils.hideLoading();
+    }
+  }
+
+  async function loadRouteAnalytics() {
+    try {
+      const dateRange = document.getElementById("date-range").value;
+      const { startDate, endDate } = getDateRangeParams(dateRange);
+
+      const url = `/api/reports/route-analytics?start_date=${startDate}&end_date=${endDate}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.success) {
+        reportData.routeAnalytics = data.data;
+        updateRouteAnalytics();
+      }
+    } catch (error) {
+      console.error("Error loading route analytics:", error);
+    }
+  }
+
+  function getDateRangeParams(range) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let startDate, endDate;
+
+    switch (range) {
+      case "today":
+        startDate = today;
+        endDate = now;
+        break;
+      case "yesterday":
+        startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - 1);
+        endDate = today;
+        break;
+      case "week":
+        startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - 7);
+        endDate = now;
+        break;
+      case "month":
+        startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - 30);
+        endDate = now;
+        break;
+      case "custom":
+        startDate = new Date(document.getElementById("start-date").value);
+        endDate = new Date(document.getElementById("end-date").value);
+        break;
+      default:
+        startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - 7);
+        endDate = now;
+    }
+
+    return {
+      startDate: startDate.toISOString().split("T")[0],
+      endDate: endDate.toISOString().split("T")[0],
     };
+  }
 
-    document.addEventListener( 'DOMContentLoaded', () => {
-        initCharts();
-        loadReports();
-
-        // Handle custom date range
-        document.getElementById( 'date-range' ).addEventListener( 'change', ( e ) => {
-            const customDates = e.target.value === 'custom';
-            document.getElementById( 'start-date' ).classList.toggle( 'd-none', !customDates );
-            document.getElementById( 'end-date' ).classList.toggle( 'd-none', !customDates );
-        } );
-    } );
-
-    function initCharts() {
-        // Daily Trend Chart
-        const dailyCtx = document.getElementById( 'daily-chart' ).getContext( '2d' );
-        dailyChart = new Chart( dailyCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Talepler',
-                    data: [],
-                    borderColor: '#1BA5A8',
-                    backgroundColor: 'rgba(27, 165, 168, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: { beginAtZero: true }
-                }
-            }
-        } );
-
-        // Status Pie Chart
-        const statusCtx = document.getElementById( 'status-chart' ).getContext( '2d' );
-        statusChart = new Chart( statusCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Tamamlandı', 'İptal Edildi', 'Bekleyen'],
-                datasets: [{
-                    data: [0, 0, 0],
-                    backgroundColor: ['#27AE60', '#E74C3C', '#F39C12']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom' }
-                }
-            }
-        } );
-
-        // Location Bar Chart
-        const locationCtx = document.getElementById( 'location-chart' ).getContext( '2d' );
-        locationChart = new Chart( locationCtx, {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Talep Sayısı',
-                    data: [],
-                    backgroundColor: '#F28C38'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: { beginAtZero: true }
-                }
-            }
-        } );
+  function updateRouteAnalytics() {
+    if (!reportData.routeAnalytics) {
+      console.log("⚠️ Rota analizi verisi yok");
+      return;
     }
 
-    async function loadReports() {
-        try {
-            ShuttleCall.Utils.showLoading();
+    const analytics = reportData.routeAnalytics;
+    console.log("🛣️ Rota analizi:", analytics);
 
-            const dateRange = document.getElementById( 'date-range' ).value;
-            let url = `/api/requests`;
+    // Özet istatistikler
+    document.getElementById("total-routes").textContent =
+      analytics.unique_routes || 0;
 
-            // Fetch all requests
-            const response = await fetch( url );
-            const data = await response.json();
+    if (
+      analytics.most_popular_routes &&
+      analytics.most_popular_routes.length > 0
+    ) {
+      const topRoute = analytics.most_popular_routes[0];
+      console.log("🔥 En popüler rota:", topRoute);
+      console.log("📊 Rota detayları:", {
+        route: topRoute.route,
+        count: topRoute.count,
+        avg_time_seconds: topRoute.avg_time_seconds,
+        avg_time_minutes: topRoute.avg_time_minutes,
+        min_time: topRoute.min_time_seconds,
+        max_time: topRoute.max_time_seconds,
+      });
 
-            if ( data.success ) {
-                reportData.requests = filterRequestsByDateRange( data.requests || [], dateRange );
-                calculateStats();
-                updateCharts();
-                renderRecentRequests();
-            }
+      document.getElementById("popular-route").textContent = topRoute.route;
 
-            ShuttleCall.Utils.hideLoading();
-        } catch ( error ) {
-            console.error( 'Error loading reports:', error );
-            ShuttleCall.Utils.showToast( 'Raporlar yüklenemedi', 'danger' );
-            ShuttleCall.Utils.hideLoading();
+      // Ortalama süreyi kontrol et - saniye veya dakika
+      let avgTime = 0;
+      if (topRoute.avg_time_minutes && topRoute.avg_time_minutes > 0) {
+        avgTime = topRoute.avg_time_minutes;
+      } else if (topRoute.avg_time_seconds && topRoute.avg_time_seconds > 0) {
+        avgTime = topRoute.avg_time_seconds / 60;
+      }
+
+      console.log("⏱️ Hesaplanan ortalama süre (dk):", avgTime);
+
+      if (avgTime > 0) {
+        document.getElementById("avg-route-time").textContent =
+          Math.round(avgTime) + " dk";
+      } else {
+        document.getElementById("avg-route-time").textContent = "Veri yok";
+      }
+    } else {
+      console.log("⚠️ Popüler rota bulunamadı");
+      document.getElementById("popular-route").textContent = "-";
+      document.getElementById("avg-route-time").textContent = "0 dk";
+    }
+
+    // Rota grafiği - En popüler 10 rota
+    if (
+      analytics.most_popular_routes &&
+      analytics.most_popular_routes.length > 0
+    ) {
+      const topRoutes = analytics.most_popular_routes.slice(0, 10);
+      routeChart.data.labels = topRoutes.map((r) => r.route);
+      routeChart.data.datasets[0].data = topRoutes.map((r) => r.count);
+      routeChart.update();
+    }
+
+    // Sürücü performans grafiği
+    if (
+      analytics.driver_performance &&
+      analytics.driver_performance.length > 0
+    ) {
+      const topDrivers = analytics.driver_performance.slice(0, 10);
+      driverPerformanceChart.data.labels = topDrivers.map((d) => d.driver_name);
+      driverPerformanceChart.data.datasets[0].data = topDrivers.map(
+        (d) => d.total_completed
+      );
+      driverPerformanceChart.update();
+    }
+  }
+
+  function filterRequestsByDateRange(requests, range) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    return requests.filter((req) => {
+      const reqDate = new Date(req.requested_at);
+
+      switch (range) {
+        case "today":
+          return reqDate >= today;
+        case "yesterday":
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          return reqDate >= yesterday && reqDate < today;
+        case "week":
+          const weekAgo = new Date(today);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return reqDate >= weekAgo;
+        case "month":
+          const monthAgo = new Date(today);
+          monthAgo.setDate(monthAgo.getDate() - 30);
+          return reqDate >= monthAgo;
+        case "custom":
+          const startDate = new Date(
+            document.getElementById("start-date").value
+          );
+          const endDate = new Date(document.getElementById("end-date").value);
+          return reqDate >= startDate && reqDate <= endDate;
+        default:
+          return true;
+      }
+    });
+  }
+
+  function calculateStats() {
+    const requests = reportData.requests;
+
+    // Status kontrolü - hem büyük hem küçük harf
+    const completed = requests.filter(
+      (r) => r.status === "completed" || r.status === "COMPLETED"
+    );
+    const cancelled = requests.filter(
+      (r) => r.status === "cancelled" || r.status === "CANCELLED"
+    );
+    const pending = requests.filter(
+      (r) => r.status === "PENDING" || r.status === "pending"
+    );
+    const unanswered = requests.filter(
+      (r) => r.status === "UNANSWERED" || r.status === "unanswered"
+    );
+
+    console.log("📊 Stats hesaplanıyor:", {
+      total: requests.length,
+      completed: completed.length,
+      cancelled: cancelled.length,
+      pending: pending.length,
+      unanswered: unanswered.length,
+      sample_status: requests[0]?.status,
+    });
+
+    // Total requests
+    document.getElementById("total-requests").textContent = requests.length;
+    document.getElementById("completed-requests").textContent =
+      completed.length;
+    document.getElementById("cancelled-requests").textContent =
+      cancelled.length;
+    document.getElementById("pending-requests").textContent = pending.length;
+    document.getElementById("unanswered-requests").textContent =
+      unanswered.length;
+
+    // Average response time
+    if (completed.length > 0) {
+      const totalResponseTime = completed.reduce((sum, r) => {
+        return sum + (r.response_time_seconds || 0);
+      }, 0);
+      const avgResponseMinutes = Math.round(
+        totalResponseTime / completed.length / 60
+      );
+      document.getElementById("avg-response-time").textContent =
+        avgResponseMinutes + " dk";
+    } else {
+      document.getElementById("avg-response-time").textContent = "0 dk";
+    }
+
+    // Average completion time (requested_at -> completed_at - TOPLAM SÜRE)
+    if (completed.length > 0) {
+      let totalCompletionTime = 0;
+      let validCount = 0;
+
+      completed.forEach((r) => {
+        // Önce API'den gelen değeri kullan
+        if (r.completion_time_seconds && r.completion_time_seconds > 0) {
+          totalCompletionTime += r.completion_time_seconds;
+          validCount++;
         }
+        // Yoksa manuel hesapla (requested_at -> completed_at)
+        else if (r.completed_at && r.requested_at) {
+          const requestedDate = new Date(r.requested_at);
+          const completedDate = new Date(r.completed_at);
+          const diffSeconds = Math.floor(
+            (completedDate - requestedDate) / 1000
+          );
+          if (diffSeconds > 0) {
+            totalCompletionTime += diffSeconds;
+            validCount++;
+          }
+        }
+      });
+
+      const avgCompletionMinutes =
+        validCount > 0 ? Math.round(totalCompletionTime / validCount / 60) : 0;
+
+      document.getElementById("avg-completion-time").textContent =
+        avgCompletionMinutes + " dk";
+    } else {
+      document.getElementById("avg-completion-time").textContent = "0 dk";
     }
 
-    function filterRequestsByDateRange( requests, range ) {
-        const now = new Date();
-        const today = new Date( now.getFullYear(), now.getMonth(), now.getDate() );
-
-        return requests.filter( req => {
-            const reqDate = new Date( req.requested_at );
-
-            switch ( range ) {
-                case 'today':
-                    return reqDate >= today;
-                case 'yesterday':
-                    const yesterday = new Date( today );
-                    yesterday.setDate( yesterday.getDate() - 1 );
-                    return reqDate >= yesterday && reqDate < today;
-                case 'week':
-                    const weekAgo = new Date( today );
-                    weekAgo.setDate( weekAgo.getDate() - 7 );
-                    return reqDate >= weekAgo;
-                case 'month':
-                    const monthAgo = new Date( today );
-                    monthAgo.setDate( monthAgo.getDate() - 30 );
-                    return reqDate >= monthAgo;
-                case 'custom':
-                    const startDate = new Date( document.getElementById( 'start-date' ).value );
-                    const endDate = new Date( document.getElementById( 'end-date' ).value );
-                    return reqDate >= startDate && reqDate <= endDate;
-                default:
-                    return true;
-            }
-        } );
+    // Success rate
+    if (requests.length > 0) {
+      const rate = Math.round((completed.length / requests.length) * 100);
+      document.getElementById("success-rate").textContent = rate + "%";
+    } else {
+      document.getElementById("success-rate").textContent = "0%";
     }
 
-    function calculateStats() {
-        const requests = reportData.requests;
-        const completed = requests.filter( r => r.status === 'completed' );
-        const cancelled = requests.filter( r => r.status === 'cancelled' );
+    reportData.stats = {
+      total: requests.length,
+      completed: completed.length,
+      cancelled: cancelled.length,
+      pending: pending.length,
+      unanswered: unanswered.length,
+    };
+  }
 
-        // Total requests
-        document.getElementById( 'total-requests' ).textContent = requests.length;
-        document.getElementById( 'completed-requests' ).textContent = completed.length;
+  function updateCharts() {
+    console.log(
+      "📊 Grafik güncelleniyor, talep sayısı:",
+      reportData.requests.length
+    );
+    console.log("📈 Stats:", reportData.stats);
 
-        // Average time (in minutes)
-        if ( completed.length > 0 ) {
-            const totalTime = completed.reduce( ( sum, r ) => {
-                const response = r.response_time_seconds || 0;
-                const completion = r.completion_time_seconds || 0;
-                return sum + response + completion;
-            }, 0 );
-            const avgMinutes = Math.round( totalTime / completed.length / 60 );
-            document.getElementById( 'avg-time' ).textContent = avgMinutes + ' dk';
-        } else {
-            document.getElementById( 'avg-time' ).textContent = '0 dk';
+    // Daily trend
+    const dailyData = groupByDay(reportData.requests);
+    console.log("📅 Günlük veri:", dailyData);
+    dailyChart.data.labels = dailyData.labels;
+    dailyChart.data.datasets[0].data = dailyData.values;
+    dailyChart.update();
+
+    // Status distribution
+    const statusData = [
+      reportData.stats.completed || 0,
+      reportData.stats.cancelled || 0,
+      reportData.stats.pending || 0,
+    ];
+    console.log("📊 Durum dağılımı:", statusData);
+    statusChart.data.datasets[0].data = statusData;
+    statusChart.update();
+
+    // Location performance
+    const locationData = groupByLocation(reportData.requests);
+    console.log("📍 Lokasyon verisi:", locationData);
+    locationChart.data.labels = locationData.labels;
+    locationChart.data.datasets[0].data = locationData.values;
+    locationChart.update();
+
+    // Hourly distribution
+    const hourlyData = groupByHour(reportData.requests);
+    hourlyChart.data.labels = hourlyData.labels;
+    hourlyChart.data.datasets[0].data = hourlyData.values;
+    hourlyChart.update();
+
+    // Buggy performance
+    const buggyData = groupByBuggy(reportData.requests);
+    buggyPerformanceChart.data.labels = buggyData.labels;
+    buggyPerformanceChart.data.datasets[0].data = buggyData.values;
+    buggyPerformanceChart.update();
+  }
+
+  function groupByDay(requests) {
+    const groups = {};
+    requests.forEach((req) => {
+      const date = new Date(req.requested_at).toLocaleDateString("tr-TR");
+      groups[date] = (groups[date] || 0) + 1;
+    });
+
+    return {
+      labels: Object.keys(groups),
+      values: Object.values(groups),
+    };
+  }
+
+  function groupByLocation(requests) {
+    const groups = {};
+    requests.forEach((req) => {
+      const location = req.location?.name || "Bilinmiyor";
+      groups[location] = (groups[location] || 0) + 1;
+    });
+
+    return {
+      labels: Object.keys(groups),
+      values: Object.values(groups),
+    };
+  }
+
+  function groupByHour(requests) {
+    const groups = {};
+    // 24 saat için başlangıç değerleri
+    for (let i = 0; i < 24; i++) {
+      groups[`${i.toString().padStart(2, "0")}:00`] = 0;
+    }
+
+    requests.forEach((req) => {
+      if (req.requested_at) {
+        const date = new Date(req.requested_at);
+        const hour = `${date.getHours().toString().padStart(2, "0")}:00`;
+        groups[hour] = (groups[hour] || 0) + 1;
+      }
+    });
+
+    return {
+      labels: Object.keys(groups),
+      values: Object.values(groups),
+    };
+  }
+
+  function groupByBuggy(requests) {
+    const groups = {};
+    const completedRequests = requests.filter(
+      (r) => r.status === "completed" || r.status === "COMPLETED"
+    );
+
+    console.log("🚗 Buggy gruplandırması:", {
+      total_requests: requests.length,
+      completed_requests: completedRequests.length,
+    });
+
+    completedRequests.forEach((req) => {
+      const buggy = req.buggy?.code || "Bilinmiyor";
+      groups[buggy] = (groups[buggy] || 0) + 1;
+    });
+
+    console.log("🚗 Buggy grupları:", groups);
+
+    // En çok kullanılan 10 shuttle
+    const sorted = Object.entries(groups)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    console.log("🚗 En çok kullanılan 10 shuttle:", sorted);
+
+    return {
+      labels: sorted.map((s) => s[0]),
+      values: sorted.map((s) => s[1]),
+    };
+  }
+
+  function renderRecentRequests() {
+    const tbody = document.getElementById("recent-requests-table");
+    const recent = reportData.requests.slice(0, 20); // Show last 20
+
+    if (recent.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="8" class="text-center text-muted">Henüz talep yok</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = recent
+      .map((req) => {
+        // Yanıt süresini hesapla (requested_at -> accepted_at)
+        let responseTime = "-";
+        if (req.accepted_at && req.requested_at) {
+          const requestedDate = new Date(req.requested_at);
+          const acceptedDate = new Date(req.accepted_at);
+          const diffSeconds = Math.floor((acceptedDate - requestedDate) / 1000);
+          const minutes = Math.floor(diffSeconds / 60);
+          const seconds = diffSeconds % 60;
+          responseTime =
+            minutes > 0 ? `${minutes} dk ${seconds} sn` : `${seconds} sn`;
         }
 
-        // Success rate
-        if ( requests.length > 0 ) {
-            const rate = Math.round( ( completed.length / requests.length ) * 100 );
-            document.getElementById( 'success-rate' ).textContent = rate + '%';
-        } else {
-            document.getElementById( 'success-rate' ).textContent = '0%';
+        // Tamamlanma süresini hesapla (requested_at -> completed_at - TOPLAM SÜRE)
+        let completionTime = "-";
+        if (req.completed_at && req.requested_at) {
+          const requestedDate = new Date(req.requested_at);
+          const completedDate = new Date(req.completed_at);
+          const diffSeconds = Math.floor(
+            (completedDate - requestedDate) / 1000
+          );
+          const minutes = Math.floor(diffSeconds / 60);
+          const seconds = diffSeconds % 60;
+          completionTime =
+            minutes > 0 ? `${minutes} dk ${seconds} sn` : `${seconds} sn`;
         }
 
-        reportData.stats = {
-            total: requests.length,
-            completed: completed.length,
-            cancelled: cancelled.length,
-            PENDING: requests.filter( r => r.status === 'PENDING' ).length
-        };
-    }
-
-    function updateCharts() {
-        // Daily trend
-        const dailyData = groupByDay( reportData.requests );
-        dailyChart.data.labels = dailyData.labels;
-        dailyChart.data.datasets[0].data = dailyData.values;
-        dailyChart.update();
-
-        // Status distribution
-        statusChart.data.datasets[0].data = [
-            reportData.stats.completed,
-            reportData.stats.cancelled,
-            reportData.stats.PENDING
-        ];
-        statusChart.update();
-
-        // Location performance
-        const locationData = groupByLocation( reportData.requests );
-        locationChart.data.labels = locationData.labels;
-        locationChart.data.datasets[0].data = locationData.values;
-        locationChart.update();
-    }
-
-    function groupByDay( requests ) {
-        const groups = {};
-        requests.forEach( req => {
-            const date = new Date( req.requested_at ).toLocaleDateString( 'tr-TR' );
-            groups[date] = ( groups[date] || 0 ) + 1;
-        } );
-
-        return {
-            labels: Object.keys( groups ),
-            values: Object.values( groups )
-        };
-    }
-
-    function groupByLocation( requests ) {
-        const groups = {};
-        requests.forEach( req => {
-            const location = req.location?.name || 'Bilinmiyor';
-            groups[location] = ( groups[location] || 0 ) + 1;
-        } );
-
-        return {
-            labels: Object.keys( groups ),
-            values: Object.values( groups )
-        };
-    }
-
-    function renderRecentRequests() {
-        const tbody = document.getElementById( 'recent-requests-table' );
-        const recent = reportData.requests.slice( 0, 20 ); // Show last 20
-
-        if ( recent.length === 0 ) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Henüz talep yok</td></tr>';
-            return;
+        // Bitiş lokasyonu
+        let endLocation = "-";
+        if (req.completion_location?.name) {
+          endLocation = req.completion_location.name;
+        } else if (req.completion_location_id) {
+          endLocation = `Lokasyon #${req.completion_location_id}`;
         }
 
-        tbody.innerHTML = recent.map( req => `
+        // Sürücü bilgisi - Tüm olası alanları kontrol et
+        let driverName = "-";
+
+        // 1. req.driver kontrolü
+        if (req.driver) {
+          if (req.driver.full_name) {
+            driverName = req.driver.full_name;
+          } else if (req.driver.username) {
+            driverName = req.driver.username;
+          }
+        }
+
+        // 2. req.accepted_by_driver kontrolü
+        if (driverName === "-" && req.accepted_by_driver) {
+          if (req.accepted_by_driver.full_name) {
+            driverName = req.accepted_by_driver.full_name;
+          } else if (req.accepted_by_driver.username) {
+            driverName = req.accepted_by_driver.username;
+          }
+        }
+
+        // 3. req.buggy.driver kontrolü
+        if (driverName === "-" && req.buggy?.driver) {
+          if (req.buggy.driver.full_name) {
+            driverName = req.buggy.driver.full_name;
+          } else if (req.buggy.driver.username) {
+            driverName = req.buggy.driver.username;
+          }
+        }
+
+        // 4. req.accepted_by_id varsa göster
+        if (driverName === "-" && req.accepted_by_id) {
+          driverName = `Sürücü #${req.accepted_by_id}`;
+        }
+
+        // 5. req.buggy.driver_id varsa göster
+        if (driverName === "-" && req.buggy?.driver_id) {
+          driverName = `Sürücü #${req.buggy.driver_id}`;
+        }
+
+        return `
             <tr>
-                <td>${ShuttleCall.Utils.formatDate( req.requested_at )}</td>
-                <td>${req.location?.name || '-'}</td>
-                <td>${req.buggy?.code || '-'}</td>
-                <td>${req.response_time_seconds ? Math.round( req.response_time_seconds / 60 ) + ' dk' : '-'}</td>
-                <td>${req.completion_time_seconds ? Math.round( req.completion_time_seconds / 60 ) + ' dk' : '-'}</td>
+                <td style="white-space: nowrap;">${ShuttleCall.Utils.formatDate(
+                  req.requested_at
+                )}</td>
+                <td><strong>${req.location?.name || "-"}</strong></td>
+                <td><strong>${endLocation}</strong></td>
+                <td><span class="badge badge-info">${
+                  req.buggy?.code || "-"
+                }</span></td>
+                <td>${driverName}</td>
+                <td><span style="color: #F28C38; font-weight: 600;">${responseTime}</span></td>
+                <td><span style="color: #27AE60; font-weight: 600;">${completionTime}</span></td>
                 <td>
-                    <span class="badge ${ShuttleCall.Utils.getBadgeClass( req.status )}">
-                        ${getStatusText( req.status )}
+                    <span class="badge ${ShuttleCall.Utils.getBadgeClass(
+                      req.status
+                    )}">
+                        ${getStatusText(req.status)}
                     </span>
                 </td>
             </tr>
-        `).join( '' );
+        `;
+      })
+      .join("");
+  }
+
+  function getStatusText(status) {
+    const map = {
+      PENDING: "Bekliyor",
+      ACCEPTED: "Kabul Edildi",
+      COMPLETED: "Tamamlandı",
+      CANCELLED: "İptal Edildi",
+      UNANSWERED: "Cevapsız",
+      accepted: "Kabul Edildi",
+      completed: "Tamamlandı",
+      cancelled: "İptal Edildi",
+    };
+    return map[status] || status;
+  }
+
+  async function exportToExcel() {
+    try {
+      const btn = document.getElementById("export-excel-btn");
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İndiriliyor...';
+
+      const dateRange = document.getElementById("date-range").value;
+      const { startDate, endDate } = getDateRangeParams(dateRange);
+
+      // Tüm verileri topla
+      const exportData = {
+        summary: {
+          total_requests: reportData.stats.total,
+          completed: reportData.stats.completed,
+          cancelled: reportData.stats.cancelled,
+          pending: reportData.stats.pending,
+          unanswered: reportData.stats.unanswered,
+          success_rate: document.getElementById("success-rate").textContent,
+          avg_response_time:
+            document.getElementById("avg-response-time").textContent,
+          avg_completion_time: document.getElementById("avg-completion-time")
+            .textContent,
+          date_range: `${startDate} - ${endDate}`,
+        },
+        requests: reportData.requests.map((req) => ({
+          tarih: ShuttleCall.Utils.formatDate(req.requested_at),
+          baslangic: req.location?.name || "-",
+          bitis: req.completion_location?.name || "-",
+          shuttle: req.buggy?.code || "-",
+          surucu: req.driver?.full_name || "-",
+          oda: req.room_number || "-",
+          yanit_suresi_dk: req.response_time_seconds
+            ? Math.round(req.response_time_seconds / 60)
+            : 0,
+          tamamlanma_suresi_dk: req.completion_time_seconds
+            ? Math.round(req.completion_time_seconds / 60)
+            : 0,
+          durum: getStatusText(req.status),
+        })),
+        route_analytics: reportData.routeAnalytics,
+        location_stats: groupByLocation(reportData.requests),
+      };
+
+      // CSRF token al
+      const csrfToken = document.querySelector(
+        'meta[name="csrf-token"]'
+      )?.content;
+
+      // Backend'e gönder
+      const response = await fetch("/api/reports/export-excel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken || "",
+        },
+        body: JSON.stringify({
+          data: exportData,
+          date_range: dateRange,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Excel oluşturulamadı");
+      }
+
+      // Dosyayı indir
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `shuttle_call_rapor_${startDate}_${endDate}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      ShuttleCall.Utils.showToast("Excel raporu indirildi!", "success");
+    } catch (error) {
+      console.error("Excel export error:", error);
+      ShuttleCall.Utils.showToast(
+        "Excel indirilemedi: " + error.message,
+        "danger"
+      );
+    } finally {
+      const btn = document.getElementById("export-excel-btn");
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-file-excel"></i> Excel İndir';
     }
+  }
 
-    function getStatusText( status ) {
-        const map = {
-            'PENDING': 'Bekliyor',
-            'accepted': 'Kabul Edildi',
-            'completed': 'Tamamlandı',
-            'cancelled': 'İptal'
-        };
-        return map[status] || status;
+  async function exportToPDF() {
+    try {
+      const btn = document.getElementById("export-pdf-btn");
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Oluşturuluyor...';
+
+      const dateRange = document.getElementById("date-range").value;
+      const { startDate, endDate } = getDateRangeParams(dateRange);
+
+      // Grafikleri base64 image olarak al
+      const charts = {
+        daily: dailyChart.toBase64Image(),
+        status: statusChart.toBase64Image(),
+        location: locationChart.toBase64Image(),
+        hourly: hourlyChart.toBase64Image(),
+        route: routeChart.toBase64Image(),
+        driver: driverPerformanceChart.toBase64Image(),
+        buggy: buggyPerformanceChart.toBase64Image(),
+      };
+
+      // Tüm verileri topla
+      const exportData = {
+        summary: {
+          total_requests: reportData.stats.total,
+          completed: reportData.stats.completed,
+          cancelled: reportData.stats.cancelled,
+          pending: reportData.stats.pending,
+          unanswered: reportData.stats.unanswered,
+          success_rate: document.getElementById("success-rate").textContent,
+          avg_response_time:
+            document.getElementById("avg-response-time").textContent,
+          avg_completion_time: document.getElementById("avg-completion-time")
+            .textContent,
+          date_range: `${startDate} - ${endDate}`,
+        },
+        charts: charts,
+        requests: reportData.requests.slice(0, 50).map((req) => ({
+          tarih: ShuttleCall.Utils.formatDate(req.requested_at),
+          baslangic: req.location?.name || "-",
+          bitis: req.completion_location?.name || "-",
+          shuttle: req.buggy?.code || "-",
+          surucu: req.driver?.full_name || "-",
+          oda: req.room_number || "-",
+          durum: getStatusText(req.status),
+        })),
+        route_analytics: reportData.routeAnalytics,
+      };
+
+      // CSRF token al
+      const csrfToken = document.querySelector(
+        'meta[name="csrf-token"]'
+      )?.content;
+
+      // Backend'e gönder
+      const response = await fetch("/api/reports/export-pdf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken || "",
+        },
+        body: JSON.stringify({
+          data: exportData,
+          date_range: dateRange,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("PDF oluşturulamadı");
+      }
+
+      // Dosyayı indir
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `shuttle_call_rapor_${startDate}_${endDate}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      ShuttleCall.Utils.showToast("PDF raporu indirildi!", "success");
+    } catch (error) {
+      console.error("PDF export error:", error);
+      ShuttleCall.Utils.showToast(
+        "PDF indirilemedi: " + error.message,
+        "danger"
+      );
+    } finally {
+      const btn = document.getElementById("export-pdf-btn");
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-file-pdf"></i> PDF İndir';
     }
+  }
 
-    function exportReport() {
-        const dateRange = document.getElementById( 'date-range' ).value;
-        const rangeText = document.getElementById( 'date-range' ).selectedOptions[0].text;
-
-        const csvContent = generateCSV();
-        const blob = new Blob( [csvContent], { type: 'text/csv;charset=utf-8;' } );
-        const link = document.createElement( 'a' );
-        link.href = URL.createObjectURL( blob );
-        link.download = `shuttle_call_rapor_${rangeText}_${new Date().toISOString().split( 'T' )[0]}.csv`;
-        link.click();
-
-        ShuttleCall.Utils.showToast( 'Rapor indirildi!', 'success' );
+  function logout() {
+    if (confirm("Çıkış yapmak istediğinize emin misiniz?")) {
+      localStorage.clear();
+      window.location.href = "/auth/logout";
     }
-
-    function generateCSV() {
-        let csv = 'Tarih,Lokasyon,Shuttle,Oda,Yanıt Süresi (sn),Tamamlanma Süresi (sn),Durum\n';
-
-        reportData.requests.forEach( req => {
-            csv += `"${req.requested_at}",`;
-            csv += `"${req.location?.name || '-'}",`;
-            csv += `"${req.buggy?.code || '-'}",`;
-            csv += `"${req.room_number || '-'}",`;
-            csv += `"${req.response_time_seconds || 0}",`;
-            csv += `"${req.completion_time_seconds || 0}",`;
-            csv += `"${getStatusText( req.status )}"\n`;
-        } );
-
-        return csv;
-    }
-
-    function logout() {
-        if ( confirm( 'Çıkış yapmak istediğinize emin misiniz?' ) ) {
-            localStorage.clear();
-            window.location.href = '/auth/logout';
-        }
-    }
+  }
 </script>
 {% endblock %}

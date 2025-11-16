@@ -1,287 +1,461 @@
 <!DOCTYPE html>
 <html lang="tr">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
 
     <!-- SEO Meta Tags -->
-    <meta name="description"
-        content="{% block meta_description %}Shuttle Call - Otel İçi Ulaşım Yönetim Sistemi{% endblock %}">
-    <meta name="keywords" content="shuttle, otel, ulaşım, qr kod, talep yönetimi">
-    <meta name="author" content="Shuttle Call">
+    <meta
+      name="description"
+      content="{% block meta_description %}Shuttle Call - Otel İçi Ulaşım Yönetim Sistemi{% endblock %}"
+    />
+    <meta
+      name="keywords"
+      content="shuttle, otel, ulaşım, qr kod, talep yönetimi"
+    />
+    <meta name="author" content="Shuttle Call" />
 
     <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="{% block og_title %}Shuttle Call{% endblock %}">
-    <meta property="og:description" content="Your Ride, On Demand">
-    <meta property="og:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="{% block og_title %}Shuttle Call{% endblock %}"
+    />
+    <meta property="og:description" content="Your Ride, On Demand" />
+    <meta
+      property="og:image"
+      content="{{ url_for('static', filename='images/og-image.png') }}"
+    />
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:title" content="{% block twitter_title %}Shuttle Call{% endblock %}">
-    <meta property="twitter:description" content="Your Ride, On Demand">
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta
+      property="twitter:title"
+      content="{% block twitter_title %}Shuttle Call{% endblock %}"
+    />
+    <meta property="twitter:description" content="Your Ride, On Demand" />
 
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#1A2B4A">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Shuttle Call">
+    <meta name="theme-color" content="#1A2B4A" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Shuttle Call" />
 
     <!-- Icons -->
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icons/favicon-16x16.png') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/Icon-180.png') }}">
-    <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='icons/Icon-152.png') }}">
-    <link rel="apple-touch-icon" sizes="120x120" href="{{ url_for('static', filename='icons/Icon-120.png') }}">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link
+      rel="icon"
+      type="image/x-icon"
+      href="{{ url_for('static', filename='favicon.ico') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="{{ url_for('static', filename='icons/favicon-32x32.png') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="{{ url_for('static', filename='icons/favicon-16x16.png') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="{{ url_for('static', filename='icons/Icon-180.png') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="152x152"
+      href="{{ url_for('static', filename='icons/Icon-152.png') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="120x120"
+      href="{{ url_for('static', filename='icons/Icon-120.png') }}"
+    />
+    <link
+      rel="manifest"
+      href="{{ url_for('static', filename='manifest.json') }}"
+    />
 
     <!-- Local Fonts - Inter (Self-hosted for better performance) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/fonts.css') }}"
+    />
 
     <!-- Font Awesome Icons (Local) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome.min.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/fontawesome.min.css') }}"
+    />
 
     <!-- Custom Stylesheets -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/professional.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive-fix.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/variables.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/main.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/modern.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/professional.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/modal.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/responsive-fix.css') }}"
+    />
     {% block extra_css %}{% endblock %}
 
     <!-- ✅ FCM CONFIG SIMPLIFY: Global Firebase configuration -->
     <script src="{{ url_for('static', filename='js/firebase-config.js') }}"></script>
 
     <title>{% block title %}Shuttle Call{% endblock %} - {{ app_name }}</title>
-</head>
+  </head>
 
-<body data-hotel-id="{{ session.get('hotel_id', 1) }}">
+  <body data-hotel-id="{{ session.get('hotel_id', 1) }}">
     <!-- Header -->
     <header class="header no-print">
-        <div class="container">
-            <div class="header-content">
-                <a href="/" class="logo">
-                    <img src="{{ url_for('static', filename='icons/Icon-72.png') }}" alt="{{ app_name }}"
-                        class="logo-image">
-                    <span class="logo-text">Shuttle Call</span>
-                </a>
+      <div class="container">
+        <div class="header-content">
+          <a href="/" class="logo">
+            <img
+              src="{{ url_for('static', filename='icons/Icon-72.png') }}"
+              alt="{{ app_name }}"
+              class="logo-image"
+            />
+            <span class="logo-text">Shuttle Call</span>
+          </a>
 
-                <h1 class="header-title">Shuttle Call</h1>
+          <h1 class="header-title">Shuttle Call</h1>
 
-                <!-- Mobile Menu Toggle -->
-                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Menu">
-                    <i class="fas fa-bars"></i>
-                </button>
-            </div>
+          <!-- Mobile Menu Toggle -->
+          <button
+            class="mobile-menu-toggle"
+            onclick="toggleMobileMenu()"
+            aria-label="Menu"
+          >
+            <i class="fas fa-bars"></i>
+          </button>
         </div>
-        
-        <!-- Mobile Navigation (outside container for full width) -->
-        {% block header_nav %}{% endblock %}
+      </div>
+
+      <!-- Mobile Navigation (outside container for full width) -->
+      {% block header_nav %}{% endblock %}
     </header>
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <div class="container" style="padding-top: 1rem;">
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }}">
-                <i
-                    class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'warning' else 'info-circle' if category == 'info' else 'times-circle' }}"></i>
-                {{ message }}
-            </div>
-            {% endfor %}
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %}
+      <div class="container" style="padding-top: 1rem">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+          <i
+            class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'warning' else 'info-circle' if category == 'info' else 'times-circle' }}"
+          ></i>
+          {{ message }}
         </div>
-        {% endif %}
-        {% endwith %}
-
-        {% block content %}{% endblock %}
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %} {% block content %}{% endblock %}
     </main>
 
     <!-- Footer -->
-    <footer class="footer no-print" style="background: #1A2B4A; color: #D8D8D8; padding: 2rem 0 1rem; text-align: center; border-top: 2px solid #D4AF37; margin-top: 3rem;">
-        {% block footer %}
-        <div class="container">
-            <div class="footer-content" style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                <img src="{{ url_for('static', filename='images/Merit_International.png') }}" 
-                     alt="Merit International Hotels & Resorts" 
-                     style="height: 60px; width: auto; object-fit: contain;">
-                <p class="footer-copyright" style="font-size: 0.875rem; font-weight: 600; letter-spacing: 0.5px; margin: 0; color: #D8D8D8;">MERIT INTERNATIONAL HOTELS & RESORTS © 2025 COPYRIGHT</p>
-                
-                <!-- Optimist Branding -->
-                <div class="footer-branding" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(212, 175, 55, 0.2); width: 100%; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; opacity: 0.85;">
-                        <img src="{{ url_for('static', filename='images/opti.png') }}" 
-                             alt="Optimist Bilişim & Elektronik" 
-                             style="height: 28px; width: auto; object-fit: contain; filter: brightness(0) invert(1) opacity(0.9);">
-                        <div style="text-align: left; line-height: 1.3;">
-                            <p style="margin: 0; font-size: 0.7rem; color: #B8B8B8; font-weight: 500;">Sistem Geliştirme & Teknik Destek</p>
-                            <p style="margin: 0; font-size: 0.65rem; color: #999; font-weight: 400;">Optimist Bilişim & Elektronik</p>
-                        </div>
-                    </div>
-                </div>
+    <footer
+      class="footer no-print"
+      style="
+        background: #1a2b4a;
+        color: #d8d8d8;
+        padding: 2rem 0 1rem;
+        text-align: center;
+        border-top: 2px solid #d4af37;
+        margin-top: 3rem;
+      "
+    >
+      {% block footer %}
+      <div class="container">
+        <div
+          class="footer-content"
+          style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+          "
+        >
+          <img
+            src="{{ url_for('static', filename='images/Merit_International.png') }}"
+            alt="Merit International Hotels & Resorts"
+            style="height: 60px; width: auto; object-fit: contain"
+          />
+          <p
+            class="footer-copyright"
+            style="
+              font-size: 0.875rem;
+              font-weight: 600;
+              letter-spacing: 0.5px;
+              margin: 0;
+              color: #d8d8d8;
+            "
+          >
+            MERIT INTERNATIONAL HOTELS & RESORTS © 2025 COPYRIGHT
+          </p>
+
+          <!-- Optimist Branding -->
+          <div
+            class="footer-branding"
+            style="
+              margin-top: 1.5rem;
+              padding-top: 1rem;
+              border-top: 1px solid rgba(212, 175, 55, 0.2);
+              width: 100%;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 0.5rem;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                opacity: 0.85;
+              "
+            >
+              <img
+                src="{{ url_for('static', filename='images/opti.png') }}"
+                alt="Optimist Bilişim & Elektronik"
+                style="
+                  height: 28px;
+                  width: auto;
+                  object-fit: contain;
+                  filter: brightness(0) invert(1) opacity(0.9);
+                "
+              />
+              <div style="text-align: left; line-height: 1.3">
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 0.7rem;
+                    color: #b8b8b8;
+                    font-weight: 500;
+                  "
+                >
+                  Sistem Geliştirme & Teknik Destek
+                </p>
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 0.65rem;
+                    color: #999;
+                    font-weight: 400;
+                  "
+                >
+                  Optimist Bilişim & Elektronik
+                </p>
+              </div>
             </div>
+          </div>
         </div>
-        {% endblock %}
+      </div>
+      {% endblock %}
     </footer>
 
     <!-- Mobile Navigation Bar (Premium Design) -->
     {% block mobile_nav %}{% endblock %}
 
     <!-- Loading Overlay (Hidden by default) -->
-    <div id="loading-overlay" class="loading-overlay" style="display: none;">
-        <div class="spinner"></div>
+    <div id="loading-overlay" class="loading-overlay" style="display: none">
+      <div class="spinner"></div>
     </div>
 
     <!-- Connection Indicator -->
     <div id="connection-indicator" class="connection-indicator online">
-        <div class="connection-status">
-            <span class="connection-dot"></span>
-            <span class="connection-text">Çevrimiçi</span>
-        </div>
+      <div class="connection-status">
+        <span class="connection-dot"></span>
+        <span class="connection-text">Çevrimiçi</span>
+      </div>
     </div>
 
     <style>
+      .connection-indicator {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 9998;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+
+      /* Admin sayfalarında connection indicator'ı gizle */
+      body[data-page="admin"] .connection-indicator {
+        display: none !important;
+      }
+
+      /* Sadece offline durumunda göster */
+      body.offline .connection-indicator {
+        opacity: 1;
+      }
+
+      /* Online durumunda gösterme */
+      body.online .connection-indicator {
+        opacity: 0;
+      }
+
+      .connection-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .connection-indicator.online .connection-status {
+        background: #10b981;
+        color: white;
+      }
+
+      .connection-indicator.offline .connection-status {
+        background: #ef4444;
+        color: white;
+      }
+
+      .connection-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .connection-indicator.online .connection-dot {
+        background: white;
+      }
+
+      .connection-indicator.offline .connection-dot {
+        background: white;
+        animation: blink 1s infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.2;
+        }
+      }
+
+      @media (max-width: 768px) {
         .connection-indicator {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 9998;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        /* Admin sayfalarında connection indicator'ı gizle */
-        body[data-page="admin"] .connection-indicator {
-            display: none !important;
-        }
-
-        /* Sadece offline durumunda göster */
-        body.offline .connection-indicator {
-            opacity: 1;
-        }
-        
-        /* Online durumunda gösterme */
-        body.online .connection-indicator {
-            opacity: 0;
+          top: 70px;
+          right: 10px;
         }
 
         .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .connection-indicator.online .connection-status {
-            background: #10b981;
-            color: white;
-        }
-
-        .connection-indicator.offline .connection-status {
-            background: #ef4444;
-            color: white;
+          padding: 6px 12px;
+          font-size: 12px;
         }
 
         .connection-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: currentColor;
-            animation: pulse 2s infinite;
+          width: 6px;
+          height: 6px;
         }
+      }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+      /* Offline styling for the whole page */
+      body.offline {
+        filter: grayscale(20%);
+      }
+
+      body.offline::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: repeating-linear-gradient(
+          90deg,
+          #ef4444 0px,
+          #ef4444 10px,
+          #fca5a5 10px,
+          #fca5a5 20px
+        );
+        z-index: 9999;
+        animation: slide 1s linear infinite;
+      }
+
+      @keyframes slide {
+        0% {
+          background-position: 0 0;
         }
-
-        .connection-indicator.online .connection-dot {
-            background: white;
+        100% {
+          background-position: 20px 0;
         }
-
-        .connection-indicator.offline .connection-dot {
-            background: white;
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.2; }
-        }
-
-        @media (max-width: 768px) {
-            .connection-indicator {
-                top: 70px;
-                right: 10px;
-            }
-
-            .connection-status {
-                padding: 6px 12px;
-                font-size: 12px;
-            }
-
-            .connection-dot {
-                width: 6px;
-                height: 6px;
-            }
-        }
-
-        /* Offline styling for the whole page */
-        body.offline {
-            filter: grayscale(20%);
-        }
-
-        body.offline::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: repeating-linear-gradient(
-                90deg,
-                #ef4444 0px,
-                #ef4444 10px,
-                #fca5a5 10px,
-                #fca5a5 20px
-            );
-            z-index: 9999;
-            animation: slide 1s linear infinite;
-        }
-
-        @keyframes slide {
-            0% { background-position: 0 0; }
-            100% { background-position: 20px 0; }
-        }
+      }
     </style>
 
     <!-- Scripts -->
     <!-- Socket.IO -->
-    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"
-        integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+"
-        crossorigin="anonymous"></script>
+    <script
+      src="https://cdn.socket.io/4.6.0/socket.io.min.js"
+      integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+"
+      crossorigin="anonymous"
+    ></script>
     <!-- QR Code Generator -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
-        integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+      integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
     <!-- html2canvas for QR export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
-        integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+      integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
     <!-- Offline Storage -->
     <script src="{{ url_for('static', filename='js/offline-storage.js') }}"></script>
     <!-- Network Manager -->
@@ -295,8 +469,8 @@
 
     <!-- System Info Modal -->
     <script>
-        async function showSystemInfo() {
-            const modalContent = `
+      async function showSystemInfo() {
+        const modalContent = `
                 <div style="text-align: center; padding: 1rem;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1.5rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px;">
                         <img src="{{ url_for('static', filename='images/opti.png') }}" 
@@ -338,208 +512,263 @@
                 </div>
             `;
 
-            if (typeof BuggyModal !== 'undefined') {
-                await BuggyModal.custom(modalContent, {
-                    title: '<i class="fas fa-info-circle"></i> Sistem Bilgisi',
-                    confirmText: 'Tamam',
-                    cancelText: null,
-                    size: 'medium'
-                });
-            } else {
-                alert('Optimist Bilişim & Elektronik\n\nSistem Geliştirme & Teknik Destek\nShuttle Call Management System');
-            }
+        if (typeof BuggyModal !== "undefined") {
+          await BuggyModal.custom(modalContent, {
+            title: '<i class="fas fa-info-circle"></i> Sistem Bilgisi',
+            confirmText: "Tamam",
+            cancelText: null,
+            size: "medium",
+          });
+        } else {
+          alert(
+            "Optimist Bilişim & Elektronik\n\nSistem Geliştirme & Teknik Destek\nShuttle Call Management System"
+          );
         }
+      }
     </script>
 
     <!-- Mobile Menu Toggle - iOS Safari Compatible -->
     <script>
-        (function() {
-            // Toggle mobile menu function
-            function toggleMobileMenu(event) {
-                if (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
+      (function () {
+        // Toggle mobile menu function
+        function toggleMobileMenu(event) {
+          if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
 
-                var nav = document.querySelector('.nav');
-                var menuIcon = document.querySelector('.mobile-menu-toggle i');
+          var nav = document.querySelector(".nav");
+          var menuIcon = document.querySelector(".mobile-menu-toggle i");
 
-                if (nav) {
-                    nav.classList.toggle('active');
+          if (nav) {
+            nav.classList.toggle("active");
 
-                    // Toggle body scroll
-                    if (nav.classList.contains('active')) {
-                        document.body.classList.add('menu-open');
-                        if (menuIcon) {
-                            menuIcon.classList.remove('fa-bars');
-                            menuIcon.classList.add('fa-times');
-                        }
-                    } else {
-                        document.body.classList.remove('menu-open');
-                        if (menuIcon) {
-                            menuIcon.classList.remove('fa-times');
-                            menuIcon.classList.add('fa-bars');
-                        }
-                    }
-                }
+            // Toggle body scroll
+            if (nav.classList.contains("active")) {
+              document.body.classList.add("menu-open");
+              if (menuIcon) {
+                menuIcon.classList.remove("fa-bars");
+                menuIcon.classList.add("fa-times");
+              }
+            } else {
+              document.body.classList.remove("menu-open");
+              if (menuIcon) {
+                menuIcon.classList.remove("fa-times");
+                menuIcon.classList.add("fa-bars");
+              }
             }
+          }
+        }
 
-            // Make function global for onclick attribute
-            window.toggleMobileMenu = toggleMobileMenu;
+        // Make function global for onclick attribute
+        window.toggleMobileMenu = toggleMobileMenu;
 
-            // iOS Safari: addEventListener support
-            document.addEventListener('DOMContentLoaded', function() {
-                var toggleBtn = document.querySelector('.mobile-menu-toggle');
+        // iOS Safari: addEventListener support
+        document.addEventListener("DOMContentLoaded", function () {
+          var toggleBtn = document.querySelector(".mobile-menu-toggle");
 
-                if (toggleBtn) {
-                    // Remove onclick and use addEventListener for better iOS support
-                    toggleBtn.removeAttribute('onclick');
+          if (toggleBtn) {
+            // Remove onclick and use addEventListener for better iOS support
+            toggleBtn.removeAttribute("onclick");
 
-                    // Click event
-                    toggleBtn.addEventListener('click', toggleMobileMenu, false);
+            // Click event
+            toggleBtn.addEventListener("click", toggleMobileMenu, false);
 
-                    // Touch events for iOS (better responsiveness)
-                    if ('ontouchstart' in window) {
-                        toggleBtn.addEventListener('touchstart', function(e) {
-                            // Visual feedback on touch
-                            this.style.opacity = '0.7';
-                        }, false);
+            // Touch events for iOS (better responsiveness)
+            if ("ontouchstart" in window) {
+              toggleBtn.addEventListener(
+                "touchstart",
+                function (e) {
+                  // Visual feedback on touch
+                  this.style.opacity = "0.7";
+                },
+                false
+              );
 
-                        toggleBtn.addEventListener('touchend', function(e) {
-                            this.style.opacity = '1';
-                        }, false);
+              toggleBtn.addEventListener(
+                "touchend",
+                function (e) {
+                  this.style.opacity = "1";
+                },
+                false
+              );
 
-                        toggleBtn.addEventListener('touchcancel', function(e) {
-                            this.style.opacity = '1';
-                        }, false);
-                    }
-                }
-            });
-
-            // Close menu when clicking outside
-            document.addEventListener('click', function(event) {
-                var nav = document.querySelector('.nav');
-                var toggle = document.querySelector('.mobile-menu-toggle');
-                var header = document.querySelector('.header');
-
-                if (nav && nav.classList.contains('active')) {
-                    if (!header.contains(event.target) || event.target.classList.contains('nav-link')) {
-                        nav.classList.remove('active');
-                        document.body.classList.remove('menu-open');
-                        var menuIcon = document.querySelector('.mobile-menu-toggle i');
-                        if (menuIcon) {
-                            menuIcon.classList.remove('fa-times');
-                            menuIcon.classList.add('fa-bars');
-                        }
-                    }
-                }
-            }, false);
-
-            // Touch event for closing menu (iOS)
-            if ('ontouchstart' in window) {
-                document.addEventListener('touchstart', function(event) {
-                    var nav = document.querySelector('.nav');
-                    var toggle = document.querySelector('.mobile-menu-toggle');
-                    var header = document.querySelector('.header');
-
-                    if (nav && nav.classList.contains('active')) {
-                        if (!header.contains(event.target) || event.target.classList.contains('nav-link')) {
-                            nav.classList.remove('active');
-                            document.body.classList.remove('menu-open');
-                            var menuIcon = document.querySelector('.mobile-menu-toggle i');
-                            if (menuIcon) {
-                                menuIcon.classList.remove('fa-times');
-                                menuIcon.classList.add('fa-bars');
-                            }
-                        }
-                    }
-                }, false);
+              toggleBtn.addEventListener(
+                "touchcancel",
+                function (e) {
+                  this.style.opacity = "1";
+                },
+                false
+              );
             }
+          }
+        });
 
-            // Close menu on window resize to desktop
-            window.addEventListener('resize', function() {
-                if (window.innerWidth > 768) {
-                    var nav = document.querySelector('.nav');
-                    if (nav && nav.classList.contains('active')) {
-                        nav.classList.remove('active');
-                        document.body.classList.remove('menu-open');
-                        var menuIcon = document.querySelector('.mobile-menu-toggle i');
-                        if (menuIcon) {
-                            menuIcon.classList.remove('fa-times');
-                            menuIcon.classList.add('fa-bars');
-                        }
-                    }
+        // Close menu when clicking outside
+        document.addEventListener(
+          "click",
+          function (event) {
+            var nav = document.querySelector(".nav");
+            var toggle = document.querySelector(".mobile-menu-toggle");
+            var header = document.querySelector(".header");
+
+            if (nav && nav.classList.contains("active")) {
+              if (
+                !header.contains(event.target) ||
+                event.target.classList.contains("nav-link")
+              ) {
+                nav.classList.remove("active");
+                document.body.classList.remove("menu-open");
+                var menuIcon = document.querySelector(".mobile-menu-toggle i");
+                if (menuIcon) {
+                  menuIcon.classList.remove("fa-times");
+                  menuIcon.classList.add("fa-bars");
                 }
-            }, false);
-        })();
+              }
+            }
+          },
+          false
+        );
+
+        // Touch event for closing menu (iOS)
+        if ("ontouchstart" in window) {
+          document.addEventListener(
+            "touchstart",
+            function (event) {
+              var nav = document.querySelector(".nav");
+              var toggle = document.querySelector(".mobile-menu-toggle");
+              var header = document.querySelector(".header");
+
+              if (nav && nav.classList.contains("active")) {
+                if (
+                  !header.contains(event.target) ||
+                  event.target.classList.contains("nav-link")
+                ) {
+                  nav.classList.remove("active");
+                  document.body.classList.remove("menu-open");
+                  var menuIcon = document.querySelector(
+                    ".mobile-menu-toggle i"
+                  );
+                  if (menuIcon) {
+                    menuIcon.classList.remove("fa-times");
+                    menuIcon.classList.add("fa-bars");
+                  }
+                }
+              }
+            },
+            false
+          );
+        }
+
+        // Close menu on window resize to desktop
+        window.addEventListener(
+          "resize",
+          function () {
+            if (window.innerWidth > 768) {
+              var nav = document.querySelector(".nav");
+              if (nav && nav.classList.contains("active")) {
+                nav.classList.remove("active");
+                document.body.classList.remove("menu-open");
+                var menuIcon = document.querySelector(".mobile-menu-toggle i");
+                if (menuIcon) {
+                  menuIcon.classList.remove("fa-times");
+                  menuIcon.classList.add("fa-bars");
+                }
+              }
+            }
+          },
+          false
+        );
+      })();
     </script>
+
+    <!-- ✅ TIMEZONE HELPER - Cyprus GMT+2/+3 (Global) -->
+    <script src="{{ url_for('static', filename='js/timezone-helper.js') }}"></script>
 
     {% block extra_js %}{% endblock %}
 
     <!-- Service Worker Registration -->
     <script>
-        if ( 'serviceWorker' in navigator ) {
-            let refreshing = false;
-            let updateNotificationShown = false;
+      if ("serviceWorker" in navigator) {
+        let refreshing = false;
+        let updateNotificationShown = false;
 
-            // Reload page when new service worker takes control
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!refreshing) {
-                    refreshing = true;
-                    console.log('[SW] New service worker activated, reloading page...');
-                    
-                    // Sadece reload et, toast pwa-install.js'de gösteriliyor
-                    window.location.reload();
-                }
+        // Reload page when new service worker takes control
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (!refreshing) {
+            refreshing = true;
+            console.log("[SW] New service worker activated, reloading page...");
+
+            // Sadece reload et, toast pwa-install.js'de gösteriliyor
+            window.location.reload();
+          }
+        });
+
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((registration) => {
+              console.log("ServiceWorker registered:", registration.scope);
+
+              // Check for updates periodically (her 30 dakikada bir)
+              setInterval(() => {
+                registration.update();
+              }, 1800000); // Check every 30 minutes
+
+              // Visibility change update kaldırıldı - sadece 30 dakikada bir kontrol
+
+              // Listen for waiting service worker
+              let updatePromptShown = false;
+              registration.addEventListener("updatefound", () => {
+                const newWorker = registration.installing;
+
+                newWorker.addEventListener("statechange", () => {
+                  if (
+                    newWorker.state === "installed" &&
+                    navigator.serviceWorker.controller &&
+                    !updatePromptShown
+                  ) {
+                    updatePromptShown = true;
+
+                    // Wait a bit to ensure it's a real update
+                    setTimeout(() => {
+                      // ✅ localStorage kullan (sessionStorage her refresh'te temizleniyor)
+                      const lastUpdateShown = localStorage.getItem(
+                        "sw-update-shown-time"
+                      );
+                      const now = Date.now();
+
+                      // ✅ Son 5 dakika içinde gösterildiyse tekrar gösterme
+                      if (
+                        !lastUpdateShown ||
+                        now - parseInt(lastUpdateShown) > 300000
+                      ) {
+                        localStorage.setItem(
+                          "sw-update-shown-time",
+                          now.toString()
+                        );
+                        showUpdatePrompt(newWorker);
+                      } else {
+                        console.log(
+                          "[SW] Update notification recently shown, skipping..."
+                        );
+                      }
+                    }, 1000);
+                  }
+                });
+              });
+            })
+            .catch((error) => {
+              console.log("ServiceWorker registration failed:", error);
             });
+        });
 
-            window.addEventListener( 'load', () => {
-                navigator.serviceWorker.register( '/sw.js' )
-                    .then( registration => {
-                        console.log( 'ServiceWorker registered:', registration.scope );
-
-                        // Check for updates periodically (her 30 dakikada bir)
-                        setInterval(() => {
-                            registration.update();
-                        }, 1800000); // Check every 30 minutes
-
-                        // Visibility change update kaldırıldı - sadece 30 dakikada bir kontrol
-
-                        // Listen for waiting service worker
-                        let updatePromptShown = false;
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && 
-                                    navigator.serviceWorker.controller && 
-                                    !updatePromptShown) {
-                                    
-                                    updatePromptShown = true;
-                                    
-                                    // Wait a bit to ensure it's a real update
-                                    setTimeout(() => {
-                                        // Sadece gerçek update'lerde göster
-                                        if (!sessionStorage.getItem('sw-update-shown')) {
-                                            sessionStorage.setItem('sw-update-shown', 'true');
-                                            showUpdatePrompt(newWorker);
-                                        }
-                                    }, 1000);
-                                }
-                            });
-                        });
-                    } )
-                    .catch( error => {
-                        console.log( 'ServiceWorker registration failed:', error );
-                    } );
-            } );
-
-            // Show update prompt
-            function showUpdatePrompt(worker) {
-                const updateBanner = document.createElement('div');
-                updateBanner.id = 'update-banner';
-                updateBanner.className = 'update-banner';
-                updateBanner.innerHTML = `
+        // Show update prompt
+        function showUpdatePrompt(worker) {
+          const updateBanner = document.createElement("div");
+          updateBanner.id = "update-banner";
+          updateBanner.className = "update-banner";
+          updateBanner.innerHTML = `
                     <div class="update-banner-content">
                         <div class="update-banner-icon">🔄</div>
                         <div class="update-banner-text">
@@ -557,9 +786,9 @@
                     </div>
                 `;
 
-                // Add styles
-                const style = document.createElement('style');
-                style.textContent = `
+          // Add styles
+          const style = document.createElement("style");
+          style.textContent = `
                     .update-banner {
                         position: fixed;
                         bottom: 20px;
@@ -677,43 +906,45 @@
                         }
                     }
                 `;
-                document.head.appendChild(style);
-                document.body.appendChild(updateBanner);
+          document.head.appendChild(style);
+          document.body.appendChild(updateBanner);
 
-                // Store worker reference
-                window.waitingWorker = worker;
+          // Store worker reference
+          window.waitingWorker = worker;
+        }
+
+        // Update service worker
+        window.updateServiceWorker = function () {
+          if (window.waitingWorker) {
+            window.waitingWorker.postMessage({ action: "skipWaiting" });
+
+            // Remove banner
+            const banner = document.getElementById("update-banner");
+            if (banner) {
+              banner.remove();
             }
+          }
+        };
 
-            // Update service worker
-            window.updateServiceWorker = function() {
-                if (window.waitingWorker) {
-                    window.waitingWorker.postMessage({ action: 'skipWaiting' });
+        // Dismiss update
+        window.dismissUpdate = function () {
+          const banner = document.getElementById("update-banner");
+          if (banner) {
+            banner.style.animation = "slideUp 0.3s ease-in reverse";
+            setTimeout(() => banner.remove(), 300);
+          }
+        };
 
-                    // Remove banner
-                    const banner = document.getElementById('update-banner');
-                    if (banner) {
-                        banner.remove();
-                    }
-                }
-            };
+        // Show update notification after reload
+        function showUpdateNotification() {
+          // Mevcut toast'ları kaldır
+          document
+            .querySelectorAll(".update-toast, .pwa-update-toast")
+            .forEach((t) => t.remove());
 
-            // Dismiss update
-            window.dismissUpdate = function() {
-                const banner = document.getElementById('update-banner');
-                if (banner) {
-                    banner.style.animation = 'slideUp 0.3s ease-in reverse';
-                    setTimeout(() => banner.remove(), 300);
-                }
-            };
-
-            // Show update notification after reload
-            function showUpdateNotification() {
-                // Mevcut toast'ları kaldır
-                document.querySelectorAll('.update-toast, .pwa-update-toast').forEach(t => t.remove());
-                
-                const toast = document.createElement('div');
-                toast.className = 'update-toast';
-                toast.innerHTML = `
+          const toast = document.createElement("div");
+          toast.className = "update-toast";
+          toast.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink: 0;">
                             <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -721,7 +952,7 @@
                         <span>Uygulama başarıyla güncellendi!</span>
                     </div>
                 `;
-                toast.style.cssText = `
+          toast.style.cssText = `
                     position: fixed;
                     top: 20px;
                     right: 20px;
@@ -734,18 +965,17 @@
                     animation: slideIn 0.3s ease-out;
                 `;
 
-                document.body.appendChild(toast);
+          document.body.appendChild(toast);
 
-                setTimeout(() => {
-                    toast.style.animation = 'slideIn 0.3s ease-in reverse';
-                    setTimeout(() => toast.remove(), 300);
-                }, 3000);
-            }
+          setTimeout(() => {
+            toast.style.animation = "slideIn 0.3s ease-in reverse";
+            setTimeout(() => toast.remove(), 300);
+          }, 3000);
         }
+      }
     </script>
 
     <!-- PWA Install Prompt -->
     <script src="{{ url_for('static', filename='js/pwa-install.js') }}"></script>
-</body>
-
+  </body>
 </html>

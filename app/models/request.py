@@ -29,6 +29,7 @@ class BuggyRequest(db.Model, BaseModel):
     # Foreign Keys
     hotel_id = Column(Integer, ForeignKey('hotels.id', ondelete='CASCADE'), nullable=False, index=True)
     location_id = Column(Integer, ForeignKey('locations.id', ondelete='CASCADE'), nullable=False, index=True)
+    completion_location_id = Column(Integer, ForeignKey('locations.id', ondelete='SET NULL'), index=True)  # Talebin tamamlandığı konum
     buggy_id = Column(Integer, ForeignKey('buggies.id', ondelete='SET NULL'), index=True)
     accepted_by_id = Column(Integer, ForeignKey('system_users.id', ondelete='SET NULL'), index=True)
     
@@ -53,12 +54,13 @@ class BuggyRequest(db.Model, BaseModel):
     timeout_at = Column(DateTime)  # When request was marked as unanswered
     
     # Performance Metrics
-    response_time = Column(Integer)  # Seconds from request to acceptance
-    completion_time = Column(Integer)  # Seconds from acceptance to completion
+    response_time = Column(Integer)  # Seconds from request to acceptance (requested_at -> accepted_at)
+    completion_time = Column(Integer)  # Seconds from request to completion - TOPLAM SÜRE (requested_at -> completed_at)
     
     # Relationships
     hotel = relationship('Hotel', back_populates='requests')
-    location = relationship('Location', back_populates='requests')
+    location = relationship('Location', back_populates='requests', foreign_keys=[location_id])
+    completion_location = relationship('Location', foreign_keys=[completion_location_id])  # Tamamlanma konumu
     buggy = relationship('Buggy', back_populates='requests')
     accepted_by_driver = relationship('SystemUser', back_populates='accepted_requests', foreign_keys=[accepted_by_id])
     
@@ -74,6 +76,7 @@ class BuggyRequest(db.Model, BaseModel):
             'id': self.id,
             'hotel_id': self.hotel_id,
             'location_id': self.location_id,
+            'completion_location_id': self.completion_location_id,
             'buggy_id': self.buggy_id,
             'accepted_by_id': self.accepted_by_id,
             'guest_name': self.guest_name,
@@ -84,11 +87,11 @@ class BuggyRequest(db.Model, BaseModel):
             'guest_device_id': self.guest_device_id,
             'status': self.status.value if self.status else None,
             'cancelled_by': self.cancelled_by,
-            'requested_at': self.requested_at.isoformat() if self.requested_at else None,
-            'accepted_at': self.accepted_at.isoformat() if self.accepted_at else None,
-            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
-            'cancelled_at': self.cancelled_at.isoformat() if self.cancelled_at else None,
-            'timeout_at': self.timeout_at.isoformat() if self.timeout_at else None,
+            'requested_at': self._format_cyprus_time(self.requested_at),
+            'accepted_at': self._format_cyprus_time(self.accepted_at),
+            'completed_at': self._format_cyprus_time(self.completed_at),
+            'cancelled_at': self._format_cyprus_time(self.cancelled_at),
+            'timeout_at': self._format_cyprus_time(self.timeout_at),
             'response_time': self.response_time,
             'completion_time': self.completion_time
         }
@@ -101,6 +104,11 @@ class BuggyRequest(db.Model, BaseModel):
                 result['location'] = None
 
             try:
+                result['completion_location'] = self.completion_location.to_dict() if self.completion_location else None
+            except Exception:
+                result['completion_location'] = None
+
+            try:
                 result['buggy'] = self.buggy.to_dict() if self.buggy else None
             except Exception:
                 result['buggy'] = None
@@ -111,3 +119,16 @@ class BuggyRequest(db.Model, BaseModel):
                 result['driver'] = None
 
         return result
+    
+    def _format_cyprus_time(self, dt):
+        """Format datetime with Cyprus timezone"""
+        if not dt:
+            return None
+        try:
+            import pytz
+            cyprus_tz = pytz.timezone('Europe/Nicosia')
+            cyprus_dt = cyprus_tz.localize(dt)
+            return cyprus_dt.isoformat()
+        except Exception:
+            # Fallback to simple isoformat
+            return dt.isoformat() if dt else None

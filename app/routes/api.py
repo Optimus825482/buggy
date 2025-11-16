@@ -1123,8 +1123,10 @@ def get_requests():
         query = BuggyRequest.query.filter_by(hotel_id=user.hotel_id)\
             .options(
                 joinedload(BuggyRequest.location),
+                joinedload(BuggyRequest.completion_location),
                 joinedload(BuggyRequest.buggy).joinedload(Buggy.current_location),
-                joinedload(BuggyRequest.buggy).joinedload(Buggy.driver_associations)
+                joinedload(BuggyRequest.buggy).joinedload(Buggy.driver_associations),
+                joinedload(BuggyRequest.accepted_by_driver)
             )
         
         # Handle status filter - convert string to enum
@@ -1148,18 +1150,59 @@ def get_requests():
             try:
                 # ✅ Use safe to_dict with relations
                 req_dict = req.to_dict(include_relations=False)
+                
                 # Add location info safely
                 try:
                     if req.location:
                         req_dict['location'] = req.location.to_dict()
                 except Exception:
                     req_dict['location'] = None
+                
+                # Add completion location info safely
+                try:
+                    if req.completion_location:
+                        req_dict['completion_location'] = req.completion_location.to_dict()
+                except Exception:
+                    req_dict['completion_location'] = None
+                
                 # Add buggy info safely
                 try:
                     if req.buggy:
                         req_dict['buggy'] = req.buggy.to_dict()
                 except Exception:
                     req_dict['buggy'] = None
+                
+                # Add driver info safely
+                try:
+                    if req.accepted_by_driver:
+                        req_dict['driver'] = {
+                            'id': req.accepted_by_driver.id,
+                            'username': req.accepted_by_driver.username,
+                            'full_name': req.accepted_by_driver.full_name
+                        }
+                    elif req.buggy and req.buggy.driver:
+                        req_dict['driver'] = {
+                            'id': req.buggy.driver.id,
+                            'username': req.buggy.driver.username,
+                            'full_name': req.buggy.driver.full_name
+                        }
+                except Exception:
+                    req_dict['driver'] = None
+                
+                # Add performance metrics with _seconds suffix for frontend compatibility
+                req_dict['response_time_seconds'] = req.response_time
+                
+                # Completion time - Dinamik hesaplama (requested_at -> completed_at)
+                completion_time_seconds = None
+                if req.completed_at and req.requested_at:
+                    delta = req.completed_at - req.requested_at
+                    completion_time_seconds = int(delta.total_seconds())
+                elif req.completion_time:
+                    # Fallback: Veritabanındaki değeri kullan
+                    completion_time_seconds = req.completion_time
+                
+                req_dict['completion_time_seconds'] = completion_time_seconds
+                
                 result.append(req_dict)
             except Exception as req_error:
                 log_error('GET_REQUESTS_ITEM', str(req_error), {'request_id': req.id})
@@ -1247,7 +1290,9 @@ def accept_request(request_id):
         buggy_request.status = RequestStatus.ACCEPTED
         buggy_request.buggy_id = buggy.id
         buggy_request.accepted_by_id = user.id
-        buggy_request.accepted_at = datetime.utcnow()
+        # ✅ Use Cyprus timezone
+        from app.services.request_service import get_cyprus_now
+        buggy_request.accepted_at = get_cyprus_now()
         
         if buggy_request.requested_at:
             delta = buggy_request.accepted_at - buggy_request.requested_at
@@ -2312,13 +2357,32 @@ def driver_complete_request(request_id):
         if not buggy_request:
             return jsonify({'error': 'Talep bulunamadı veya size ait değil'}), 404
         
+        # ✅ Tamamlanma konumunu al (request body'den)
+        data = request.get_json() or {}
+        completion_location_id = data.get('completion_location_id')
+        
+        if not completion_location_id:
+            return jsonify({'error': 'Tamamlanma konumu gerekli'}), 400
+        
+        # Konumun geçerli olduğunu kontrol et
+        from app.models.location import Location
+        completion_location = Location.query.filter_by(
+            id=completion_location_id,
+            hotel_id=user.hotel_id
+        ).first()
+        
+        if not completion_location:
+            return jsonify({'error': 'Geçersiz konum'}), 400
+        
         # Update request
         from app.models import get_current_timestamp
         buggy_request.status = RequestStatus.COMPLETED
         buggy_request.completed_at = get_current_timestamp()
+        buggy_request.completion_location_id = completion_location_id
         
-        # Keep buggy busy until driver sets new location
-        # (Location modal will be shown on frontend)
+        # Buggy konumunu güncelle
+        user.buggy.current_location_id = completion_location_id
+        user.buggy.is_busy = False
         
         db.session.commit()
         
@@ -2370,8 +2434,12 @@ def driver_complete_request(request_id):
         
         return jsonify({
             'success': True,
-            'message': 'Talep tamamlandı! Lütfen yeni konumunuzu seçin.',
-            'show_location_modal': True
+            'message': 'Talep tamamlandı!',
+            'request': {
+                'id': buggy_request.id,
+                'status': buggy_request.status.value,
+                'completion_location_id': buggy_request.completion_location_id
+            }
         }), 200
         
     except Exception as e:

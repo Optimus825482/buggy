@@ -130,12 +130,19 @@ const Utils = {
     },
 
     /**
-     * Format date to locale string
+     * Format date to locale string (Cyprus timezone GMT+2/+3)
      * @param {string|Date} date - Date to format
      * @returns {string}
      */
     formatDate(date) {
         if (!date) return '-';
+        
+        // ✅ Use TimezoneHelper for Cyprus local time
+        if (typeof TimezoneHelper !== 'undefined') {
+            return TimezoneHelper.formatLocal(date);
+        }
+        
+        // Fallback to browser timezone
         const d = new Date(date);
         return d.toLocaleString('tr-TR');
     },

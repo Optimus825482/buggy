@@ -4,7 +4,7 @@ Enhanced with guest connection tracking and real-time status updates
 Performance optimized with throttling and queue management
 """
 from flask_socketio import emit, join_room, leave_room
-from flask import session
+from flask import session, request
 from app import socketio
 import logging
 import time
@@ -102,8 +102,17 @@ def handle_join_hotel(data):
     Handle joining hotel room (for drivers and admins)
     """
     try:
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        logger.info(f'📥 [WEBSOCKET] join_hotel event received!')
+        logger.info(f'   Data: {data}')
+        logger.info(f'   SID: {request.sid}')
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        
         hotel_id = data.get('hotel_id')
         role = data.get('role', 'unknown')
+        
+        logger.info(f'   Hotel ID: {hotel_id}')
+        logger.info(f'   Role: {role}')
         
         if not hotel_id:
             logger.warning("⚠️ join_hotel: hotel_id missing")
@@ -121,6 +130,7 @@ def handle_join_hotel(data):
         join_room(room)
         
         logger.info(f"✅ Client joined room: {room} (Role: {role})")
+        logger.info(f"📤 Emitting joined_hotel confirmation...")
         
         # Emit confirmation back to client
         emit('joined_hotel', {
@@ -130,8 +140,13 @@ def handle_join_hotel(data):
             'message': f'Successfully joined {room}'
         })
         
+        logger.info(f"✅ joined_hotel event emitted successfully!")
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        
     except Exception as e:
         logger.error(f"❌ Error in handle_join_hotel: {str(e)}")
+        logger.error(f"   Exception type: {type(e).__name__}")
+        logger.error(f"   Exception details: {str(e)}")
 
 
 @socketio.on('join_user')

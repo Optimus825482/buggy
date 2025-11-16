@@ -6,642 +6,767 @@
  */
 
 const DriverDashboard = {
-    // ==================== STATE ====================
-    state: {
-        hotelId: null,
-        userId: null,
-        buggyId: null,
-        currentRequest: null,
-        pendingRequests: [],
-        completedToday: 0,
-        isOnline: false,
-        lastSync: null
-    },
+  // ==================== STATE ====================
+  state: {
+    hotelId: null,
+    userId: null,
+    buggyId: null,
+    currentRequest: null,
+    pendingRequests: [],
+    completedToday: 0,
+    isOnline: false,
+    lastSync: null,
+  },
 
-    // ==================== WEBSOCKET ====================
-    socket: null,
-    reconnectAttempts: 0,
-    maxReconnectAttempts: 5,
+  // ==================== WEBSOCKET ====================
+  socket: null,
+  reconnectAttempts: 0,
+  maxReconnectAttempts: 5,
 
-    // ==================== TIMERS ====================
-    timers: {
-        elapsed: null,
-        sync: null,
-        heartbeat: null
-    },
+  // ==================== TIMERS ====================
+  timers: {
+    elapsed: null,
+    sync: null,
+    heartbeat: null,
+    clock: null,
+  },
 
-    // ==================== AUDIO ====================
-    audio: {
-        notification: null,
-        enabled: true
-    },
+  // ==================== AUDIO ====================
+  audio: {
+    notification: null,
+    enabled: true,
+  },
 
-    /**
-     * ========================================
-     * INITIALIZATION
-     * ========================================
-     */
-    async init() {
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('🚀 Driver Dashboard v3.0 Initializing...');
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  /**
+   * ========================================
+   * INITIALIZATION
+   * ========================================
+   */
+  async init() {
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("🚀 Driver Dashboard v3.0 Initializing...");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-        try {
-            // ✅ Clear cache on every login
-            console.log('🧹 [INIT] Clearing cache...');
-            await this.clearCache();
+    try {
+      // ✅ Clear cache on every login
+      console.log("🧹 [INIT] Clearing cache...");
+      await this.clearCache();
 
-            // Load state from DOM
-            console.log('📊 [INIT] Loading state from DOM...');
-            this.loadStateFromDOM();
+      // Load state from DOM
+      console.log("📊 [INIT] Loading state from DOM...");
+      this.loadStateFromDOM();
 
-            // Validate buggy assignment
-            if (!this.state.buggyId || this.state.buggyId === '0') {
-                console.warn('⚠️ [INIT] No buggy assigned to driver');
-                await this.showNoBuggyWarning();
-                return;
-            }
+      // Validate buggy assignment
+      if (!this.state.buggyId || this.state.buggyId === "0") {
+        console.warn("⚠️ [INIT] No buggy assigned to driver");
+        await this.showNoBuggyWarning();
+        return;
+      }
 
-            // Initialize components
-            console.log('🔧 [INIT] Initializing components...');
-            await this.initializeComponents();
+      // Initialize components
+      console.log("🔧 [INIT] Initializing components...");
+      await this.initializeComponents();
 
-            // Load initial data
-            console.log('📥 [INIT] Loading initial data...');
-            await this.loadInitialData();
+      // Load initial data
+      console.log("📥 [INIT] Loading initial data...");
+      await this.loadInitialData();
 
-            // Setup event listeners
-            console.log('👂 [INIT] Setting up event listeners...');
-            this.setupEventListeners();
+      // Setup event listeners
+      console.log("👂 [INIT] Setting up event listeners...");
+      this.setupEventListeners();
 
-            // Start background tasks
-            console.log('⏰ [INIT] Starting background tasks...');
-            this.startBackgroundTasks();
+      // Start background tasks
+      console.log("⏰ [INIT] Starting background tasks...");
+      this.startBackgroundTasks();
 
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.log('✅ Driver Dashboard Initialized Successfully');
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        } catch (error) {
-            console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.error('❌ Initialization Error:', error);
-            console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            await BuggyCall.Utils.showError('Dashboard başlatılamadı: ' + error.message);
-        }
-    },
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.log("✅ Driver Dashboard Initialized Successfully");
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    } catch (error) {
+      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.error("❌ Initialization Error:", error);
+      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      await BuggyCall.Utils.showError(
+        "Dashboard başlatılamadı: " + error.message
+      );
+    }
+  },
 
-    /**
-     * Load state from DOM data attributes
-     */
-    loadStateFromDOM() {
-        const body = document.body;
-        this.state.hotelId = parseInt(body.dataset.hotelId) || 1;
-        this.state.userId = parseInt(body.dataset.userId) || 0;
-        this.state.buggyId = parseInt(body.dataset.buggyId) || 0;
+  /**
+   * Load state from DOM data attributes
+   */
+  loadStateFromDOM() {
+    const body = document.body;
+    this.state.hotelId = parseInt(body.dataset.hotelId) || 1;
+    this.state.userId = parseInt(body.dataset.userId) || 0;
+    this.state.buggyId = parseInt(body.dataset.buggyId) || 0;
 
-        console.log('📊 State loaded:', this.state);
-    },
+    console.log("📊 State loaded:", this.state);
+  },
 
-    /**
-     * Initialize all components
-     */
-    async initializeComponents() {
-        // Initialize WebSocket
-        this.initWebSocket();
+  /**
+   * Initialize all components
+   */
+  async initializeComponents() {
+    // Initialize WebSocket
+    this.initWebSocket();
 
-        // Initialize audio
-        this.initAudio();
+    // Initialize audio
+    this.initAudio();
 
-        // Initialize UI components
-        this.initUI();
-    },
+    // Initialize UI components
+    this.initUI();
+  },
 
-    /**
-     * ========================================
-     * WEBSOCKET CONNECTION
-     * ========================================
-     */
-    initWebSocket() {
-        console.log('🔌 Initializing WebSocket...');
+  /**
+   * ========================================
+   * WEBSOCKET CONNECTION
+   * ========================================
+   */
+  initWebSocket() {
+    console.log("🔌 Initializing WebSocket...");
 
-        try {
-            this.socket = io('/', {
-                transports: ['websocket', 'polling'],
-                reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                reconnectionAttempts: this.maxReconnectAttempts,
-                forceNew: false,
-                autoConnect: true
-            });
+    try {
+      this.socket = io("/", {
+        transports: ["websocket", "polling"],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: this.maxReconnectAttempts,
+        forceNew: false,
+        autoConnect: true,
+      });
 
-            // ✅ IMPORTANT: Setup ALL event listeners BEFORE connecting
-            console.log('📡 [WEBSOCKET] Setting up event listeners...');
+      // ✅ IMPORTANT: Setup ALL event listeners BEFORE connecting
+      console.log("📡 [WEBSOCKET] Setting up event listeners...");
 
-            // Connection events
-            this.socket.on('connect', () => this.onSocketConnect());
-            this.socket.on('disconnect', () => this.onSocketDisconnect());
-            this.socket.on('connect_error', (error) => this.onSocketError(error));
-            this.socket.on('joined_hotel', (data) => this.onJoinedHotel(data));
+      // Connection events
+      this.socket.on("connect", () => this.onSocketConnect());
+      this.socket.on("disconnect", () => this.onSocketDisconnect());
+      this.socket.on("connect_error", (error) => this.onSocketError(error));
+      this.socket.on("joined_hotel", (data) => this.onJoinedHotel(data));
 
-            // Request events
-            this.socket.on('new_request', (data) => this.onNewRequest(data));
-            this.socket.on('request_taken', (data) => this.onRequestTaken(data));
-            this.socket.on('request_cancelled', (data) => this.onRequestCancelled(data));
-            this.socket.on('request_completed', (data) => this.onRequestCompleted(data));
+      // Request events
+      this.socket.on("new_request", (data) => this.onNewRequest(data));
+      this.socket.on("request_taken", (data) => this.onRequestTaken(data));
+      this.socket.on("request_cancelled", (data) =>
+        this.onRequestCancelled(data)
+      );
+      this.socket.on("request_completed", (data) =>
+        this.onRequestCompleted(data)
+      );
 
-            // ✅ Guest events - WITH DETAILED LOGGING
-            this.socket.on('guest_connected', (data) => {
-                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                console.log('🚨 [WEBSOCKET] guest_connected event received RAW!');
-                console.log('   Raw Data:', JSON.stringify(data, null, 2));
-                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                this.onGuestConnected(data);
-            });
+      // ✅ Guest events - WITH DETAILED LOGGING
+      this.socket.on("guest_connected", (data) => {
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.log("🚨 [WEBSOCKET] guest_connected event received RAW!");
+        console.log("   Raw Data:", JSON.stringify(data, null, 2));
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        this.onGuestConnected(data);
+      });
 
-            // ✅ Catch-all for debugging
-            this.socket.onAny((eventName, ...args) => {
-                console.log(`📨 [WEBSOCKET] Event received: ${eventName}`, args);
-            });
+      // ✅ Catch-all for debugging
+      this.socket.onAny((eventName, ...args) => {
+        console.log(`📨 [WEBSOCKET] Event received: ${eventName}`, args);
+      });
 
-            console.log('✅ [WEBSOCKET] All event listeners registered');
-            console.log('✅ WebSocket initialized');
-        } catch (error) {
-            console.error('❌ WebSocket initialization failed:', error);
-        }
-    },
+      console.log("✅ [WEBSOCKET] All event listeners registered");
+      console.log("✅ WebSocket initialized");
+    } catch (error) {
+      console.error("❌ WebSocket initialization failed:", error);
+    }
+  },
 
-    /**
-     * Socket connected
-     */
-    onSocketConnect() {
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('✅ [WEBSOCKET] Socket Connected!');
-        console.log('   - Socket ID:', this.socket.id);
-        console.log('   - Transport:', this.socket.io.engine.transport.name);
-        console.log('   - Hotel ID:', this.state.hotelId);
-        console.log('   - User ID:', this.state.userId);
-        console.log('   - Buggy ID:', this.state.buggyId);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        
-        this.state.isOnline = true;
-        this.reconnectAttempts = 0;
+  /**
+   * Socket connected
+   */
+  onSocketConnect() {
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("✅ [WEBSOCKET] Socket Connected!");
+    console.log("   - Socket ID:", this.socket.id);
+    console.log("   - Transport:", this.socket.io.engine.transport.name);
+    console.log("   - Hotel ID:", this.state.hotelId);
+    console.log("   - User ID:", this.state.userId);
+    console.log("   - Buggy ID:", this.state.buggyId);
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-        // Join hotel drivers room
-        console.log('📤 [WEBSOCKET] Emitting join_hotel event...');
-        this.socket.emit('join_hotel', {
-            hotel_id: this.state.hotelId,
-            role: 'driver'
-        });
+    this.state.isOnline = true;
+    this.reconnectAttempts = 0;
 
-        // Update UI
-        this.updateConnectionStatus('connected');
-    },
+    // Join hotel drivers room
+    console.log("📤 [WEBSOCKET] Emitting join_hotel event...");
+    this.socket.emit("join_hotel", {
+      hotel_id: this.state.hotelId,
+      role: "driver",
+    });
 
-    /**
-     * Successfully joined hotel room
-     */
-    onJoinedHotel(data) {
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('✅ [WEBSOCKET] Successfully joined hotel room!');
-        console.log('   - Hotel ID:', data.hotel_id);
-        console.log('   - Role:', data.role);
-        console.log('   - Room:', data.room);
-        console.log('   - Socket ID:', this.socket.id);
-        console.log('   - Now listening for guest_connected events...');
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        
-        // Test: Emit a test event to verify connection
-        console.log('🧪 [TEST] Testing socket connection...');
-        this.socket.emit('test_connection', { message: 'Driver dashboard connected' });
-    },
+    // Update UI
+    this.updateConnectionStatus("connected");
+  },
 
-    /**
-     * Socket disconnected
-     */
-    onSocketDisconnect() {
-        console.log('⚠️ WebSocket Disconnected');
-        this.state.isOnline = false;
-        this.updateConnectionStatus('disconnected');
-    },
+  /**
+   * Successfully joined hotel room
+   */
+  onJoinedHotel(data) {
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("✅ [WEBSOCKET] Successfully joined hotel room!");
+    console.log("   - Hotel ID:", data.hotel_id);
+    console.log("   - Role:", data.role);
+    console.log("   - Room:", data.room);
+    console.log("   - Socket ID:", this.socket.id);
+    console.log("   - Now listening for guest_connected events...");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-    /**
-     * Socket error
-     */
-    onSocketError(error) {
-        console.error('❌ WebSocket Error:', error);
-        this.reconnectAttempts++;
+    // Test: Emit a test event to verify connection
+    console.log("🧪 [TEST] Testing socket connection...");
+    this.socket.emit("test_connection", {
+      message: "Driver dashboard connected",
+    });
+  },
 
-        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            this.updateConnectionStatus('failed');
-            BuggyCall.Utils.showError('Bağlantı kurulamadı. Lütfen sayfayı yenileyin.');
-        } else {
-            this.updateConnectionStatus('reconnecting');
-        }
-    },
+  /**
+   * Socket disconnected
+   */
+  onSocketDisconnect() {
+    console.log("⚠️ WebSocket Disconnected");
+    this.state.isOnline = false;
+    this.updateConnectionStatus("disconnected");
+  },
 
-    /**
-     * ========================================
-     * WEBSOCKET EVENT HANDLERS
-     * ========================================
-     */
+  /**
+   * Socket error
+   */
+  onSocketError(error) {
+    console.error("❌ WebSocket Error:", error);
+    this.reconnectAttempts++;
 
-    /**
-     * New request received
-     */
-    async onNewRequest(data) {
-        console.log('🔔 New Request:', data);
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.updateConnectionStatus("failed");
+      BuggyCall.Utils.showError(
+        "Bağlantı kurulamadı. Lütfen sayfayı yenileyin."
+      );
+    } else {
+      this.updateConnectionStatus("reconnecting");
+    }
+  },
 
-        // Play notification sound
-        this.playNotificationSound();
+  /**
+   * ========================================
+   * WEBSOCKET EVENT HANDLERS
+   * ========================================
+   */
 
-        // Add to pending requests
-        this.state.pendingRequests.unshift(data);
+  /**
+   * New request received
+   */
+  async onNewRequest(data) {
+    console.log("🔔 New Request:", data);
 
-        // Update UI
-        this.renderPendingRequests();
-        this.updateCounters();
+    // Play notification sound
+    this.playNotificationSound();
 
-        // Show toast notification
-        BuggyCall.Utils.showToast(`🔔 Yeni talep: ${data.location?.name || 'Bilinmeyen lokasyon'}`, 'info');
+    // Add to pending requests
+    this.state.pendingRequests.unshift(data);
 
-        // ✅ Show request dialog/modal
-        this.showNewRequestDialog(data);
-    },
+    // Update UI
+    this.renderPendingRequests();
+    this.updateCounters();
 
-    /**
-     * Request taken by another driver
-     */
-    onRequestTaken(data) {
-        console.log('👤 Request Taken:', data);
+    // Show toast notification
+    BuggyCall.Utils.showToast(
+      `🔔 Yeni talep: ${data.location?.name || "Bilinmeyen lokasyon"}`,
+      "info"
+    );
 
-        // Remove from pending
-        this.removeRequestFromPending(data.request_id);
+    // ✅ Show request dialog/modal
+    this.showNewRequestDialog(data);
+  },
 
-        // Update UI
-        this.renderPendingRequests();
-        this.updateCounters();
-    },
+  /**
+   * Request taken by another driver
+   */
+  onRequestTaken(data) {
+    console.log("👤 Request Taken:", data);
 
-    /**
-     * Request cancelled
-     */
-    onRequestCancelled(data) {
-        console.log('❌ Request Cancelled:', data);
+    // Remove from pending
+    this.removeRequestFromPending(data.request_id);
 
-        // Remove from pending
-        this.removeRequestFromPending(data.request_id);
+    // Update UI
+    this.renderPendingRequests();
+    this.updateCounters();
+  },
 
-        // If it's current request, clear it
-        if (this.state.currentRequest && this.state.currentRequest.id === data.request_id) {
-            this.state.currentRequest = null;
-            this.renderCurrentRequest();
-        }
+  /**
+   * Request cancelled
+   */
+  onRequestCancelled(data) {
+    console.log("❌ Request Cancelled:", data);
 
-        // Update UI
-        this.renderPendingRequests();
-        this.updateCounters();
-    },
+    // Remove from pending
+    this.removeRequestFromPending(data.request_id);
 
-    /**
-     * Request completed
-     */
-    async onRequestCompleted(data) {
-        console.log('✅ Request Completed:', data);
+    // If it's current request, clear it
+    if (
+      this.state.currentRequest &&
+      this.state.currentRequest.id === data.request_id
+    ) {
+      this.state.currentRequest = null;
+      this.renderCurrentRequest();
+    }
 
-        // Remove from pending
-        this.removeRequestFromPending(data.request_id);
+    // Update UI
+    this.renderPendingRequests();
+    this.updateCounters();
+  },
 
-        // If it's current request, clear it
-        if (this.state.currentRequest && this.state.currentRequest.id === data.request_id) {
-            this.state.currentRequest = null;
-            this.renderCurrentRequest();
-        }
+  /**
+   * Request completed
+   */
+  async onRequestCompleted(data) {
+    console.log("✅ Request Completed:", data);
 
-        // Reload data
-        await this.loadPendingRequests();
-        await this.loadCompletedToday();
+    // Remove from pending
+    this.removeRequestFromPending(data.request_id);
 
-        // Update UI
-        this.updateCounters();
-    },
+    // If it's current request, clear it
+    if (
+      this.state.currentRequest &&
+      this.state.currentRequest.id === data.request_id
+    ) {
+      this.state.currentRequest = null;
+      this.renderCurrentRequest();
+    }
 
-    /**
-     * Guest connected notification
-     */
-    onGuestConnected(data) {
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('🚨 [GUEST_CONNECTED] Event received!');
-        console.log('   Data:', data);
-        console.log('   Location:', data.location_name || 'Bilinmeyen Lokasyon');
-        console.log('   Hotel ID:', data.hotel_id);
-        console.log('   Guest Count:', data.guest_count);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    // Reload data
+    await this.loadPendingRequests();
+    await this.loadCompletedToday();
 
-        try {
-            // ✅ Show animated toast alert (not simple toast)
-            console.log('📢 [GUEST_CONNECTED] Calling showGuestConnectedAlert...');
-            this.showGuestConnectedAlert(data);
-            console.log('✅ [GUEST_CONNECTED] Alert shown successfully');
-        } catch (error) {
-            console.error('❌ [GUEST_CONNECTED] Error showing alert:', error);
-        }
+    // Update UI
+    this.updateCounters();
+  },
 
-        try {
-            // Play notification sound
-            console.log('🔊 [GUEST_CONNECTED] Playing notification sound...');
-            this.playNotificationSound();
-        } catch (error) {
-            console.error('❌ [GUEST_CONNECTED] Error playing sound:', error);
-        }
+  /**
+   * Guest connected notification
+   */
+  onGuestConnected(data) {
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("🚨 [GUEST_CONNECTED] Event received!");
+    console.log("   Data:", JSON.stringify(data, null, 2));
+    console.log("   Location:", data.location_name || "Bilinmeyen Lokasyon");
+    console.log("   Hotel ID:", data.hotel_id);
+    console.log("   Guest Count:", data.guest_count);
+    console.log("   Timestamp:", data.timestamp);
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-        try {
-            // Optionally refresh pending requests
-            console.log('🔄 [GUEST_CONNECTED] Refreshing pending requests...');
-            this.loadPendingRequests();
-        } catch (error) {
-            console.error('❌ [GUEST_CONNECTED] Error refreshing requests:', error);
-        }
-    },
+    // ✅ CRITICAL: Show alert IMMEDIATELY
+    try {
+      console.log("📢 [GUEST_CONNECTED] Calling showGuestConnectedAlert...");
+      this.showGuestConnectedAlert(data);
+      console.log("✅ [GUEST_CONNECTED] Alert shown successfully");
+    } catch (error) {
+      console.error("❌ [GUEST_CONNECTED] Error showing alert:", error);
+      console.error("   Stack:", error.stack);
 
-    /**
-     * Show guest connected alert with animation
-     */
-    showGuestConnectedAlert(data) {
-        console.log('🎨 [ALERT] Creating guest connected alert...');
-        console.log('🎨 [ALERT] Data:', data);
-        
-        try {
-            // Create alert element
-            const alertId = 'guest-alert-' + Date.now();
-            console.log('🎨 [ALERT] Alert ID:', alertId);
-            
-            const alert = document.createElement('div');
-            alert.id = alertId;
-            alert.className = 'guest-alert';
-            console.log('🎨 [ALERT] Alert element created');
-            
-            alert.innerHTML = `
+      // ✅ Fallback: Show browser alert if custom alert fails
+      try {
+        alert(
+          `🚨 Yeni Misafir Bağlandı!\n📍 ${
+            data.location_name || "Bilinmeyen Lokasyon"
+          }`
+        );
+      } catch (e) {
+        console.error("❌ [GUEST_CONNECTED] Even browser alert failed:", e);
+      }
+    }
+
+    // ✅ Play notification sound
+    try {
+      console.log("🔊 [GUEST_CONNECTED] Playing notification sound...");
+      this.playNotificationSound();
+    } catch (error) {
+      console.error("❌ [GUEST_CONNECTED] Error playing sound:", error);
+    }
+
+    // ✅ Vibrate device (if supported)
+    try {
+      if ("vibrate" in navigator) {
+        navigator.vibrate([200, 100, 200, 100, 200]);
+        console.log("📳 [GUEST_CONNECTED] Device vibrated");
+      }
+    } catch (error) {
+      console.error("❌ [GUEST_CONNECTED] Vibration failed:", error);
+    }
+
+    // ✅ Refresh pending requests (with delay)
+    try {
+      console.log("🔄 [GUEST_CONNECTED] Scheduling request refresh...");
+      setTimeout(() => {
+        this.loadPendingRequests();
+        console.log("✅ [GUEST_CONNECTED] Requests refreshed");
+      }, 1000);
+    } catch (error) {
+      console.error("❌ [GUEST_CONNECTED] Error refreshing requests:", error);
+    }
+
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("✅ [GUEST_CONNECTED] Handler completed");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  },
+
+  /**
+   * Show guest connected alert with animation
+   */
+  showGuestConnectedAlert(data) {
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("🎨 [ALERT] Creating guest connected alert...");
+    console.log("🎨 [ALERT] Data:", data);
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+    try {
+      // ✅ Remove any existing alerts first
+      const existingAlerts = document.querySelectorAll(".guest-alert");
+      existingAlerts.forEach((alert) => {
+        console.log("🧹 [ALERT] Removing existing alert");
+        alert.remove();
+      });
+
+      // Create alert element
+      const alertId = "guest-alert-" + Date.now();
+      console.log("🎨 [ALERT] Alert ID:", alertId);
+
+      const alert = document.createElement("div");
+      alert.id = alertId;
+      alert.className = "guest-alert";
+
+      // ✅ Force inline styles to ensure visibility
+      alert.style.cssText = `
+                position: fixed !important;
+                top: 80px !important;
+                right: 20px !important;
+                z-index: 99999 !important;
+                display: flex !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            `;
+
+      console.log("� [ALERAT] Alert element created with forced styles");
+
+      alert.innerHTML = `
                 <div class="guest-alert-icon">
                     🚨
                 </div>
                 <div class="guest-alert-content">
-                    <div class="guest-alert-title">Yeni Misafir Bağlandı!</div>
-                    <div class="guest-alert-location">${data.location_name || 'Bilinmeyen Lokasyon'}</div>
+                    <div class="guest-alert-title">🔔 Yeni Misafir Bağlandı!</div>
+                    <div class="guest-alert-location">📍 ${
+                      data.location_name || "Bilinmeyen Lokasyon"
+                    }</div>
+                    ${
+                      data.guest_count
+                        ? `<div style="font-size: 0.875rem; margin-top: 0.25rem; opacity: 0.9;">👥 ${data.guest_count} misafir</div>`
+                        : ""
+                    }
                 </div>
             `;
-        
-            console.log('🎨 [ALERT] Alert HTML set');
-            
-            // Add to page - prepend to body to ensure it's on top
-            document.body.insertBefore(alert, document.body.firstChild);
-            console.log('🎨 [ALERT] Alert added to DOM');
-            console.log('🎨 [ALERT] Alert position:', alert.getBoundingClientRect());
-            
-            // Remove after 5 seconds
-            setTimeout(() => {
-                console.log('🎨 [ALERT] Starting fadeout animation');
-                alert.style.animation = 'slideOutRight 0.3s ease';
-                setTimeout(() => {
-                    if (document.getElementById(alertId)) {
-                        document.body.removeChild(alert);
-                        console.log('🎨 [ALERT] Alert removed from DOM');
-                    }
-                }, 300);
-            }, 5000);
-            
-            console.log('✅ [ALERT] Guest connected alert created successfully');
-        } catch (error) {
-            console.error('❌ [ALERT] Error creating alert:', error);
-            console.error('❌ [ALERT] Stack:', error.stack);
+
+      console.log("🎨 [ALERT] Alert HTML set");
+
+      // ✅ Add to page - append to body (not prepend)
+      document.body.appendChild(alert);
+      console.log("🎨 [ALERT] Alert added to DOM");
+
+      // ✅ Verify alert is visible
+      setTimeout(() => {
+        const rect = alert.getBoundingClientRect();
+        const computedStyle = window.getComputedStyle(alert);
+        console.log("📐 [ALERT] Alert position:", rect);
+        console.log("🎨 [ALERT] Alert display:", computedStyle.display);
+        console.log("🎨 [ALERT] Alert visibility:", computedStyle.visibility);
+        console.log("🎨 [ALERT] Alert z-index:", computedStyle.zIndex);
+        console.log("🎨 [ALERT] Alert opacity:", computedStyle.opacity);
+
+        if (rect.width === 0 || rect.height === 0) {
+          console.error("❌ [ALERT] Alert has zero dimensions!");
+        } else {
+          console.log(
+            "✅ [ALERT] Alert is visible with dimensions:",
+            rect.width,
+            "x",
+            rect.height
+          );
         }
-    },
+      }, 100);
 
-    /**
-     * ========================================
-     * DATA LOADING
-     * ========================================
-     */
+      // ✅ Remove after 8 seconds (longer duration)
+      setTimeout(() => {
+        console.log("🎨 [ALERT] Starting fadeout animation");
+        alert.style.animation = "slideOutRight 0.5s ease";
+        setTimeout(() => {
+          if (document.getElementById(alertId)) {
+            document.body.removeChild(alert);
+            console.log("🎨 [ALERT] Alert removed from DOM");
+          }
+        }, 500);
+      }, 8000);
 
-    /**
-     * Load all initial data
-     */
-    async loadInitialData() {
-        console.log('📥 Loading initial data...');
+      console.log("✅ [ALERT] Guest connected alert created successfully");
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    } catch (error) {
+      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.error("❌ [ALERT] Error creating alert:", error);
+      console.error("❌ [ALERT] Stack:", error.stack);
+      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    }
+  },
 
+  /**
+   * ========================================
+   * DATA LOADING
+   * ========================================
+   */
+
+  /**
+   * Load all initial data
+   */
+  async loadInitialData() {
+    console.log("📥 Loading initial data...");
+
+    try {
+      await Promise.all([
+        this.loadPendingRequests(),
+        this.loadCurrentRequest(),
+        this.loadCompletedToday(),
+      ]);
+
+      this.state.lastSync = new Date();
+      console.log("✅ Initial data loaded");
+    } catch (error) {
+      console.error("❌ Failed to load initial data:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Load pending requests
+   */
+  async loadPendingRequests() {
+    try {
+      const response = await BuggyCall.API.get("/requests?status=PENDING");
+      this.state.pendingRequests = response.requests || [];
+      this.renderPendingRequests();
+      this.updateCounters();
+    } catch (error) {
+      console.error("❌ Failed to load pending requests:", error);
+    }
+  },
+
+  /**
+   * Load current request
+   */
+  async loadCurrentRequest() {
+    try {
+      const response = await BuggyCall.API.get(
+        `/requests?status=ACCEPTED&buggy_id=${this.state.buggyId}`
+      );
+      const requests = response.requests || [];
+
+      if (requests.length > 0) {
+        this.state.currentRequest = requests[0];
+      } else {
+        this.state.currentRequest = null;
+      }
+
+      this.renderCurrentRequest();
+    } catch (error) {
+      console.error("❌ Failed to load current request:", error);
+    }
+  },
+
+  /**
+   * Load completed today count
+   */
+  async loadCompletedToday() {
+    try {
+      const response = await BuggyCall.API.get(
+        `/requests?status=COMPLETED&buggy_id=${this.state.buggyId}`
+      );
+      const requests = response.requests || [];
+
+      // Filter today's requests
+      const today = new Date().toISOString().split("T")[0];
+      const todayRequests = requests.filter((req) => {
+        if (req.completed_at) {
+          const completedDate = req.completed_at.split("T")[0];
+          return completedDate === today;
+        }
+        return false;
+      });
+
+      this.state.completedToday = todayRequests.length;
+      this.updateCounters();
+    } catch (error) {
+      console.error("❌ Failed to load completed count:", error);
+    }
+  },
+
+  /**
+   * ========================================
+   * REQUEST ACTIONS
+   * ========================================
+   */
+
+  /**
+   * Accept a request
+   */
+  async acceptRequest(requestId) {
+    console.log("✅ Accepting request:", requestId);
+
+    try {
+      BuggyCall.Utils.showLoading();
+
+      const response = await BuggyCall.API.put(
+        `/requests/${requestId}/accept`,
+        {}
+      );
+
+      if (response.success) {
+        // Update state
+        this.state.currentRequest = response.request;
+
+        // Remove from pending
+        this.removeRequestFromPending(requestId);
+
+        // Update UI
+        this.renderCurrentRequest();
+        this.renderPendingRequests();
+        this.updateCounters();
+
+        await BuggyCall.Utils.showSuccess("✅ Talep başarıyla kabul edildi!");
+      }
+
+      BuggyCall.Utils.hideLoading();
+    } catch (error) {
+      BuggyCall.Utils.hideLoading();
+      await BuggyCall.Utils.showError(
+        "Talep kabul edilemedi: " + error.message
+      );
+    }
+  },
+
+  /**
+   * Complete current request
+   */
+  async completeRequest() {
+    if (!this.state.currentRequest) {
+      await BuggyCall.Utils.showWarning("Aktif talep yok!");
+      return;
+    }
+
+    const confirmed = await BuggyCall.Utils.confirm(
+      "Bu talebi tamamlamak istediğinizden emin misiniz?",
+      "Talebi Tamamla"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Show location selection modal
+      const locationId = await this.showLocationSelectionModal();
+
+      if (!locationId) return; // User cancelled
+
+      BuggyCall.Utils.showLoading();
+
+      // ✅ Tamamlanma konumunu gönder
+      const response = await BuggyCall.API.post(
+        `/driver/complete-request/${this.state.currentRequest.id}`,
+        {
+          completion_location_id: locationId,
+        }
+      );
+
+      if (!response.success) {
+        throw new Error(response.error || "Talep tamamlanamadı");
+      }
+
+      // Clear current request
+      this.state.currentRequest = null;
+
+      // ✅ CRITICAL: Refresh FCM token after completing request
+      console.log("🔄 [DRIVER] Task completed, refreshing FCM token...");
+      if (window.driverFCM) {
         try {
-            await Promise.all([
-                this.loadPendingRequests(),
-                this.loadCurrentRequest(),
-                this.loadCompletedToday()
-            ]);
-
-            this.state.lastSync = new Date();
-            console.log('✅ Initial data loaded');
+          const savedToken = localStorage.getItem("fcm_token");
+          if (savedToken) {
+            await window.driverFCM.registerTokenWithBackend(savedToken);
+            console.log(
+              "✅ [DRIVER] FCM token refreshed after task completion"
+            );
+          } else {
+            console.warn(
+              "⚠️ [DRIVER] No token found, triggering full setup..."
+            );
+            await window.driverFCM.setupComplete();
+          }
         } catch (error) {
-            console.error('❌ Failed to load initial data:', error);
-            throw error;
+          console.error("❌ [DRIVER] FCM token refresh failed:", error);
         }
-    },
+      }
 
-    /**
-     * Load pending requests
-     */
-    async loadPendingRequests() {
-        try {
-            const response = await BuggyCall.API.get('/requests?status=PENDING');
-            this.state.pendingRequests = response.requests || [];
-            this.renderPendingRequests();
-            this.updateCounters();
-        } catch (error) {
-            console.error('❌ Failed to load pending requests:', error);
-        }
-    },
+      // Reload data
+      await this.loadPendingRequests();
+      await this.loadCompletedToday();
 
-    /**
-     * Load current request
-     */
-    async loadCurrentRequest() {
-        try {
-            const response = await BuggyCall.API.get(`/requests?status=ACCEPTED&buggy_id=${this.state.buggyId}`);
-            const requests = response.requests || [];
+      // Update UI
+      this.renderCurrentRequest();
+      this.updateCounters();
 
-            if (requests.length > 0) {
-                this.state.currentRequest = requests[0];
-            } else {
-                this.state.currentRequest = null;
-            }
+      await BuggyCall.Utils.showSuccess("✅ Talep başarıyla tamamlandı!");
 
-            this.renderCurrentRequest();
-        } catch (error) {
-            console.error('❌ Failed to load current request:', error);
-        }
-    },
+      BuggyCall.Utils.hideLoading();
+    } catch (error) {
+      BuggyCall.Utils.hideLoading();
+      await BuggyCall.Utils.showError("Talep tamamlanamadı: " + error.message);
+    }
+  },
 
-    /**
-     * Load completed today count
-     */
-    async loadCompletedToday() {
-        try {
-            const response = await BuggyCall.API.get(`/requests?status=COMPLETED&buggy_id=${this.state.buggyId}`);
-            const requests = response.requests || [];
+  /**
+   * ========================================
+   * UI RENDERING
+   * ========================================
+   */
 
-            // Filter today's requests
-            const today = new Date().toISOString().split('T')[0];
-            const todayRequests = requests.filter(req => {
-                if (req.completed_at) {
-                    const completedDate = req.completed_at.split('T')[0];
-                    return completedDate === today;
-                }
-                return false;
-            });
+  /**
+   * Render pending requests
+   */
+  renderPendingRequests() {
+    const container = document.getElementById("pending-requests");
+    if (!container) return;
 
-            this.state.completedToday = todayRequests.length;
-            this.updateCounters();
-        } catch (error) {
-            console.error('❌ Failed to load completed count:', error);
-        }
-    },
-
-    /**
-     * ========================================
-     * REQUEST ACTIONS
-     * ========================================
-     */
-
-    /**
-     * Accept a request
-     */
-    async acceptRequest(requestId) {
-        console.log('✅ Accepting request:', requestId);
-
-        try {
-            BuggyCall.Utils.showLoading();
-
-            const response = await BuggyCall.API.put(`/requests/${requestId}/accept`, {});
-
-            if (response.success) {
-                // Update state
-                this.state.currentRequest = response.request;
-
-                // Remove from pending
-                this.removeRequestFromPending(requestId);
-
-                // Update UI
-                this.renderCurrentRequest();
-                this.renderPendingRequests();
-                this.updateCounters();
-
-                await BuggyCall.Utils.showSuccess('✅ Talep başarıyla kabul edildi!');
-            }
-
-            BuggyCall.Utils.hideLoading();
-        } catch (error) {
-            BuggyCall.Utils.hideLoading();
-            await BuggyCall.Utils.showError('Talep kabul edilemedi: ' + error.message);
-        }
-    },
-
-    /**
-     * Complete current request
-     */
-    async completeRequest() {
-        if (!this.state.currentRequest) {
-            await BuggyCall.Utils.showWarning('Aktif talep yok!');
-            return;
-        }
-
-        const confirmed = await BuggyCall.Utils.confirm(
-            'Bu talebi tamamlamak istediğinizden emin misiniz?',
-            'Talebi Tamamla'
-        );
-
-        if (!confirmed) return;
-
-        try {
-            // Show location selection modal
-            const locationId = await this.showLocationSelectionModal();
-
-            if (!locationId) return; // User cancelled
-
-            BuggyCall.Utils.showLoading();
-
-            await BuggyCall.API.put(`/requests/${this.state.currentRequest.id}/complete`, {
-                current_location_id: locationId
-            });
-
-            // Clear current request
-            this.state.currentRequest = null;
-
-            // ✅ CRITICAL: Refresh FCM token after completing request
-            console.log('🔄 [DRIVER] Task completed, refreshing FCM token...');
-            if (window.driverFCM) {
-                try {
-                    const savedToken = localStorage.getItem('fcm_token');
-                    if (savedToken) {
-                        await window.driverFCM.registerTokenWithBackend(savedToken);
-                        console.log('✅ [DRIVER] FCM token refreshed after task completion');
-                    } else {
-                        console.warn('⚠️ [DRIVER] No token found, triggering full setup...');
-                        await window.driverFCM.setupComplete();
-                    }
-                } catch (error) {
-                    console.error('❌ [DRIVER] FCM token refresh failed:', error);
-                }
-            }
-
-            // Reload data
-            await this.loadPendingRequests();
-            await this.loadCompletedToday();
-
-            // Update UI
-            this.renderCurrentRequest();
-            this.updateCounters();
-
-            await BuggyCall.Utils.showSuccess('✅ Talep başarıyla tamamlandı!');
-
-            BuggyCall.Utils.hideLoading();
-        } catch (error) {
-            BuggyCall.Utils.hideLoading();
-            await BuggyCall.Utils.showError('Talep tamamlanamadı: ' + error.message);
-        }
-    },
-
-    /**
-     * ========================================
-     * UI RENDERING
-     * ========================================
-     */
-
-    /**
-     * Render pending requests
-     */
-    renderPendingRequests() {
-        const container = document.getElementById('pending-requests');
-        if (!container) return;
-
-        if (this.state.pendingRequests.length === 0) {
-            container.innerHTML = `
+    if (this.state.pendingRequests.length === 0) {
+      container.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-check-circle"></i>
                     <p>Bekleyen talep yok</p>
                 </div>
             `;
-            return;
-        }
+      return;
+    }
 
-        container.innerHTML = this.state.pendingRequests.map(req => this.createRequestCard(req)).join('');
-    },
+    container.innerHTML = this.state.pendingRequests
+      .map((req) => this.createRequestCard(req))
+      .join("");
+  },
 
-    /**
-     * Create request card HTML
-     */
-    createRequestCard(req) {
-        const requestId = req.request_id || req.id;
-        const locationName = req.location?.name || 'Bilinmeyen Lokasyon';
-        const roomNumber = req.room_number || '';
-        const requestedAt = this.formatDateTime(req.requested_at);
+  /**
+   * Create request card HTML
+   */
+  createRequestCard(req) {
+    const requestId = req.request_id || req.id;
+    const locationName = req.location?.name || "Bilinmeyen Lokasyon";
+    const roomNumber = req.room_number || "";
+    const requestedAt = this.formatDateTime(req.requested_at);
 
-        return `
+    return `
             <div class="request-card" data-request-id="${requestId}">
                 <div class="request-card-header">
                     <div class="request-location">
@@ -653,12 +778,16 @@ const DriverDashboard = {
                         <span>${requestedAt}</span>
                     </div>
                 </div>
-                ${roomNumber ? `
+                ${
+                  roomNumber
+                    ? `
                 <div class="request-room">
                     <i class="fas fa-door-open"></i>
                     <span>Oda: ${this.escapeHtml(roomNumber)}</span>
                 </div>
-                ` : ''}
+                `
+                    : ""
+                }
                 <div class="request-actions">
                     <button class="btn btn-accept" onclick="DriverDashboard.acceptRequest(${requestId})">
                         <i class="fas fa-check"></i>
@@ -667,38 +796,38 @@ const DriverDashboard = {
                 </div>
             </div>
         `;
-    },
+  },
 
-    /**
-     * Render current request
-     */
-    renderCurrentRequest() {
-        const container = document.getElementById('current-request');
-        const section = document.getElementById('current-request-section');
+  /**
+   * Render current request
+   */
+  renderCurrentRequest() {
+    const container = document.getElementById("current-request");
+    const section = document.getElementById("current-request-section");
 
-        if (!container || !section) return;
+    if (!container || !section) return;
 
-        if (!this.state.currentRequest) {
-            section.style.display = 'none';
-            container.innerHTML = `
+    if (!this.state.currentRequest) {
+      section.style.display = "none";
+      container.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-inbox"></i>
                     <p>Aktif görev yok</p>
                 </div>
             `;
-            this.stopElapsedTimer();
-            return;
-        }
+      this.stopElapsedTimer();
+      return;
+    }
 
-        section.style.display = 'block';
+    section.style.display = "block";
 
-        const req = this.state.currentRequest;
-        const locationName = req.location?.name || 'Bilinmeyen Lokasyon';
-        const roomNumber = req.room_number || '';
-        const requestedAt = this.formatDateTime(req.requested_at);
-        const acceptedAt = this.formatDateTime(req.accepted_at);
+    const req = this.state.currentRequest;
+    const locationName = req.location?.name || "Bilinmeyen Lokasyon";
+    const roomNumber = req.room_number || "";
+    const requestedAt = this.formatDateTime(req.requested_at);
+    const acceptedAt = this.formatDateTime(req.accepted_at);
 
-        container.innerHTML = `
+    container.innerHTML = `
             <div class="active-request-card">
                 <div class="active-request-header">
                     <i class="fas fa-route"></i>
@@ -709,12 +838,16 @@ const DriverDashboard = {
                         <i class="fas fa-map-marker-alt"></i>
                         <span>${this.escapeHtml(locationName)}</span>
                     </div>
-                    ${roomNumber ? `
+                    ${
+                      roomNumber
+                        ? `
                     <div class="active-request-room">
                         <i class="fas fa-door-open"></i>
                         <span>Oda: ${this.escapeHtml(roomNumber)}</span>
                     </div>
-                    ` : ''}
+                    `
+                        : ""
+                    }
                     <div class="active-request-info">
                         <div class="info-row">
                             <span class="info-label">Talep Zamanı:</span>
@@ -724,7 +857,7 @@ const DriverDashboard = {
                             <span class="info-label">Kabul Zamanı:</span>
                             <span class="info-value">${acceptedAt}</span>
                         </div>
-                        <div class="info-row" style="display:none">
+                        <div class="info-row" >
                             <span class="info-label">Geçen Süre:</span>
                             <span class="info-value" id="elapsed-time">-</span>
                         </div>
@@ -739,122 +872,216 @@ const DriverDashboard = {
             </div>
         `;
 
-        this.startElapsedTimer();
-    },
+    this.startElapsedTimer();
+  },
 
-    /**
-     * ========================================
-     * LOCATION SELECTION MODAL
-     * ========================================
-     */
-    async showLocationSelectionModal() {
-        return new Promise(async (resolve) => {
-            try {
-                // Load locations
-                const response = await BuggyCall.API.get('/locations');
-                const locations = response.locations || response.data?.items || [];
+  /**
+   * ========================================
+   * LOCATION SELECTION MODAL - PWA OPTIMIZED
+   * ========================================
+   */
+  async showLocationSelectionModal() {
+    return new Promise(async (resolve) => {
+      try {
+        // Load locations
+        const response = await BuggyCall.API.get("/locations");
+        const locations = response.locations || response.data?.items || [];
 
-                if (locations.length === 0) {
-                    await BuggyCall.Utils.showError('Lokasyon bulunamadı!');
-                    resolve(null);
-                    return;
-                }
+        if (locations.length === 0) {
+          await BuggyCall.Utils.showError("Lokasyon bulunamadı!");
+          resolve(null);
+          return;
+        }
 
-                // Create modal HTML
-                const modalHTML = `
+        // Create modern modal HTML with PWA optimizations
+        const modalHTML = `
                     <div class="location-modal-overlay" id="location-modal">
                         <div class="location-modal">
                             <div class="location-modal-header">
-                                <h3>Mevcut Lokasyonunuzu Seçin</h3>
+                                <h3>
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    Mevcut Lokasyonunuzu Seçin
+                                </h3>
                                 <button class="location-modal-close" onclick="DriverDashboard.closeLocationModal()">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
                             <div class="location-modal-body">
-                                ${locations.map(loc => `
-                                    <div class="location-card" data-location-id="${loc.id}" onclick="DriverDashboard.selectLocation(${loc.id})">
+                                ${locations
+                                  .map(
+                                    (loc) => `
+                                    <div class="location-card" 
+                                         data-location-id="${loc.id}" 
+                                         onclick="DriverDashboard.selectLocation(${
+                                           loc.id
+                                         })"
+                                         role="button"
+                                         tabindex="0"
+                                         aria-label="Lokasyon seç: ${this.escapeHtml(
+                                           loc.name
+                                         )}">
                                         <div class="location-image">
-                                            ${loc.location_image 
-                                                ? `<img src="${loc.location_image}" alt="${this.escapeHtml(loc.name)}">`
+                                            ${
+                                              loc.location_image
+                                                ? `<img src="${
+                                                    loc.location_image
+                                                  }" 
+                                                        alt="${this.escapeHtml(
+                                                          loc.name
+                                                        )}"
+                                                        loading="lazy">`
                                                 : `<i class="fas fa-map-marker-alt"></i>`
                                             }
                                         </div>
-                                        <div class="location-name">${this.escapeHtml(loc.name)}</div>
+                                        <div class="location-name">${this.escapeHtml(
+                                          loc.name
+                                        )}</div>
+                                        <div class="location-card-arrow">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </div>
                                     </div>
-                                `).join('')}
+                                `
+                                  )
+                                  .join("")}
                             </div>
                         </div>
                     </div>
                 `;
 
-                // Add to body
-                document.body.insertAdjacentHTML('beforeend', modalHTML);
+        // Add to body
+        document.body.insertAdjacentHTML("beforeend", modalHTML);
 
-                // Store resolve function
-                this._locationModalResolve = resolve;
-
-            } catch (error) {
-                console.error('❌ Failed to show location modal:', error);
-                resolve(null);
-            }
+        // Add click outside to close
+        const overlay = document.getElementById("location-modal");
+        overlay.addEventListener("click", (e) => {
+          if (e.target === overlay) {
+            this.closeLocationModal();
+          }
         });
-    },
 
-    /**
-     * Select location from modal
-     */
-    selectLocation(locationId) {
-        if (this._locationModalResolve) {
-            this._locationModalResolve(locationId);
-            this._locationModalResolve = null;
-        }
-        this.closeLocationModal();
-    },
+        // Add escape key handler
+        const escapeHandler = (e) => {
+          if (e.key === "Escape") {
+            this.closeLocationModal();
+            document.removeEventListener("keydown", escapeHandler);
+          }
+        };
+        document.addEventListener("keydown", escapeHandler);
 
-    /**
-     * Close location modal
-     */
-    closeLocationModal() {
-        const modal = document.getElementById('location-modal');
-        if (modal) {
-            modal.remove();
-        }
-        if (this._locationModalResolve) {
-            this._locationModalResolve(null);
-            this._locationModalResolve = null;
-        }
-    },
+        // Add keyboard navigation for location cards
+        const locationCards = document.querySelectorAll(".location-card");
+        locationCards.forEach((card) => {
+          card.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              const locationId = parseInt(card.dataset.locationId);
+              this.selectLocation(locationId);
+            }
+          });
+        });
 
-    /**
-     * ========================================
-     * NEW REQUEST DIALOG
-     * ========================================
-     */
+        // Prevent body scroll when modal is open
+        document.body.style.overflow = "hidden";
 
-    /**
-     * Show new request dialog with accept/reject options
-     */
-    showNewRequestDialog(requestData) {
-        console.log('🔔 [DIALOG] Showing new request dialog:', requestData);
+        // Store resolve function
+        this._locationModalResolve = resolve;
+      } catch (error) {
+        console.error("❌ Failed to show location modal:", error);
+        resolve(null);
+      }
+    });
+  },
 
-        // Remove existing dialog if any
-        const existingDialog = document.getElementById('new-request-dialog');
-        if (existingDialog) {
-            console.log('⚠️ [DIALOG] Removing existing dialog');
-            existingDialog.remove();
-        }
+  /**
+   * Select location from modal with visual feedback
+   */
+  selectLocation(locationId) {
+    // Add visual feedback
+    const selectedCard = document.querySelector(
+      `.location-card[data-location-id="${locationId}"]`
+    );
+    if (selectedCard) {
+      selectedCard.classList.add("selected");
 
-        // ✅ Handle both 'id' and 'request_id' fields
-        const requestId = requestData.id || requestData.request_id;
-        const locationName = requestData.location?.name || 'Bilinmeyen lokasyon';
-        const roomNumber = requestData.room_number || 'Belirtilmemiş';
-        const guestName = requestData.guest_name || '';
-        const phone = requestData.phone_number || requestData.phone || '';
-        const notes = requestData.notes || '';
+      // Add haptic feedback for mobile devices
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }
 
-        console.log('📋 [DIALOG] Dialog data:', {requestId, locationName, roomNumber, guestName, phone, notes});
+    // Resolve promise
+    if (this._locationModalResolve) {
+      this._locationModalResolve(locationId);
+      this._locationModalResolve = null;
+    }
 
-        const dialogHTML = `
+    // Close modal with slight delay for visual feedback
+    setTimeout(() => {
+      this.closeLocationModal();
+    }, 300);
+  },
+
+  /**
+   * Close location modal with smooth animation
+   */
+  closeLocationModal() {
+    const modal = document.getElementById("location-modal");
+    if (modal) {
+      // Add fade out animation
+      modal.style.animation = "fadeOut 0.3s ease";
+
+      // Remove after animation completes
+      setTimeout(() => {
+        modal.remove();
+        // Restore body scroll
+        document.body.style.overflow = "";
+      }, 300);
+    }
+
+    // Resolve with null if not already resolved
+    if (this._locationModalResolve) {
+      this._locationModalResolve(null);
+      this._locationModalResolve = null;
+    }
+  },
+
+  /**
+   * ========================================
+   * NEW REQUEST DIALOG
+   * ========================================
+   */
+
+  /**
+   * Show new request dialog with accept/reject options
+   */
+  showNewRequestDialog(requestData) {
+    console.log("🔔 [DIALOG] Showing new request dialog:", requestData);
+
+    // Remove existing dialog if any
+    const existingDialog = document.getElementById("new-request-dialog");
+    if (existingDialog) {
+      console.log("⚠️ [DIALOG] Removing existing dialog");
+      existingDialog.remove();
+    }
+
+    // ✅ Handle both 'id' and 'request_id' fields
+    const requestId = requestData.id || requestData.request_id;
+    const locationName = requestData.location?.name || "Bilinmeyen lokasyon";
+    const roomNumber = requestData.room_number || "Belirtilmemiş";
+    const guestName = requestData.guest_name || "";
+    const phone = requestData.phone_number || requestData.phone || "";
+    const notes = requestData.notes || "";
+
+    console.log("📋 [DIALOG] Dialog data:", {
+      requestId,
+      locationName,
+      roomNumber,
+      guestName,
+      phone,
+      notes,
+    });
+
+    const dialogHTML = `
             <div class="request-dialog-overlay" id="new-request-dialog">
                 <div class="request-dialog">
                     <div class="request-dialog-header">
@@ -874,14 +1101,16 @@ const DriverDashboard = {
                                 <span>${this.escapeHtml(locationName)}</span>
                             </div>
                         </div>
-                        <div class="request-detail">
+                        <div class="request-detail" style="display:none">
                             <i class="fas fa-door-open"></i>
                             <div>
                                 <strong>Oda:</strong>
                                 <span>${this.escapeHtml(roomNumber)}</span>
                             </div>
                         </div>
-                        ${guestName ? `
+                        ${
+                          guestName
+                            ? `
                         <div class="request-detail">
                             <i class="fas fa-user"></i>
                             <div>
@@ -889,8 +1118,12 @@ const DriverDashboard = {
                                 <span>${this.escapeHtml(guestName)}</span>
                             </div>
                         </div>
-                        ` : ''}
-                        ${phone ? `
+                        `
+                            : ""
+                        }
+                        ${
+                          phone
+                            ? `
                         <div class="request-detail">
                             <i class="fas fa-phone"></i>
                             <div>
@@ -898,8 +1131,12 @@ const DriverDashboard = {
                                 <span>${this.escapeHtml(phone)}</span>
                             </div>
                         </div>
-                        ` : ''}
-                        ${notes ? `
+                        `
+                            : ""
+                        }
+                        ${
+                          notes
+                            ? `
                         <div class="request-detail">
                             <i class="fas fa-sticky-note"></i>
                             <div>
@@ -907,7 +1144,9 @@ const DriverDashboard = {
                                 <span>${this.escapeHtml(notes)}</span>
                             </div>
                         </div>
-                        ` : ''}
+                        `
+                            : ""
+                        }
                     </div>
                     <div class="request-dialog-footer">
                         <button class="btn btn-secondary" onclick="DriverDashboard.closeNewRequestDialog()">
@@ -923,377 +1162,472 @@ const DriverDashboard = {
             </div>
         `;
 
-        // Add to DOM
-        document.body.insertAdjacentHTML('beforeend', dialogHTML);
-        console.log('✅ [DIALOG] Dialog added to DOM');
+    // Add to DOM
+    document.body.insertAdjacentHTML("beforeend", dialogHTML);
+    console.log("✅ [DIALOG] Dialog added to DOM");
 
-        // Verify dialog is visible
-        const dialog = document.getElementById('new-request-dialog');
-        if (dialog) {
-            console.log('✅ [DIALOG] Dialog element found in DOM');
-            console.log('📐 [DIALOG] Dialog position:', dialog.getBoundingClientRect());
-            console.log('🎨 [DIALOG] Dialog computed style:', window.getComputedStyle(dialog).display);
-        } else {
-            console.error('❌ [DIALOG] Dialog element NOT found in DOM!');
-        }
-
-        // Auto-close after 30 seconds
-        setTimeout(() => {
-            console.log('⏰ [DIALOG] Auto-closing dialog after 30 seconds');
-            this.closeNewRequestDialog();
-        }, 30000);
-    },
-
-    /**
-     * Accept request from dialog
-     */
-    async acceptRequestFromDialog(requestId) {
-        this.closeNewRequestDialog();
-        await this.acceptRequest(requestId);
-    },
-
-    /**
-     * Close new request dialog
-     */
-    closeNewRequestDialog() {
-        const dialog = document.getElementById('new-request-dialog');
-        if (dialog) {
-            dialog.style.animation = 'fadeOut 0.3s ease';
-            setTimeout(() => dialog.remove(), 300);
-        }
-    },
-
-    /**
-     * ========================================
-     * TIMERS & COUNTERS
-     * ========================================
-     */
-
-    /**
-     * Start elapsed time timer
-     */
-    startElapsedTimer() {
-        this.stopElapsedTimer();
-
-        if (!this.state.currentRequest || !this.state.currentRequest.accepted_at) return;
-
-        this.timers.elapsed = setInterval(() => {
-            const element = document.getElementById('elapsed-time');
-            if (!element || !this.state.currentRequest) {
-                this.stopElapsedTimer();
-                return;
-            }
-
-            const start = new Date(this.state.currentRequest.accepted_at);
-            const now = new Date();
-            const diffSeconds = Math.floor((now - start) / 1000);
-            element.textContent = this.formatDuration(diffSeconds);
-        }, 1000);
-    },
-
-    /**
-     * Stop elapsed time timer
-     */
-    stopElapsedTimer() {
-        if (this.timers.elapsed) {
-            clearInterval(this.timers.elapsed);
-            this.timers.elapsed = null;
-        }
-    },
-
-    /**
-     * Update all counters
-     */
-    updateCounters() {
-        // Pending requests counter
-        const pendingBadge = document.getElementById('pending-badge');
-        if (pendingBadge) {
-            pendingBadge.textContent = this.state.pendingRequests.length;
-        }
-
-        // Completed today counter
-        const completedCounter = document.getElementById('completed-today');
-        if (completedCounter) {
-            completedCounter.textContent = this.state.completedToday;
-        }
-    },
-
-    /**
-     * ========================================
-     * BACKGROUND TASKS
-     * ========================================
-     */
-
-    /**
-     * Start background tasks
-     */
-    startBackgroundTasks() {
-        // Sync data every 30 seconds
-        this.timers.sync = setInterval(() => {
-            this.syncData();
-        }, 30000);
-
-        // Heartbeat every 10 seconds
-        this.timers.heartbeat = setInterval(() => {
-            this.sendHeartbeat();
-        }, 10000);
-    },
-
-    /**
-     * Sync data with server
-     */
-    async syncData() {
-        if (!this.state.isOnline) return;
-
-        try {
-            await this.loadPendingRequests();
-            await this.loadCompletedToday();
-            this.state.lastSync = new Date();
-        } catch (error) {
-            console.error('❌ Sync failed:', error);
-        }
-    },
-
-    /**
-     * Send heartbeat to server
-     */
-    sendHeartbeat() {
-        if (this.socket && this.socket.connected) {
-            this.socket.emit('driver_heartbeat', {
-                driver_id: this.state.userId,
-                buggy_id: this.state.buggyId,
-                timestamp: new Date().toISOString()
-            });
-        }
-    },
-
-    /**
-     * ========================================
-     * EVENT LISTENERS
-     * ========================================
-     */
-
-    /**
-     * Setup all event listeners
-     */
-    setupEventListeners() {
-        // Page visibility change
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                this.syncData();
-            }
-        });
-
-        // Online/offline events
-        window.addEventListener('online', () => {
-            console.log('🌐 Back online');
-            this.updateConnectionStatus('connected');
-            this.syncData();
-        });
-
-        window.addEventListener('offline', () => {
-            console.log('📡 Offline');
-            this.updateConnectionStatus('disconnected');
-        });
-
-        // Before unload
-        window.addEventListener('beforeunload', () => {
-            this.cleanup();
-        });
-    },
-
-    /**
-     * ========================================
-     * AUDIO
-     * ========================================
-     */
-
-    /**
-     * Initialize audio
-     */
-    initAudio() {
-        try {
-            this.audio.notification = new Audio('/static/sounds/notification.mp3');
-            this.audio.notification.volume = 0.5;
-        } catch (error) {
-            console.warn('⚠️ Audio initialization failed:', error);
-        }
-    },
-
-    /**
-     * Play notification sound
-     */
-    playNotificationSound() {
-        if (this.audio.enabled && this.audio.notification) {
-            this.audio.notification.play().catch(e => {
-                console.warn('⚠️ Audio play failed:', e);
-            });
-        }
-    },
-
-    /**
-     * ========================================
-     * UI HELPERS
-     * ========================================
-     */
-
-    /**
-     * Initialize UI components
-     */
-    initUI() {
-        // Set initial connection status
-        this.updateConnectionStatus('connecting');
-    },
-
-    /**
-     * Update connection status indicator
-     */
-    updateConnectionStatus(status) {
-        const statusElement = document.getElementById('connection-status');
-        const textElement = document.getElementById('connection-text');
-
-        if (!statusElement || !textElement) return;
-
-        statusElement.className = 'connection-status ' + status;
-
-        const statusTexts = {
-            connecting: 'Bağlanıyor...',
-            connected: 'Bağlı',
-            disconnected: 'Bağlantı Kesildi',
-            reconnecting: 'Yeniden Bağlanıyor...',
-            failed: 'Bağlantı Başarısız'
-        };
-
-        textElement.textContent = statusTexts[status] || 'Bilinmiyor';
-    },
-
-    /**
-     * Show no buggy warning
-     */
-    async showNoBuggyWarning() {
-        await BuggyCall.Utils.showWarning(
-            'Size henüz bir shuttle atanmamış. Lütfen yöneticinizle iletişime geçin.'
-        );
-    },
-
-    /**
-     * ========================================
-     * UTILITY FUNCTIONS
-     * ========================================
-     */
-
-    /**
-     * Remove request from pending list
-     */
-    removeRequestFromPending(requestId) {
-        this.state.pendingRequests = this.state.pendingRequests.filter(
-            r => (r.request_id || r.id) !== requestId
-        );
-    },
-
-    /**
-     * Format date time
-     */
-    formatDateTime(dateString) {
-        if (!dateString) return '-';
-
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleString('tr-TR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } catch (error) {
-            return dateString;
-        }
-    },
-
-    /**
-     * Format duration in seconds
-     */
-    formatDuration(seconds) {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-
-        if (hours > 0) {
-            return `${hours}sa ${minutes}dk ${secs}sn`;
-        } else if (minutes > 0) {
-            return `${minutes}dk ${secs}sn`;
-        } else {
-            return `${secs}sn`;
-        }
-    },
-
-    /**
-     * Escape HTML
-     */
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    },
-
-    /**
-     * ========================================
-     * CLEANUP
-     * ========================================
-     */
-
-    /**
-     * Cleanup resources
-     */
-    cleanup() {
-        console.log('🧹 Cleaning up...');
-
-        // Stop all timers
-        Object.values(this.timers).forEach(timer => {
-            if (timer) clearInterval(timer);
-        });
-
-        // Disconnect socket
-        if (this.socket) {
-            this.socket.disconnect();
-        }
-    },
-
-    /**
-     * ✅ Clear cache on login
-     */
-    async clearCache() {
-        try {
-            // Clear localStorage (except important keys)
-            const keysToKeep = ['pwa-install-dismissed', 'pwa-update-shown-version'];
-            const allKeys = Object.keys(localStorage);
-            allKeys.forEach(key => {
-                if (!keysToKeep.includes(key)) {
-                    localStorage.removeItem(key);
-                }
-            });
-            console.log('✅ [CACHE] localStorage cleared');
-
-            // Clear sessionStorage
-            sessionStorage.clear();
-            console.log('✅ [CACHE] sessionStorage cleared');
-
-            // Clear service worker cache
-            if ('caches' in window) {
-                const cacheNames = await caches.keys();
-                await Promise.all(
-                    cacheNames.map(cacheName => caches.delete(cacheName))
-                );
-                console.log('✅ [CACHE] Service worker caches cleared');
-            }
-
-            console.log('✅ [CACHE] All caches cleared successfully');
-        } catch (error) {
-            console.warn('⚠️ [CACHE] Cache clearing failed:', error);
-        }
+    // Verify dialog is visible
+    const dialog = document.getElementById("new-request-dialog");
+    if (dialog) {
+      console.log("✅ [DIALOG] Dialog element found in DOM");
+      console.log(
+        "📐 [DIALOG] Dialog position:",
+        dialog.getBoundingClientRect()
+      );
+      console.log(
+        "🎨 [DIALOG] Dialog computed style:",
+        window.getComputedStyle(dialog).display
+      );
+    } else {
+      console.error("❌ [DIALOG] Dialog element NOT found in DOM!");
     }
+
+    // Auto-close after 30 seconds
+    setTimeout(() => {
+      console.log("⏰ [DIALOG] Auto-closing dialog after 30 seconds");
+      this.closeNewRequestDialog();
+    }, 30000);
+  },
+
+  /**
+   * Accept request from dialog
+   */
+  async acceptRequestFromDialog(requestId) {
+    this.closeNewRequestDialog();
+    await this.acceptRequest(requestId);
+  },
+
+  /**
+   * Close new request dialog
+   */
+  closeNewRequestDialog() {
+    const dialog = document.getElementById("new-request-dialog");
+    if (dialog) {
+      dialog.style.animation = "fadeOut 0.3s ease";
+      setTimeout(() => dialog.remove(), 300);
+    }
+  },
+
+  /**
+   * ========================================
+   * TIMERS & COUNTERS
+   * ========================================
+   */
+
+  /**
+   * Start elapsed time timer
+   */
+  startElapsedTimer() {
+    this.stopElapsedTimer();
+
+    if (!this.state.currentRequest || !this.state.currentRequest.accepted_at)
+      return;
+
+    this.timers.elapsed = setInterval(() => {
+      const element = document.getElementById("elapsed-time");
+      if (!element || !this.state.currentRequest) {
+        this.stopElapsedTimer();
+        return;
+      }
+
+      const start = new Date(this.state.currentRequest.accepted_at);
+      const now = new Date();
+      const diffSeconds = Math.floor((now - start) / 1000);
+      element.textContent = this.formatDuration(diffSeconds);
+    }, 1000);
+  },
+
+  /**
+   * Stop elapsed time timer
+   */
+  stopElapsedTimer() {
+    if (this.timers.elapsed) {
+      clearInterval(this.timers.elapsed);
+      this.timers.elapsed = null;
+    }
+  },
+
+  /**
+   * Update all counters
+   */
+  updateCounters() {
+    // Pending requests counter
+    const pendingBadge = document.getElementById("pending-badge");
+    if (pendingBadge) {
+      pendingBadge.textContent = this.state.pendingRequests.length;
+    }
+
+    // Completed today counter
+    const completedCounter = document.getElementById("completed-today");
+    if (completedCounter) {
+      completedCounter.textContent = this.state.completedToday;
+    }
+  },
+
+  /**
+   * ========================================
+   * BACKGROUND TASKS
+   * ========================================
+   */
+
+  /**
+   * Start background tasks
+   */
+  startBackgroundTasks() {
+    // Start clock
+    this.startClock();
+
+    // Sync data every 30 seconds
+    this.timers.sync = setInterval(() => {
+      this.syncData();
+    }, 30000);
+
+    // Heartbeat every 10 seconds
+    this.timers.heartbeat = setInterval(() => {
+      this.sendHeartbeat();
+    }, 10000);
+  },
+
+  /**
+   * Start real-time clock (HH:MM:SS format)
+   */
+  startClock() {
+    const updateClock = () => {
+      const clockElement = document.getElementById("clock-time");
+      if (!clockElement) return;
+
+      try {
+        // ✅ Cyprus local time (GMT+2/+3)
+        const now = new Date();
+
+        // Cyprus timezone: Europe/Nicosia (GMT+2 winter, GMT+3 summer)
+        const cyprusTime = new Date(
+          now.toLocaleString("en-US", {
+            timeZone: "Europe/Nicosia",
+          })
+        );
+
+        const hours = String(cyprusTime.getHours()).padStart(2, "0");
+        const minutes = String(cyprusTime.getMinutes()).padStart(2, "0");
+        const seconds = String(cyprusTime.getSeconds()).padStart(2, "0");
+
+        clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+      } catch (error) {
+        console.error("❌ Clock update error:", error);
+        // Fallback: Browser timezone
+        try {
+          const now = new Date();
+          const hours = String(now.getHours()).padStart(2, "0");
+          const minutes = String(now.getMinutes()).padStart(2, "0");
+          const seconds = String(now.getSeconds()).padStart(2, "0");
+          clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+        } catch (e) {
+          clockElement.textContent = "--:--:--";
+        }
+      }
+    };
+
+    // Update immediately
+    updateClock();
+
+    // Update every second
+    this.timers.clock = setInterval(updateClock, 1000);
+  },
+
+  /**
+   * Sync data with server
+   */
+  async syncData() {
+    if (!this.state.isOnline) return;
+
+    try {
+      await this.loadPendingRequests();
+      await this.loadCompletedToday();
+      this.state.lastSync = new Date();
+    } catch (error) {
+      console.error("❌ Sync failed:", error);
+    }
+  },
+
+  /**
+   * Send heartbeat to server
+   */
+  sendHeartbeat() {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit("driver_heartbeat", {
+        driver_id: this.state.userId,
+        buggy_id: this.state.buggyId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  },
+
+  /**
+   * ========================================
+   * EVENT LISTENERS
+   * ========================================
+   */
+
+  /**
+   * Setup all event listeners
+   */
+  setupEventListeners() {
+    // Page visibility change
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        this.syncData();
+      }
+    });
+
+    // Online/offline events
+    window.addEventListener("online", () => {
+      console.log("🌐 Back online");
+      this.updateConnectionStatus("connected");
+      this.syncData();
+    });
+
+    window.addEventListener("offline", () => {
+      console.log("📡 Offline");
+      this.updateConnectionStatus("disconnected");
+    });
+
+    // Before unload
+    window.addEventListener("beforeunload", () => {
+      this.cleanup();
+    });
+  },
+
+  /**
+   * ========================================
+   * AUDIO
+   * ========================================
+   */
+
+  /**
+   * Initialize audio
+   */
+  initAudio() {
+    try {
+      this.audio.notification = new Audio("/static/sounds/notification.mp3");
+      this.audio.notification.volume = 0.5;
+    } catch (error) {
+      console.warn("⚠️ Audio initialization failed:", error);
+    }
+  },
+
+  /**
+   * Play notification sound
+   */
+  playNotificationSound() {
+    if (this.audio.enabled && this.audio.notification) {
+      this.audio.notification.play().catch((e) => {
+        console.warn("⚠️ Audio play failed:", e);
+      });
+    }
+  },
+
+  /**
+   * ========================================
+   * UI HELPERS
+   * ========================================
+   */
+
+  /**
+   * Initialize UI components
+   */
+  initUI() {
+    // Set initial connection status
+    this.updateConnectionStatus("connecting");
+  },
+
+  /**
+   * Update connection status indicator
+   */
+  updateConnectionStatus(status) {
+    const statusElement = document.getElementById("connection-status");
+    const textElement = document.getElementById("connection-text");
+
+    if (!statusElement || !textElement) return;
+
+    statusElement.className = "connection-status " + status;
+
+    const statusTexts = {
+      connecting: "Bağlanıyor...",
+      connected: "Bağlı",
+      disconnected: "Bağlantı Kesildi",
+      reconnecting: "Yeniden Bağlanıyor...",
+      failed: "Bağlantı Başarısız",
+    };
+
+    textElement.textContent = statusTexts[status] || "Bilinmiyor";
+  },
+
+  /**
+   * Show no buggy warning
+   */
+  async showNoBuggyWarning() {
+    await BuggyCall.Utils.showWarning(
+      "Size henüz bir shuttle atanmamış. Lütfen yöneticinizle iletişime geçin."
+    );
+  },
+
+  /**
+   * ========================================
+   * UTILITY FUNCTIONS
+   * ========================================
+   */
+
+  /**
+   * Remove request from pending list
+   */
+  removeRequestFromPending(requestId) {
+    this.state.pendingRequests = this.state.pendingRequests.filter(
+      (r) => (r.request_id || r.id) !== requestId
+    );
+  },
+
+  /**
+   * Format date time (Cyprus timezone GMT+2/+3)
+   */
+  formatDateTime(dateString) {
+    if (!dateString) return "-";
+
+    try {
+      // ✅ Cyprus timezone: Europe/Nicosia (GMT+2/+3)
+      const date = new Date(dateString);
+      return date.toLocaleString("tr-TR", {
+        timeZone: "Europe/Nicosia",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      console.error("❌ Date format error:", error);
+      // Fallback: Browser timezone
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleString("tr-TR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      } catch (e) {
+        return dateString;
+      }
+    }
+  },
+
+  /**
+   * Format duration in seconds
+   */
+  formatDuration(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0) {
+      return `${hours}sa ${minutes}dk ${secs}sn`;
+    } else if (minutes > 0) {
+      return `${minutes}dk ${secs}sn`;
+    } else {
+      return `${secs}sn`;
+    }
+  },
+
+  /**
+   * Escape HTML
+   */
+  escapeHtml(text) {
+    if (!text) return "";
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  },
+
+  /**
+   * ========================================
+   * CLEANUP
+   * ========================================
+   */
+
+  /**
+   * Cleanup resources
+   */
+  cleanup() {
+    console.log("🧹 Cleaning up...");
+
+    // Stop all timers
+    if (this.timers.elapsed) clearInterval(this.timers.elapsed);
+    if (this.timers.sync) clearInterval(this.timers.sync);
+    if (this.timers.heartbeat) clearInterval(this.timers.heartbeat);
+    if (this.timers.clock) clearInterval(this.timers.clock);
+
+    // Disconnect socket
+    if (this.socket) {
+      this.socket.disconnect();
+    }
+  },
+
+  /**
+   * ✅ Clear cache on login
+   */
+  async clearCache() {
+    try {
+      // Clear localStorage (except important keys)
+      const keysToKeep = [
+        "pwa-install-dismissed",
+        "pwa-update-shown-version",
+        "sw-update-shown-time", // ✅ SW update notification timestamp'ini koru
+      ];
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach((key) => {
+        if (!keysToKeep.includes(key)) {
+          localStorage.removeItem(key);
+        }
+      });
+      console.log("✅ [CACHE] localStorage cleared");
+
+      // Clear sessionStorage
+      sessionStorage.clear();
+      console.log("✅ [CACHE] sessionStorage cleared");
+
+      // ✅ Service Worker cache'lerini SILME - Bu update notification'a sebep oluyor
+      // SW kendi cache yönetimini yapıyor, manuel silmeye gerek yok
+      console.log("✅ [CACHE] Service worker caches preserved (managed by SW)");
+
+      console.log("✅ [CACHE] All caches cleared successfully");
+    } catch (error) {
+      console.warn("⚠️ [CACHE] Cache clearing failed:", error);
+    }
+  },
+
+  /**
+   * ✅ TEST: Manually trigger guest connected alert
+   */
+  testGuestAlert() {
+    console.log("🧪 [TEST] Manually triggering guest alert...");
+
+    const testData = {
+      type: "guest_connected",
+      message: "🚨 TEST: Yeni Misafir Bağlandı!",
+      hotel_id: this.state.hotelId,
+      location_id: 4,
+      location_name: "Merit Royal Premium (TEST)",
+      guest_count: 2,
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log("🧪 [TEST] Test data:", testData);
+
+    // Call the handler directly
+    this.onGuestConnected(testData);
+
+    console.log("✅ [TEST] Test alert triggered");
+  },
 };
 
 /**
@@ -1301,12 +1635,12 @@ const DriverDashboard = {
  * AUTO-INITIALIZE ON DOM READY
  * ========================================
  */
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        DriverDashboard.init();
-    });
-} else {
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
     DriverDashboard.init();
+  });
+} else {
+  DriverDashboard.init();
 }
 
 // Export for global access

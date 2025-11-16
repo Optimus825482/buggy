@@ -1,126 +1,180 @@
-{% extends "base.html" %}
-
-{% block title %}Talep Durumu{% endblock %}
-
-{% block extra_css %}
+{% extends "base.html" %} {% block title %}Talep Durumu{% endblock %} {% block
+extra_css %}
 <style>
-/* ==================== MODERN STATUS PAGE ==================== */
-:root {
-    --primary-navy: #1A2B4A;
-    --royal-gold: #D4AF37;
-    --success-green: #27AE60;
-    --bg-white: #FFFFFF;
-    --bg-light: #F8F9FA;
-    --text-dark: #1A2B4A;
-    --text-muted: #6B7280;
-    --shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
+  /* ==================== MODERN STATUS PAGE ==================== */
+  :root {
+    --primary-navy: #1a2b4a;
+    --royal-gold: #d4af37;
+    --success-green: #27ae60;
+    --bg-white: #ffffff;
+    --bg-light: #f8f9fa;
+    --text-dark: #1a2b4a;
+    --text-muted: #6b7280;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
 
-body {
+  body {
     background: var(--bg-white);
     min-height: 100vh;
     margin: 0;
     padding: 0;
-}
+  }
 
-/* Hide base template elements */
-.header, .navbar, header, nav, .mobile-menu-toggle, .connection-indicator {
+  /* Hide base template elements */
+  .header,
+  .navbar,
+  header,
+  nav,
+  .mobile-menu-toggle,
+  .connection-indicator {
     display: none !important;
-}
+  }
 
-.main-content {
+  .main-content {
     padding: 0 !important;
     margin: 0 !important;
-}
+  }
 
-/* Container */
-.status-container {
+  /* Container */
+  .status-container {
     max-width: 540px;
     margin: 0 auto;
     padding: 20px;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-}
+    position: relative;
+  }
 
-/* Status Card */
-.status-card {
+  /* ==================== GUEST CLOCK (Sol Üst) ==================== */
+  .guest-clock {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(135deg, #1a2b4a 0%, #2c3e5a 100%);
+    border-radius: 2rem;
+    color: white;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: "Courier New", monospace;
+    box-shadow: 0 4px 12px rgba(26, 43, 74, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    z-index: 1000;
+  }
+
+  .guest-clock i {
+    font-size: 1.125rem;
+    color: #1ba5a8;
+    animation: clockTick 1s ease-in-out infinite;
+  }
+
+  .guest-clock:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(26, 43, 74, 0.4);
+  }
+
+  #guest-clock-time {
+    letter-spacing: 0.05em;
+    min-width: 85px;
+    text-align: center;
+  }
+
+  @keyframes clockTick {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(-5deg);
+    }
+    75% {
+      transform: rotate(5deg);
+    }
+  }
+
+  /* Status Card */
+  .status-card {
     background: var(--bg-white);
     border-radius: 20px;
     padding: 32px 24px;
     box-shadow: var(--shadow);
     margin-bottom: 20px;
     text-align: center;
-}
+  }
 
-.status-icon {
+  .status-icon {
     width: 80px;
     height: 80px;
     margin: 0 auto 20px;
-    background: linear-gradient(135deg, var(--primary-navy), #2A3B5A);
+    background: linear-gradient(135deg, var(--primary-navy), #2a3b5a);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 36px;
-}
+  }
 
-.status-title {
+  .status-title {
     font-size: 24px;
     font-weight: 700;
     color: var(--text-dark);
     margin-bottom: 12px;
-}
+  }
 
-.status-message {
+  .status-message {
     font-size: 15px;
     color: var(--text-muted);
     line-height: 1.6;
     margin-bottom: 32px;
-}
+  }
 
-/* Timeline Steps - Renkli ve Dikkat Çekici */
-.timeline {
+  /* Timeline Steps - Renkli ve Dikkat Çekici */
+  .timeline {
     margin: 32px 0;
-}
+  }
 
-.timeline-step {
+  .timeline-step {
     display: flex;
     align-items: flex-start;
     gap: 16px;
     margin-bottom: 24px;
     position: relative;
     transition: all 0.3s ease;
-}
+  }
 
-.timeline-step:not(:last-child)::after {
-    content: '';
+  .timeline-step:not(:last-child)::after {
+    content: "";
     position: absolute;
     left: 19px;
     top: 40px;
     width: 3px;
     height: calc(100% + 8px);
-    background: linear-gradient(180deg, #E5E7EB 0%, #F3F4F6 100%);
+    background: linear-gradient(180deg, #e5e7eb 0%, #f3f4f6 100%);
     transition: all 0.5s ease;
-}
+  }
 
-.timeline-step.completed::after {
-    background: linear-gradient(180deg, #10B981 0%, #059669 100%);
+  .timeline-step.completed::after {
+    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
     box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
-}
+  }
 
-.timeline-step.active::after {
-    background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%);
+  .timeline-step.active::after {
+    background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
     box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
     animation: pulse-line 2s ease-in-out infinite;
-}
+  }
 
-.timeline-dot {
+  .timeline-dot {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: #E5E7EB;
+    background: #e5e7eb;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -129,215 +183,225 @@ body {
     font-size: 20px;
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
+  }
 
-/* Talep Oluşturuldu - Yeşil */
-.timeline-step.completed .timeline-dot {
-    background: linear-gradient(135deg, #10B981, #059669);
+  /* Talep Oluşturuldu - Yeşil */
+  .timeline-step.completed .timeline-dot {
+    background: linear-gradient(135deg, #10b981, #059669);
     color: white;
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
     animation: bounce-in 0.5s ease;
-}
+  }
 
-/* İşleme Alındı - Turuncu (Aktif) */
-.timeline-step.active .timeline-dot {
-    background: linear-gradient(135deg, #F59E0B, #D97706);
+  /* İşleme Alındı - Turuncu (Aktif) */
+  .timeline-step.active .timeline-dot {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
     color: white;
     box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
     animation: pulse-dot 2s ease-in-out infinite;
-}
+  }
 
-/* Shuttle Yolda - Mavi (Aktif) */
-#step-onway.active .timeline-dot {
-    background: linear-gradient(135deg, #3B82F6, #2563EB);
+  /* Shuttle Yolda - Mavi (Aktif) */
+  #step-onway.active .timeline-dot {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
     box-shadow: 0 4px 16px rgba(59, 130, 246, 0.5);
-}
+  }
 
-/* Geldi - Altın */
-#step-arrived.completed .timeline-dot {
-    background: linear-gradient(135deg, #FBBF24, #F59E0B);
+  /* Geldi - Altın */
+  #step-arrived.completed .timeline-dot {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
     box-shadow: 0 4px 16px rgba(251, 191, 36, 0.5);
-}
+  }
 
-.timeline-content {
+  .timeline-content {
     flex: 1;
     text-align: left;
     padding-top: 8px;
     transition: all 0.3s ease;
-}
+  }
 
-.timeline-step.active .timeline-content {
+  .timeline-step.active .timeline-content {
     transform: translateX(4px);
-}
+  }
 
-.timeline-label {
+  .timeline-label {
     font-size: 17px;
     font-weight: 600;
     color: var(--text-dark);
     margin-bottom: 4px;
     transition: all 0.3s ease;
-}
+  }
 
-.timeline-step.completed .timeline-label {
+  .timeline-step.completed .timeline-label {
     color: #059669;
-}
+  }
 
-.timeline-step.active .timeline-label {
-    color: #D97706;
+  .timeline-step.active .timeline-label {
+    color: #d97706;
     font-size: 18px;
-}
+  }
 
-.timeline-time {
+  .timeline-time {
     font-size: 14px;
     color: var(--text-muted);
     font-weight: 500;
     transition: all 0.3s ease;
-}
+  }
 
-.timeline-step.active .timeline-time {
-    color: #F59E0B;
+  .timeline-step.active .timeline-time {
+    color: #f59e0b;
     font-weight: 600;
-}
+  }
 
-/* Animasyonlar */
-@keyframes pulse-dot {
-    0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
+  /* Animasyonlar */
+  @keyframes pulse-dot {
+    0%,
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
     }
     50% {
-        transform: scale(1.1);
-        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.7);
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.7);
     }
-}
+  }
 
-@keyframes pulse-line {
-    0%, 100% {
-        opacity: 1;
+  @keyframes pulse-line {
+    0%,
+    100% {
+      opacity: 1;
     }
     50% {
-        opacity: 0.7;
+      opacity: 0.7;
     }
-}
+  }
 
-@keyframes bounce-in {
+  @keyframes bounce-in {
     0% {
-        transform: scale(0);
-        opacity: 0;
+      transform: scale(0);
+      opacity: 0;
     }
     50% {
-        transform: scale(1.2);
+      transform: scale(1.2);
     }
     100% {
-        transform: scale(1);
-        opacity: 1;
+      transform: scale(1);
+      opacity: 1;
     }
-}
+  }
 
-/* Info Grid */
-.info-grid {
+  /* Info Grid */
+  .info-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin: 24px 0;
-}
+  }
 
-.info-box {
+  .info-box {
     background: var(--bg-light);
     border-radius: 12px;
     padding: 16px;
     text-align: center;
-}
+  }
 
-.info-label {
+  .info-label {
     font-size: 11px;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 6px;
-}
+  }
 
-.info-value {
+  .info-value {
     font-size: 16px;
     font-weight: 700;
     color: var(--text-dark);
-}
+  }
 
-/* Driver Info */
-.driver-info {
-    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(228, 191, 71, 0.05));
+  /* Driver Info */
+  .driver-info {
+    background: linear-gradient(
+      135deg,
+      rgba(212, 175, 55, 0.1),
+      rgba(228, 191, 71, 0.05)
+    );
     border-radius: 16px;
     padding: 20px;
     margin: 24px 0;
     display: none;
-}
+  }
 
-.driver-info.show {
+  .driver-info.show {
     display: block;
-}
+  }
 
-.driver-details {
+  .driver-details {
     display: flex;
     align-items: center;
     gap: 16px;
-}
+  }
 
-.driver-avatar {
+  .driver-avatar {
     width: 56px;
     height: 56px;
-    background: linear-gradient(135deg, var(--primary-navy), #2A3B5A);
+    background: linear-gradient(135deg, var(--primary-navy), #2a3b5a);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 24px;
-}
+  }
 
-.driver-text h4 {
+  .driver-text h4 {
     font-size: 16px;
     font-weight: 700;
     color: var(--text-dark);
     margin: 0 0 4px 0;
-}
+  }
 
-.driver-text p {
+  .driver-text p {
     font-size: 14px;
     color: var(--text-muted);
     margin: 0;
-}
+  }
 
-/* Completed Message */
-.completed-box {
-    background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(46, 204, 113, 0.05));
+  /* Completed Message */
+  .completed-box {
+    background: linear-gradient(
+      135deg,
+      rgba(39, 174, 96, 0.1),
+      rgba(46, 204, 113, 0.05)
+    );
     border-radius: 16px;
     padding: 24px;
     text-align: center;
     margin: 24px 0;
     display: none;
-}
+  }
 
-.completed-box.show {
+  .completed-box.show {
     display: block;
-}
+  }
 
-/* Notification Banner */
-.notification-banner {
-    background: linear-gradient(135deg, var(--primary-navy), #2A3B5A);
+  /* Notification Banner */
+  .notification-banner {
+    background: linear-gradient(135deg, var(--primary-navy), #2a3b5a);
     color: white;
     padding: 16px 20px;
     border-radius: 12px;
     margin-bottom: 20px;
     display: none;
-}
+  }
 
-.notification-banner.show {
+  .notification-banner.show {
     display: flex;
     align-items: center;
     gap: 12px;
-}
+  }
 
-.notification-banner button {
+  .notification-banner button {
     background: var(--royal-gold);
     color: var(--primary-navy);
     border: none;
@@ -348,82 +412,82 @@ body {
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
-}
+  }
 
-.notification-banner button:hover {
-    background: #E4BF47;
+  .notification-banner button:hover {
+    background: #e4bf47;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
-}
+  }
 
-.notification-banner button:active {
+  .notification-banner button:active {
     transform: translateY(0);
-}
+  }
 
-/* Toast Animations */
-@keyframes slideInRight {
+  /* Toast Animations */
+  @keyframes slideInRight {
     from {
-        transform: translateX(400px);
-        opacity: 0;
+      transform: translateX(400px);
+      opacity: 0;
     }
     to {
-        transform: translateX(0);
-        opacity: 1;
+      transform: translateX(0);
+      opacity: 1;
     }
-}
+  }
 
-@keyframes slideOutRight {
+  @keyframes slideOutRight {
     from {
-        transform: translateX(0);
-        opacity: 1;
+      transform: translateX(0);
+      opacity: 1;
     }
     to {
-        transform: translateX(400px);
-        opacity: 0;
+      transform: translateX(400px);
+      opacity: 0;
     }
-}
+  }
 
-/* Footer */
-.status-footer {
+  /* Footer */
+  .status-footer {
     margin-top: auto;
     padding: 24px 0;
     text-align: center;
-}
+  }
 
-.footer-logo {
+  .footer-logo {
     height: 40px;
     margin-bottom: 12px;
-}
+  }
 
-.footer-text {
+  .footer-text {
     font-size: 12px;
     color: var(--text-muted);
     margin: 8px 0;
-}
+  }
 
-.optimist-brand {
+  .optimist-brand {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     margin-top: 16px;
     padding-top: 16px;
-    border-top: 1px solid #E5E7EB;
-}
+    border-top: 1px solid #e5e7eb;
+  }
 
-.optimist-brand img {
+  .optimist-brand img {
     height: 20px;
     opacity: 0.6;
-}
+  }
 
-.optimist-brand span {
+  .optimist-brand span {
     font-size: 11px;
     color: var(--text-muted);
-}
+  }
 
-/* Button */
-.btn-primary {
-    background: linear-gradient(135deg, var(--primary-navy), #2A3B5A);
+  /* Button */
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary-navy), #2a3b5a);
     color: white;
     border: none;
     padding: 14px 24px;
@@ -436,118 +500,186 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
-}
+  }
 
-.btn-primary:hover {
+  .btn-primary:hover {
     opacity: 0.9;
-}
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .guest-clock {
+      font-size: 0.9375rem;
+      padding: 0.5rem 1rem;
+      top: 10px;
+      left: 10px;
+    }
+
+    #guest-clock-time {
+      min-width: 75px;
+    }
+  }
 </style>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="status-container">
-    <!-- Notification Permission Banner -->
-    <div id="notification-banner" class="notification-banner">
-        <i class="fas fa-bell"></i>
-        <div style="flex: 1;">
-            <strong data-i18n="notif.permission_denied">Bildirimler Kapalı</strong>
-            <p style="margin: 0; font-size: 13px; opacity: 0.9;" data-i18n="notif.permission_denied_msg">Shuttle durumu hakkında bildirim almak için izin verin.</p>
-        </div>
-        <button onclick="requestNotificationPermission()" data-i18n="btn.enable_notifications">İzin Ver</button>
+  <!-- Clock (Sol Üst) -->
+  <div class="guest-clock" id="guest-clock">
+    <i class="fas fa-clock"></i>
+    <span id="guest-clock-time">--:--:--</span>
+  </div>
+
+  <!-- Notification Permission Banner -->
+  <div id="notification-banner" class="notification-banner">
+    <i class="fas fa-bell"></i>
+    <div style="flex: 1">
+      <strong data-i18n="notif.permission_denied">Bildirimler Kapalı</strong>
+      <p
+        style="margin: 0; font-size: 13px; opacity: 0.9"
+        data-i18n="notif.permission_denied_msg"
+      >
+        Shuttle durumu hakkında bildirim almak için izin verin.
+      </p>
+    </div>
+    <button
+      onclick="requestNotificationPermission()"
+      data-i18n="btn.enable_notifications"
+    >
+      İzin Ver
+    </button>
+  </div>
+
+  <!-- Status Card -->
+  <div class="status-card">
+    <div class="status-icon" id="status-icon">
+      <i class="fas fa-clock"></i>
     </div>
 
-    <!-- Status Card -->
-    <div class="status-card">
-        <div class="status-icon" id="status-icon">
-            <i class="fas fa-clock"></i>
+    <h1 class="status-title" id="status-title" data-i18n="request.created">
+      Talebiniz Alındı
+    </h1>
+    <p
+      class="status-message"
+      id="status-message"
+      data-i18n="request.created_msg"
+    >
+      Talebiniz başarıyla oluşturuldu.
+    </p>
+
+    <!-- Timeline -->
+    <div class="timeline" id="timeline-container">
+      <div class="timeline-step completed" id="step-requested">
+        <div class="timeline-dot">
+          <i class="fas fa-check"></i>
         </div>
-
-        <h1 class="status-title" id="status-title" data-i18n="request.created">Talebiniz Alındı</h1>
-        <p class="status-message" id="status-message" data-i18n="request.created_msg">
-            Talebiniz başarıyla oluşturuldu. 
-        </p>
-
-
-
-        <!-- Timeline -->
-        <div class="timeline" id="timeline-container">
-            <div class="timeline-step completed" id="step-requested">
-                <div class="timeline-dot">
-                    <i class="fas fa-check"></i>
-                </div>
-                <div class="timeline-content">
-                    <div class="timeline-label" data-i18n="label.created">Talep Oluşturuldu</div>
-                    <div class="timeline-time" id="time-requested">-</div>
-                </div>
-            </div>
-
-            <div class="timeline-step" id="step-accepted">
-                <div class="timeline-dot">
-                    <i class="fas fa-user-check"></i>
-                </div>
-                <div class="timeline-content">
-                    <div class="timeline-label" data-i18n="label.processing">İşleme Alındı</div>
-                    <div class="timeline-time" id="time-accepted" data-i18n="label.waiting">Bekleniyor...</div>
-                </div>
-            </div>
-
-            <div class="timeline-step" id="step-completed">
-                <div class="timeline-dot">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="timeline-content">
-                    <div class="timeline-label" data-i18n="label.completed">Tamamlandı</div>
-                    <div class="timeline-time" id="time-completed">-</div>
-                </div>
-            </div>
+        <div class="timeline-content">
+          <div class="timeline-label" data-i18n="label.created">
+            Talep Oluşturuldu
+          </div>
+          <div class="timeline-time" id="time-requested">-</div>
         </div>
+      </div>
 
-        <!-- Driver Info -->
-        <div class="driver-info" id="driver-info">
-            <div class="driver-details">
-                <div class="driver-avatar">
-                    <i class="fas fa-shuttle-van"></i>
-                </div>
-                <div class="driver-text">
-                    <h4 id="driver-name">Shuttle</h4>
-                    <p>Talebiniz <span id="buggy-code">-</span> plakalı shuttle tarafından işleme alınmıştır. </p>
-                </div>
-            </div>
+      <div class="timeline-step" id="step-accepted">
+        <div class="timeline-dot">
+          <i class="fas fa-user-check"></i>
         </div>
+        <div class="timeline-content">
+          <div class="timeline-label" data-i18n="label.processing">
+            İşleme Alındı
+          </div>
+          <div
+            class="timeline-time"
+            id="time-accepted"
+            data-i18n="label.waiting"
+          >
+            Bekleniyor...
+          </div>
+        </div>
+      </div>
 
-        <!-- Completed Message -->
-        <div class="completed-box" id="completed-box">
-            <div style="font-size: 48px; color: var(--success-green); margin-bottom: 16px;">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <h3 style="font-size: 20px; font-weight: 700; color: var(--success-green); margin-bottom: 8px;">
-                ✅ Tamamlandı!
-            </h3>
-            <p style="font-size: 16px; color: #065f46; margin-bottom: 16px; font-weight: 600;">
-                Shuttle Call </p><p> kullandığınız için
-                teşekkür ederiz! 🙏
-            </p>
-            
-            <!-- Service Provider Info -->
-            <div style="
-                margin-top: 24px;
-                padding: 16px;
-                background: #f9fafb;
-                border-radius: 12px;
-                font-size: 11px;
-                color: #6b7280;
-                line-height: 1.6;
-            ">
-                Bu hizmet <strong>Optimist Bilişim & Elektronik</strong> tarafından<br>
-                <strong>MERIT INTERNATIONAL HOTELS</strong> güvencesi ve kalitesiyle verilmektedir.
-            </div>
+      <div class="timeline-step" id="step-completed">
+        <div class="timeline-dot">
+          <i class="fas fa-check-circle"></i>
         </div>
+        <div class="timeline-content">
+          <div class="timeline-label" data-i18n="label.completed">
+            Tamamlandı
+          </div>
+          <div class="timeline-time" id="time-completed">-</div>
+        </div>
+      </div>
     </div>
 
+    <!-- Driver Info -->
+    <div class="driver-info" id="driver-info">
+      <div class="driver-details">
+        <div class="driver-avatar">
+          <i class="fas fa-shuttle-van"></i>
+        </div>
+        <div class="driver-text">
+          <h4 id="driver-name">Shuttle</h4>
+          <p>
+            Talebiniz <span id="buggy-code">-</span> plakalı shuttle tarafından
+            işleme alınmıştır.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Completed Message -->
+    <div class="completed-box" id="completed-box">
+      <div
+        style="
+          font-size: 48px;
+          color: var(--success-green);
+          margin-bottom: 16px;
+        "
+      >
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <h3
+        style="
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--success-green);
+          margin-bottom: 8px;
+        "
+      >
+        ✅ Tamamlandı!
+      </h3>
+      <p
+        style="
+          font-size: 16px;
+          color: #065f46;
+          margin-bottom: 16px;
+          font-weight: 600;
+        "
+      >
+        Shuttle Call
+      </p>
+      <p>kullandığınız için teşekkür ederiz! 🙏</p>
+
+      <!-- Service Provider Info -->
+      <div
+        style="
+          margin-top: 24px;
+          padding: 16px;
+          background: #f9fafb;
+          border-radius: 12px;
+          font-size: 11px;
+          color: #6b7280;
+          line-height: 1.6;
+        "
+      >
+        Bu hizmet
+        <strong>Optimist Bilişim & Elektronik</strong> tarafından<br />
+        <strong>MERIT INTERNATIONAL HOTELS</strong> güvencesi ve kalitesiyle
+        verilmektedir.
+      </div>
+    </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
+{% endblock %} {% block extra_js %}
 <!-- Multi-Language Support -->
 <script src="{{ url_for('static', filename='js/i18n-guest.js') }}"></script>
 
@@ -562,363 +694,428 @@ body {
 <script src="{{ url_for('static', filename='js/guest-notifications.js') }}"></script>
 
 <script>
-const requestId = {{ request_id }};
-let socket;
+  const requestId = {{ request_id }};
+  let socket;
 
-// Initialize Guest Notification Manager
-let guestNotificationManager;
+  // Initialize Guest Notification Manager
+  let guestNotificationManager;
 
-// Check notification permission on load
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🚀 Status page initialized for request:', requestId);
-    
-    loadRequestStatus();
-    connectWebSocket();
-    
-    // Guest Notification Manager'ı başlat
-    try {
-        guestNotificationManager = new GuestNotificationManager();
-        const initialized = await guestNotificationManager.init();
+  // Check notification permission on load
+  document.addEventListener('DOMContentLoaded', async function() {
+      console.log('🚀 Status page initialized for request:', requestId);
 
-        if (initialized) {
-            console.log('✅ Guest Notification Manager initialized');
-            
-            // ✅ Setup foreground message listener
-            guestNotificationManager.setupMessageListener((payload) => {
-                console.log('📬 [GUEST_STATUS] Foreground notification received!', payload);
+      loadRequestStatus();
+      connectWebSocket();
 
-                // Show toast notification
-                if (payload.notification?.title) {
-                    const message = payload.notification.title + (payload.notification.body ? '\n' + payload.notification.body : '');
-                    showSuccessToast(message);
-                }
+      // Guest Notification Manager'ı başlat
+      try {
+          guestNotificationManager = new GuestNotificationManager();
+          const initialized = await guestNotificationManager.init();
 
-                // Refresh status if needed
-                if (payload.data?.type === 'accepted' || payload.data?.type === 'completed') {
-                    console.log('🔄 Refreshing status due to FCM notification');
-                    loadRequestStatus();
-                }
-            });
+          if (initialized) {
+              console.log('✅ Guest Notification Manager initialized');
 
-            if (Notification.permission === 'granted') {
-                // Bildirim izni varsa, token'ı kaydet
-                console.log('✅ Notification permission granted, registering token');
-                await guestNotificationManager.requestPermissionAndGetToken(requestId);
-            } else {
-                console.log('⚠️ Notification permission not granted:', Notification.permission);
-            }
-        } else {
-            console.warn('⚠️ Guest Notification Manager failed to initialize');
-        }
-    } catch (error) {
-        console.error('❌ [FCM] Init error:', error);
-    }
-    
-    checkNotificationPermission();
-    
-    // Poll every 10 seconds as fallback
-    setInterval(loadRequestStatus, 10000);
-});
+              // ✅ Setup foreground message listener
+              guestNotificationManager.setupMessageListener((payload) => {
+                  console.log('📬 [GUEST_STATUS] Foreground notification received!', payload);
 
-function checkNotificationPermission() {
-    if ('Notification' in window && Notification.permission === 'default') {
-        document.getElementById('notification-banner').classList.add('show');
-    }
-}
+                  // Show toast notification
+                  if (payload.notification?.title) {
+                      const message = payload.notification.title + (payload.notification.body ? '\n' + payload.notification.body : '');
+                      showSuccessToast(message);
+                  }
 
-async function requestNotificationPermission() {
-    try {
-        const banner = document.getElementById('notification-banner');
-        
-        if (!('Notification' in window)) {
-            console.warn('Notifications not supported');
-            return;
-        }
-        
-        // iOS kontrolü
-        if (window.iosNotificationHandler && window.iosNotificationHandler.isIOSDevice()) {
-            const permission = await window.iosNotificationHandler.requestPermission();
-            if (permission === 'granted') {
-                banner.classList.remove('show');
-                showSuccessToast('Bildirimler aktif edildi! 🔔');
-            }
-        } else {
-            // Normal tarayıcılar
-            const permission = await Notification.requestPermission();
-            banner.classList.remove('show');
-            
-            if (permission === 'granted') {
-                showSuccessToast('Bildirimler aktif edildi! 🔔');
-                
-                // Guest notification manager varsa token al
-                if (guestNotificationManager && requestId) {
-                    await guestNotificationManager.requestPermissionAndGetToken(requestId);
-                }
-                
-                new Notification('Bildirimler Aktif', {
-                    body: 'Shuttle geldiğinde bildirim alacaksınız',
-                    icon: '/static/icons/Icon-192.png'
-                });
-            }
-        }
-    } catch (error) {
-        console.error('Notification permission error:', error);
-    }
-}
+                  // Refresh status if needed
+                  if (payload.data?.type === 'accepted' || payload.data?.type === 'completed') {
+                      console.log('🔄 Refreshing status due to FCM notification');
+                      loadRequestStatus();
+                  }
+              });
 
-function showSuccessToast(message) {
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #10b981;
-        color: white;
-        padding: 16px 20px;
-        border-radius: 12px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-        z-index: 10002;
-        animation: slideInRight 0.3s ease;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    `;
-    toast.innerHTML = `
-        <i class="fas fa-check-circle"></i>
-        <span>${message}</span>
-    `;
-    
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.animation = 'slideOutRight 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
+              if (Notification.permission === 'granted') {
+                  // Bildirim izni varsa, token'ı kaydet
+                  console.log('✅ Notification permission granted, registering token');
+                  await guestNotificationManager.requestPermissionAndGetToken(requestId);
+              } else {
+                  console.log('⚠️ Notification permission not granted:', Notification.permission);
+              }
+          } else {
+              console.warn('⚠️ Guest Notification Manager failed to initialize');
+          }
+      } catch (error) {
+          console.error('❌ [FCM] Init error:', error);
+      }
+
+      checkNotificationPermission();
+
+      // Poll every 10 seconds as fallback
+      setInterval(loadRequestStatus, 10000);
+  });
+
+  function checkNotificationPermission() {
+      if ('Notification' in window && Notification.permission === 'default') {
+          document.getElementById('notification-banner').classList.add('show');
+      }
+  }
+
+  async function requestNotificationPermission() {
+      try {
+          const banner = document.getElementById('notification-banner');
+
+          if (!('Notification' in window)) {
+              console.warn('Notifications not supported');
+              return;
+          }
+
+          // iOS kontrolü
+          if (window.iosNotificationHandler && window.iosNotificationHandler.isIOSDevice()) {
+              const permission = await window.iosNotificationHandler.requestPermission();
+              if (permission === 'granted') {
+                  banner.classList.remove('show');
+                  showSuccessToast('Bildirimler aktif edildi! 🔔');
+              }
+          } else {
+              // Normal tarayıcılar
+              const permission = await Notification.requestPermission();
+              banner.classList.remove('show');
+
+              if (permission === 'granted') {
+                  showSuccessToast('Bildirimler aktif edildi! 🔔');
+
+                  // Guest notification manager varsa token al
+                  if (guestNotificationManager && requestId) {
+                      await guestNotificationManager.requestPermissionAndGetToken(requestId);
+                  }
+
+                  new Notification('Bildirimler Aktif', {
+                      body: 'Shuttle geldiğinde bildirim alacaksınız',
+                      icon: '/static/icons/Icon-192.png'
+                  });
+              }
+          }
+      } catch (error) {
+          console.error('Notification permission error:', error);
+      }
+  }
+
+  function showSuccessToast(message) {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #10b981;
+          color: white;
+          padding: 16px 20px;
+          border-radius: 12px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+          z-index: 10002;
+          animation: slideInRight 0.3s ease;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+      `;
+      toast.innerHTML = `
+          <i class="fas fa-check-circle"></i>
+          <span>${message}</span>
+      `;
+
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+          toast.style.animation = 'slideOutRight 0.3s ease';
+          setTimeout(() => toast.remove(), 300);
+      }, 3000);
+  }
 
 
-function loadRequestStatus() {
-    fetch(`/api/requests/${requestId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateStatus(data.request);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-}
+  function loadRequestStatus() {
+      fetch(`/api/requests/${requestId}`)
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  updateStatus(data.request);
+              }
+          })
+          .catch(error => console.error('Error:', error));
+  }
 
-function updateStatus(request) {
-    // Update info with null checks
-    const locationName = document.getElementById('location-name');
-    if (locationName) locationName.textContent = request.location_name || '-';
-    
-    const roomNumber = document.getElementById('room-number');
-    if (roomNumber) roomNumber.textContent = request.room_number || 'Yok';
+  // ✅ Format time to Cyprus timezone
+  function formatCyprusTime(dateString) {
+      if (!dateString) return '-';
 
-    // Update times
-    if (request.requested_at) {
-        const timeRequested = document.getElementById('time-requested');
-        if (timeRequested) {
-            timeRequested.textContent = new Date(request.requested_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
-        }
-    }
+      try {
+          const date = new Date(dateString);
+          // Cyprus timezone: Europe/Nicosia
+          return date.toLocaleTimeString('tr-TR', {
+              timeZone: 'Europe/Nicosia',
+              hour: '2-digit',
+              minute: '2-digit'
+          });
+      } catch (error) {
+          console.error('Time format error:', error);
+          return '-';
+      }
+  }
 
-    const status = request.status;
+  function updateStatus(request) {
+      // Update info with null checks
+      const locationName = document.getElementById('location-name');
+      if (locationName) locationName.textContent = request.location_name || '-';
 
-    if (status === 'PENDING') {
-        updateToPending();
-    } else if (status === 'ACCEPTED' || status === 'accepted') {
-        updateToAccepted(request);
-    } else if (status === 'COMPLETED' || status === 'completed') {
-        updateToCompleted(request);
-    }
-}
+      const roomNumber = document.getElementById('room-number');
+      if (roomNumber) roomNumber.textContent = request.room_number || 'Yok';
 
-function updateToPending() {
-    // Talep oluşturuldu completed, işleme alındı active
-    const stepRequested = document.getElementById('step-requested');
-    const stepAccepted = document.getElementById('step-accepted');
-    const statusTitle = document.getElementById('status-title');
-    const statusMessage = document.getElementById('status-message');
-    
-    if (stepRequested) stepRequested.classList.add('completed');
-    if (stepAccepted) {
-        stepAccepted.classList.add('active');
-        stepAccepted.classList.remove('completed');
-    }
-    
-    if (statusTitle) statusTitle.textContent = 'Sürücü Aranıyor...';
-    if (statusMessage) {
-        statusMessage.textContent = 'Talebiniz işleme alındı. En kısa sürede yanıtlanacaktır.';
-    }
-}
+      // Update times with Cyprus timezone
+      if (request.requested_at) {
+          const timeRequested = document.getElementById('time-requested');
+          if (timeRequested) {
+              timeRequested.textContent = formatCyprusTime(request.requested_at);
+          }
+      }
 
-function updateToAccepted(request) {
-    // Talep oluşturuldu completed, işleme alındı active
-    const stepRequested = document.getElementById('step-requested');
-    const stepAccepted = document.getElementById('step-accepted');
-    const stepCompleted = document.getElementById('step-completed');
-    
-    if (stepRequested) stepRequested.classList.add('completed');
-    if (stepAccepted) {
-        stepAccepted.classList.add('active');
-        stepAccepted.classList.remove('completed');
-    }
-    if (stepCompleted) stepCompleted.classList.remove('completed');
+      const status = request.status;
 
-    if (request.accepted_at) {
-        const timeAccepted = document.getElementById('time-accepted');
-        if (timeAccepted) {
-            timeAccepted.textContent = new Date(request.accepted_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
-        }
-    }
+      if (status === 'PENDING') {
+          updateToPending();
+      } else if (status === 'ACCEPTED' || status === 'accepted') {
+          updateToAccepted(request);
+      } else if (status === 'COMPLETED' || status === 'completed') {
+          updateToCompleted(request);
+      }
+  }
 
-    // Update status
-    const statusIcon = document.getElementById('status-icon');
-    const statusTitle = document.getElementById('status-title');
-    const statusMessage = document.getElementById('status-message');
-    
-    if (statusIcon) statusIcon.innerHTML = '<i class="fas fa-shuttle-van"></i>';
-    if (statusTitle) statusTitle.textContent = 'Shuttle Yolda!';
-    if (statusMessage) statusMessage.textContent = ' Kısa Bir Süre İçerisinde Aracınız Konumunuza Ulaşmış Olacak...';
+  function updateToPending() {
+      // Talep oluşturuldu completed, işleme alındı active
+      const stepRequested = document.getElementById('step-requested');
+      const stepAccepted = document.getElementById('step-accepted');
+      const statusTitle = document.getElementById('status-title');
+      const statusMessage = document.getElementById('status-message');
 
-    // Show driver info
-    if (request.buggy_code) {
-        const buggyCode = document.getElementById('buggy-code');
-        const driverInfo = document.getElementById('driver-info');
-        if (buggyCode) buggyCode.textContent = request.buggy_code;
-        if (driverInfo) driverInfo.classList.add('show');
-    }
-    
-    // ✅ TOAST NOTIFICATION: Show "Aracınız yola çıkmıştır" toast
-    showVehicleDepartedToast();
-}
+      if (stepRequested) stepRequested.classList.add('completed');
+      if (stepAccepted) {
+          stepAccepted.classList.add('active');
+          stepAccepted.classList.remove('completed');
+      }
 
-function showVehicleDepartedToast() {
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white;
-        padding: 20px 24px;
-        border-radius: 12px;
-        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
-        z-index: 10002;
-        animation: slideInRight 0.3s ease;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        max-width: 400px;
-    `;
-    toast.innerHTML = `
-        <div style="
-            width: 48px;
-            height: 48px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            flex-shrink: 0;
-        ">
-            🚗
-        </div>
-        <div>
-            <div style="font-size: 1.1rem; margin-bottom: 4px;">Aracınız Yola Çıkmıştır!</div>
-            <div style="font-size: 0.9rem; opacity: 0.9;">Kısa süre içinde yanınızda olacak</div>
-        </div>
-    `;
-    
-    document.body.appendChild(toast);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        toast.style.animation = 'slideOutRight 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-    }, 5000);
-}
+      if (statusTitle) statusTitle.textContent = 'Sürücü Aranıyor...';
+      if (statusMessage) {
+          statusMessage.textContent = 'Talebiniz işleme alındı. En kısa sürede yanıtlanacaktır.';
+      }
+  }
 
-function updateToCompleted(request) {
-    // Hide timeline when completed
-    const timeline = document.getElementById('timeline-container');
-    if (timeline) {
-        timeline.style.display = 'none';
-    }
+  function updateToAccepted(request) {
+      // Talep oluşturuldu completed, işleme alındı active
+      const stepRequested = document.getElementById('step-requested');
+      const stepAccepted = document.getElementById('step-accepted');
+      const stepCompleted = document.getElementById('step-completed');
 
-    // Hide status icon, title and message
-    const statusIcon = document.getElementById('status-icon');
-    const statusTitle = document.getElementById('status-title');
-    const statusMessage = document.getElementById('status-message');
-    
-    if (statusIcon) statusIcon.style.display = 'none';
-    if (statusTitle) statusTitle.style.display = 'none';
-    if (statusMessage) statusMessage.style.display = 'none';
-    
-    // Hide driver info
-    const driverInfo = document.getElementById('driver-info');
-    if (driverInfo) driverInfo.style.display = 'none';
-    
-    // Show completed message
-    const completedBox = document.getElementById('completed-box');
-    if (completedBox) {
-        completedBox.classList.add('show');
-    }
-}
+      if (stepRequested) stepRequested.classList.add('completed');
+      if (stepAccepted) {
+          stepAccepted.classList.add('active');
+          stepAccepted.classList.remove('completed');
+      }
+      if (stepCompleted) stepCompleted.classList.remove('completed');
 
-function connectWebSocket() {
-    if (typeof io === 'undefined') {
-        console.warn('Socket.IO not available');
-        return;
-    }
+      if (request.accepted_at) {
+          const timeAccepted = document.getElementById('time-accepted');
+          if (timeAccepted) {
+              timeAccepted.textContent = formatCyprusTime(request.accepted_at);
+          }
+      }
 
-    socket = io();
-    
-    socket.on('connect', function() {
-        console.log('✅ WebSocket connected');
-        socket.emit('join_request', {request_id: requestId});
-    });
+      // Update status
+      const statusIcon = document.getElementById('status-icon');
+      const statusTitle = document.getElementById('status-title');
+      const statusMessage = document.getElementById('status-message');
 
-    socket.on('disconnect', function() {
-        console.log('❌ WebSocket disconnected');
-    });
+      if (statusIcon) statusIcon.innerHTML = '<i class="fas fa-shuttle-van"></i>';
+      if (statusTitle) statusTitle.textContent = 'Shuttle Yolda!';
+      if (statusMessage) statusMessage.textContent = ' Kısa Bir Süre İçerisinde Aracınız Konumunuza Ulaşmış Olacak...';
 
-    // Talep kabul edildi
-    socket.on('request_accepted', function(data) {
-        console.log('📡 WebSocket: request_accepted received', data);
-        
-        if (data.request_id === requestId || data.request_id == requestId) {
-            console.log('✅ Request accepted for this guest');
-            loadRequestStatus();
-            showSuccessToast('🎉 Shuttle kabul edildi! Size doğru geliyor...');
-        }
-    });
+      // Show driver info
+      if (request.buggy_code) {
+          const buggyCode = document.getElementById('buggy-code');
+          const driverInfo = document.getElementById('driver-info');
+          if (buggyCode) buggyCode.textContent = request.buggy_code;
+          if (driverInfo) driverInfo.classList.add('show');
+      }
 
-    // Talep tamamlandı
-    socket.on('request_completed', function(data) {
-        console.log('📡 WebSocket: request_completed received', data);
-        
-        if (data.request_id === requestId || data.request_id == requestId) {
-            console.log('✅ Request completed for this guest');
-            loadRequestStatus();
-            showSuccessToast('✅ Shuttle ulaştı! İyi yolculuklar...');
-        }
-    });
+      // ✅ TOAST NOTIFICATION: Show "Aracınız yola çıkmıştır" toast
+      showVehicleDepartedToast();
+  }
 
-    // Genel status değişikliği
-    socket.on('request_status_changed', function(data) {
-        console.log('📡 WebSocket: request_status_changed received', data);
-        
-        if (data.request && (data.request.id === requestId || data.request.id == requestId)) {
-            console.log('✅ Status changed for this guest');
-            loadRequestStatus();
-        }
-    });
-}
+  function showVehicleDepartedToast() {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          padding: 20px 24px;
+          border-radius: 12px;
+          box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+          z-index: 10002;
+          animation: slideInRight 0.3s ease;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          max-width: 400px;
+      `;
+      toast.innerHTML = `
+          <div style="
+              width: 48px;
+              height: 48px;
+              background: rgba(255, 255, 255, 0.2);
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 1.5rem;
+              flex-shrink: 0;
+          ">
+              🚗
+          </div>
+          <div>
+              <div style="font-size: 1.1rem; margin-bottom: 4px;">Aracınız Yola Çıkmıştır!</div>
+              <div style="font-size: 0.9rem; opacity: 0.9;">Kısa süre içinde yanınızda olacak</div>
+          </div>
+      `;
+
+      document.body.appendChild(toast);
+
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+          toast.style.animation = 'slideOutRight 0.3s ease';
+          setTimeout(() => toast.remove(), 300);
+      }, 5000);
+  }
+
+  function updateToCompleted(request) {
+      // Hide timeline when completed
+      const timeline = document.getElementById('timeline-container');
+      if (timeline) {
+          timeline.style.display = 'none';
+      }
+
+      // Hide status icon, title and message
+      const statusIcon = document.getElementById('status-icon');
+      const statusTitle = document.getElementById('status-title');
+      const statusMessage = document.getElementById('status-message');
+
+      if (statusIcon) statusIcon.style.display = 'none';
+      if (statusTitle) statusTitle.style.display = 'none';
+      if (statusMessage) statusMessage.style.display = 'none';
+
+      // Hide driver info
+      const driverInfo = document.getElementById('driver-info');
+      if (driverInfo) driverInfo.style.display = 'none';
+
+      // Show completed message
+      const completedBox = document.getElementById('completed-box');
+      if (completedBox) {
+          completedBox.classList.add('show');
+      }
+  }
+
+  function connectWebSocket() {
+      if (typeof io === 'undefined') {
+          console.warn('Socket.IO not available');
+          return;
+      }
+
+      socket = io();
+
+      socket.on('connect', function() {
+          console.log('✅ WebSocket connected');
+          socket.emit('join_request', {request_id: requestId});
+      });
+
+      socket.on('disconnect', function() {
+          console.log('❌ WebSocket disconnected');
+      });
+
+      // Talep kabul edildi
+      socket.on('request_accepted', function(data) {
+          console.log('📡 WebSocket: request_accepted received', data);
+
+          if (data.request_id === requestId || data.request_id == requestId) {
+              console.log('✅ Request accepted for this guest');
+              loadRequestStatus();
+              showSuccessToast('🎉 Shuttle kabul edildi! Size doğru geliyor...');
+          }
+      });
+
+      // Talep tamamlandı
+      socket.on('request_completed', function(data) {
+          console.log('📡 WebSocket: request_completed received', data);
+
+          if (data.request_id === requestId || data.request_id == requestId) {
+              console.log('✅ Request completed for this guest');
+              loadRequestStatus();
+              showSuccessToast('✅ Shuttle ulaştı! İyi yolculuklar...');
+          }
+      });
+
+      // Genel status değişikliği
+      socket.on('request_status_changed', function(data) {
+          console.log('📡 WebSocket: request_status_changed received', data);
+
+          if (data.request && (data.request.id === requestId || data.request.id == requestId)) {
+              console.log('✅ Status changed for this guest');
+              loadRequestStatus();
+          }
+      });
+  }
+
+  // ==================== GUEST CLOCK ====================
+  function startGuestClock() {
+      const updateClock = () => {
+          const clockElement = document.getElementById("guest-clock-time");
+          if (!clockElement) return;
+
+          try {
+              // Cyprus timezone: Europe/Nicosia (GMT+2/+3)
+              const now = new Date();
+              const cyprusTime = new Date(now.toLocaleString("en-US", {
+                  timeZone: "Europe/Nicosia"
+              }));
+
+              const hours = String(cyprusTime.getHours()).padStart(2, "0");
+              const minutes = String(cyprusTime.getMinutes()).padStart(2, "0");
+              const seconds = String(cyprusTime.getSeconds()).padStart(2, "0");
+
+              clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+          } catch (error) {
+              console.error("❌ Clock update error:", error);
+              // Fallback: Browser timezone
+              try {
+                  const now = new Date();
+                  const hours = String(now.getHours()).padStart(2, "0");
+                  const minutes = String(now.getMinutes()).padStart(2, "0");
+                  const seconds = String(now.getSeconds()).padStart(2, "0");
+                  clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+              } catch (e) {
+                  clockElement.textContent = "--:--:--";
+              }
+          }
+      };
+
+      // Update immediately
+      updateClock();
+
+      // Update every second
+      setInterval(updateClock, 1000);
+  }
+
+  // Start clock on page load
+  if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startGuestClock);
+  } else {
+      startGuestClock();
+  }
 </script>
 {% endblock %}

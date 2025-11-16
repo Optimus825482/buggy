@@ -28,15 +28,16 @@ class Config:
     DB_NAME = os.getenv('DB_NAME', 'buggycall')
     DB_USER = os.getenv('DB_USER', 'root')
     DB_PASSWORD = os.getenv('DB_PASSWORD', '')
+    # ✅ No timezone parameter - we handle timezone in Python code
     SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ECHO = DEBUG
+    SQLALCHEMY_ECHO = False  # ✅ SQL sorgu loglarını kapat (performans için)
     # ✅ CONNECTION POOL OPTIMIZATION: Increased for high-traffic hotel environments
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 20,  # Base pool (was 10)
+        'pool_size': 35,  # Base pool (was 10)
         'pool_recycle': 3600,  # Recycle connections after 1 hour
         'pool_pre_ping': True,  # Test connections before use
-        'max_overflow': 40,  # Additional connections (was 20) - Total: 60 connections
+        'max_overflow': 60,  # Additional connections (was 20) - Total: 60 connections
         'pool_timeout': 30,  # Wait 30s for connection before timeout
         'echo_pool': False,  # Don't log pool events (performance)
         # ✅ CRITICAL: Session cleanup settings

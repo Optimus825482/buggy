@@ -81,14 +81,15 @@ class ReportService:
             ])
             avg_response_time = total_response_time / len(completed_with_times)
 
-        # Average completion time (time from accept to complete)
+        # Average completion time (time from REQUEST to complete - TOPLAM SÜRE)
         avg_completion_time = 0
-        if completed_with_times:
+        completed_with_completion_times = [req for req in completed_with_times if req.completed_at and req.requested_at]
+        if completed_with_completion_times:
             total_completion_time = sum([
-                (req.completed_at - req.accepted_at).total_seconds()
-                for req in completed_with_times if req.completed_at
+                (req.completed_at - req.requested_at).total_seconds()
+                for req in completed_with_completion_times
             ])
-            avg_completion_time = total_completion_time / len(completed_with_times) if total_completion_time else 0
+            avg_completion_time = total_completion_time / len(completed_with_completion_times) if total_completion_time else 0
 
         return {
             'date': date.strftime('%Y-%m-%d'),
@@ -159,8 +160,8 @@ class ReportService:
                     avg_response = sum(response_times) / len(response_times)
 
                 completion_times = [
-                    (r.completed_at - r.accepted_at).total_seconds()
-                    for r in completed if r.completed_at and r.accepted_at
+                    (r.completed_at - r.requested_at).total_seconds()
+                    for r in completed if r.completed_at and r.requested_at
                 ]
                 if completion_times:
                     avg_completion = sum(completion_times) / len(completion_times)
@@ -366,7 +367,7 @@ class ReportService:
     @staticmethod
     def export_to_pdf(data: List[Dict[str, Any]], title: str, filename: str) -> bytes:
         """
-        Export data to PDF format
+        Export data to PDF format with Turkish character support
         
         Args:
             data: List of dictionaries to export
@@ -377,11 +378,14 @@ class ReportService:
             PDF file as bytes
         """
         from reportlab.lib import colors
-        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.lib.pagesizes import A4
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import inch
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
         from io import BytesIO
+        import os
         
         if not data:
             raise ValueError("No data to export")
@@ -390,11 +394,37 @@ class ReportService:
         doc = SimpleDocTemplate(buffer, pagesize=A4)
         elements = []
         
+        # Türkçe karakter desteği için font kaydet
+        # Projedeki DejaVu Sans fontlarını kullan
+        try:
+            # Proje içindeki font yolu
+            from flask import current_app
+            font_dir = os.path.join(current_app.root_path, 'static', 'fonts')
+            
+            font_regular = os.path.join(font_dir, 'DejaVuSans.ttf')
+            font_bold = os.path.join(font_dir, 'DejaVuSans-Bold.ttf')
+            
+            if os.path.exists(font_regular) and os.path.exists(font_bold):
+                pdfmetrics.registerFont(TTFont('DejaVuSans', font_regular))
+                pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', font_bold))
+                font_name = 'DejaVuSans'
+                font_name_bold = 'DejaVuSans-Bold'
+            else:
+                # Fallback: Helvetica (sınırlı Türkçe desteği)
+                font_name = 'Helvetica'
+                font_name_bold = 'Helvetica-Bold'
+        except Exception as e:
+            # Fallback: Helvetica
+            print(f"⚠️ Font yüklenemedi: {str(e)}")
+            font_name = 'Helvetica'
+            font_name_bold = 'Helvetica-Bold'
+        
         # Styles
         styles = getSampleStyleSheet()
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
+            fontName=font_name_bold,
             fontSize=24,
             textColor=colors.HexColor('#366092'),
             spaceAfter=30,
@@ -425,12 +455,12 @@ class ReportService:
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#366092')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, 0), font_name_bold),
             ('FONTSIZE', (0, 0), (-1, 0), 12),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
             ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTNAME', (0, 1), (-1, -1), font_name),
             ('FONTSIZE', (0, 1), (-1, -1), 10),
         ]))
         
@@ -495,10 +525,22 @@ class ReportService:
             # Status counts
             if req.status == RequestStatus.COMPLETED:
                 completed_count += 1
+                
+                # Response time
                 if req.response_time:
                     response_times.append(req.response_time)
-                if req.completion_time:
-                    completion_times.append(req.completion_time)
+                
+                # Completion time - Dinamik hesaplama (requested_at -> completed_at)
+                completion_time = None
+                if req.completed_at and req.requested_at:
+                    delta = req.completed_at - req.requested_at
+                    completion_time = int(delta.total_seconds())
+                elif req.completion_time:
+                    # Fallback: Veritabanındaki değeri kullan
+                    completion_time = req.completion_time
+                
+                if completion_time and completion_time > 0:
+                    completion_times.append(completion_time)
             elif req.status == RequestStatus.CANCELLED:
                 cancelled_count += 1
                 if req.cancelled_by == 'driver':
@@ -606,5 +648,174 @@ class ReportService:
                 'total': unanswered_count,
                 'percentage': round(unanswered_rate, 2),
                 'note': 'Requests that were not answered within 1 hour'
+            }
+        }
+
+
+    @staticmethod
+    def get_route_analytics(hotel_id: int, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
+        """
+        Rota analizi - Başlangıç ve bitiş konumları arası istatistikler
+        
+        Args:
+            hotel_id: Hotel ID
+            start_date: Başlangıç tarihi
+            end_date: Bitiş tarihi
+            
+        Returns:
+            Rota istatistikleri
+        """
+        # Tamamlanmış ve completion_location_id olan talepleri al
+        completed_requests = BuggyRequest.query.filter(
+            BuggyRequest.hotel_id == hotel_id,
+            BuggyRequest.status == RequestStatus.COMPLETED,
+            BuggyRequest.completion_location_id.isnot(None),
+            BuggyRequest.requested_at >= start_date,
+            BuggyRequest.requested_at < end_date
+        ).all()
+        
+        # Rota istatistikleri
+        route_stats = {}
+        driver_stats = {}
+        buggy_stats = {}
+        
+        for req in completed_requests:
+            # Rota key: "Başlangıç -> Bitiş"
+            start_loc = req.location.name if req.location else "Bilinmiyor"
+            end_loc = req.completion_location.name if req.completion_location else "Bilinmiyor"
+            route_key = f"{start_loc} → {end_loc}"
+            
+            # Rota istatistiklerini güncelle
+            if route_key not in route_stats:
+                route_stats[route_key] = {
+                    'start_location': start_loc,
+                    'end_location': end_loc,
+                    'start_location_id': req.location_id,
+                    'end_location_id': req.completion_location_id,
+                    'count': 0,
+                    'total_time': 0,
+                    'times': []
+                }
+            
+            route_stats[route_key]['count'] += 1
+            
+            # Tamamlanma süresini hesapla (requested_at -> completed_at)
+            # Veritabanındaki değer yerine dinamik hesaplama yap
+            completion_time = None
+            if req.completed_at and req.requested_at:
+                delta = req.completed_at - req.requested_at
+                completion_time = int(delta.total_seconds())
+            elif req.completion_time:
+                # Fallback: Veritabanındaki değeri kullan
+                completion_time = req.completion_time
+            
+            if completion_time and completion_time > 0:
+                route_stats[route_key]['total_time'] += completion_time
+                route_stats[route_key]['times'].append(completion_time)
+            
+            # Sürücü istatistikleri
+            if req.accepted_by_driver:
+                driver_name = req.accepted_by_driver.full_name
+                if driver_name not in driver_stats:
+                    driver_stats[driver_name] = {
+                        'driver_id': req.accepted_by_id,
+                        'total_completed': 0,
+                        'total_time': 0,
+                        'routes': {}
+                    }
+                driver_stats[driver_name]['total_completed'] += 1
+                if completion_time and completion_time > 0:
+                    driver_stats[driver_name]['total_time'] += completion_time
+                
+                # Sürücünün rota dağılımı
+                if route_key not in driver_stats[driver_name]['routes']:
+                    driver_stats[driver_name]['routes'][route_key] = 0
+                driver_stats[driver_name]['routes'][route_key] += 1
+            
+            # Buggy istatistikleri
+            if req.buggy:
+                buggy_code = req.buggy.code
+                if buggy_code not in buggy_stats:
+                    buggy_stats[buggy_code] = {
+                        'buggy_id': req.buggy_id,
+                        'total_completed': 0,
+                        'total_time': 0
+                    }
+                buggy_stats[buggy_code]['total_completed'] += 1
+                if completion_time and completion_time > 0:
+                    buggy_stats[buggy_code]['total_time'] += completion_time
+        
+        # Ortalama süreleri hesapla ve sırala
+        route_list = []
+        for route_key, stats in route_stats.items():
+            avg_time = stats['total_time'] / stats['count'] if stats['count'] > 0 else 0
+            min_time = min(stats['times']) if stats['times'] else 0
+            max_time = max(stats['times']) if stats['times'] else 0
+            
+            # Debug log
+            #print(f"🛣️ Rota: {route_key}")
+            #print(f"   Kullanım: {stats['count']} kez")
+            #print(f"   Toplam süre: {stats['total_time']} saniye")
+            #print(f"   Ortalama: {avg_time} saniye = {avg_time / 60} dakika")
+            #print(f"   Süreler: {stats['times']}")
+            
+            route_list.append({
+                'route': route_key,
+                'start_location': stats['start_location'],
+                'end_location': stats['end_location'],
+                'start_location_id': stats['start_location_id'],
+                'end_location_id': stats['end_location_id'],
+                'count': stats['count'],
+                'avg_time_seconds': round(avg_time, 2),
+                'avg_time_minutes': round(avg_time / 60, 2),
+                'min_time_seconds': round(min_time, 2),
+                'max_time_seconds': round(max_time, 2)
+            })
+        
+        # En çok kullanılan rotalara göre sırala
+        route_list.sort(key=lambda x: x['count'], reverse=True)
+        
+        # Sürücü performansını hesapla
+        driver_list = []
+        for driver_name, stats in driver_stats.items():
+            avg_time = stats['total_time'] / stats['total_completed'] if stats['total_completed'] > 0 else 0
+            most_used_route = max(stats['routes'].items(), key=lambda x: x[1])[0] if stats['routes'] else None
+            
+            driver_list.append({
+                'driver_name': driver_name,
+                'driver_id': stats['driver_id'],
+                'total_completed': stats['total_completed'],
+                'avg_completion_time_minutes': round(avg_time / 60, 2),
+                'most_used_route': most_used_route,
+                'route_count': len(stats['routes'])
+            })
+        
+        # Tamamlanan talep sayısına göre sırala
+        driver_list.sort(key=lambda x: x['total_completed'], reverse=True)
+        
+        # Buggy performansını hesapla
+        buggy_list = []
+        for buggy_code, stats in buggy_stats.items():
+            avg_time = stats['total_time'] / stats['total_completed'] if stats['total_completed'] > 0 else 0
+            
+            buggy_list.append({
+                'buggy_code': buggy_code,
+                'buggy_id': stats['buggy_id'],
+                'total_completed': stats['total_completed'],
+                'avg_completion_time_minutes': round(avg_time / 60, 2)
+            })
+        
+        buggy_list.sort(key=lambda x: x['total_completed'], reverse=True)
+        
+        return {
+            'total_completed_with_routes': len(completed_requests),
+            'unique_routes': len(route_list),
+            'most_popular_routes': route_list[:10],  # Top 10
+            'all_routes': route_list,
+            'driver_performance': driver_list,
+            'buggy_performance': buggy_list,
+            'date_range': {
+                'start': start_date.strftime('%Y-%m-%d'),
+                'end': end_date.strftime('%Y-%m-%d')
             }
         }

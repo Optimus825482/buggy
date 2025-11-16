@@ -1167,7 +1167,7 @@ const Admin = {
                             <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.25rem;">${failure.title}</div>
                             <div style="color: #ef4444; font-size: 0.75rem;">${failure.error_message || 'Bilinmeyen hata'}</div>
                             <div style="color: #6B7280; font-size: 0.75rem; margin-top: 0.25rem;">
-                                ${new Date(failure.sent_at).toLocaleString('tr-TR')}
+                                ${typeof TimezoneHelper !== 'undefined' ? TimezoneHelper.formatLocal(failure.sent_at) : new Date(failure.sent_at).toLocaleString('tr-TR')}
                             </div>
                         </div>
                     `;

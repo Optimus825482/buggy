@@ -49,6 +49,26 @@ def get_cyprus_now():
     return cyprus_time.replace(tzinfo=None)  # Remove timezone info for DB storage
 
 
+def format_cyprus_datetime(dt):
+    """
+    Format datetime as ISO string with Cyprus timezone indicator
+    
+    Args:
+        dt: timezone-naive datetime (stored as Cyprus time in DB)
+    
+    Returns:
+        str: ISO format string with +02:00 or +03:00 offset
+    """
+    if not dt:
+        return None
+    
+    cyprus_tz = pytz.timezone('Europe/Nicosia')
+    # Localize the naive datetime to Cyprus timezone
+    cyprus_dt = cyprus_tz.localize(dt)
+    # Return ISO format with timezone info
+    return cyprus_dt.isoformat()
+
+
 class RequestService:
     """Service for buggy request management"""
     
@@ -115,6 +135,15 @@ class RequestService:
         
         # Create request with Cyprus timezone timestamp
         current_time = get_cyprus_now()
+        
+        # ✅ DEBUG: Log the timestamp being saved
+        import pytz
+        from datetime import datetime
+        utc_now = datetime.now(pytz.UTC)
+        logger.info(f'🕐 [TIMEZONE_DEBUG] UTC now: {utc_now}')
+        logger.info(f'🕐 [TIMEZONE_DEBUG] Cyprus now (from get_cyprus_now): {current_time}')
+        logger.info(f'🕐 [TIMEZONE_DEBUG] Difference: {(current_time.replace(tzinfo=pytz.UTC) - utc_now).total_seconds() / 3600} hours')
+        
         request_obj = BuggyRequest(
             hotel_id=location.hotel_id,
             location_id=location_id,
@@ -125,7 +154,7 @@ class RequestService:
             notes=notes,
             guest_device_id=guest_device_id,
             status=RequestStatus.PENDING,
-            requested_at=current_time  # Explicitly set UTC timestamp
+            requested_at=current_time  # ✅ Cyprus timezone (timezone-naive for DB)
         )
         
         db.session.add(request_obj)
@@ -379,19 +408,13 @@ class RequestService:
         if notes:
             request_obj.notes = (request_obj.notes or '') + '\n' + notes
         
-        # Calculate completion time (seconds from acceptance to completion)
-        if request_obj.accepted_at:
-            delta = request_obj.completed_at - request_obj.accepted_at
-            request_obj.completion_time = int(delta.total_seconds())
-            logger.info(f"📊 Completion time calculated: {request_obj.completion_time}s for request {request_id}")
-        else:
-            logger.warning(f"⚠️ accepted_at is None for request {request_id}, cannot calculate completion_time")
-        
-        # Calculate total time (request to completion)
+        # Calculate completion time (seconds from REQUEST to completion - TOPLAM SÜRE)
         if request_obj.requested_at:
-            total_delta = request_obj.completed_at - request_obj.requested_at
-            total_time = int(total_delta.total_seconds())
-            logger.info(f"📊 Total time (request to completion): {total_time}s for request {request_id}")
+            delta = request_obj.completed_at - request_obj.requested_at
+            request_obj.completion_time = int(delta.total_seconds())
+            logger.info(f"📊 Completion time calculated (requested_at -> completed_at): {request_obj.completion_time}s for request {request_id}")
+        else:
+            logger.warning(f"⚠️ requested_at is None for request {request_id}, cannot calculate completion_time")
         
         # Update buggy status to available
         if request_obj.buggy:

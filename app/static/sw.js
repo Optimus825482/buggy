@@ -1,38 +1,39 @@
 // Service Worker for Shuttle Call PWA - Optimized Version
-// Version 5.2.0 - ✅ FRONTEND OPTIMIZATION: Enhanced Caching
+// Version 5.2.1 - ✅ STABLE: Reduced update frequency
 // Powered by Erkan ERDEM
 
-const CACHE_VERSION = 'shuttlecall-v5.2.0';
+// ✅ Sadece major değişikliklerde version'ı değiştir
+const CACHE_VERSION = "shuttlecall-v5.2-stable";
 const CACHE_NAME = `${CACHE_VERSION}-cache`;
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
 // Offline sayfası için cache
-const OFFLINE_URL = '/offline';
+const OFFLINE_URL = "/offline";
 
 // ✅ FRONTEND OPTIMIZATION: Expanded cache list
 const STATIC_ASSETS = [
-  '/static/icons/Icon-192.png',
-  '/static/icons/Icon-96.png',
-  '/static/css/main.css',
-  '/static/css/modern.css',
-  '/static/css/professional.css',
-  '/static/css/variables.css',
-  '/static/js/firebase-config.js',
-  '/static/js/common.js',
-  '/static/manifest.json'
+  "/static/icons/Icon-192.png",
+  "/static/icons/Icon-96.png",
+  "/static/css/main.css",
+  "/static/css/modern.css",
+  "/static/css/professional.css",
+  "/static/css/variables.css",
+  "/static/js/firebase-config.js",
+  "/static/js/common.js",
+  "/static/manifest.json",
 ];
 
 // ============================================================================
 // INSTALLATION
 // ============================================================================
 
-self.addEventListener('install', (event) => {
-  console.log('[SW v5.2] ✅ Installing Service Worker with enhanced caching');
+self.addEventListener("install", (event) => {
+  console.log("[SW v5.2] ✅ Installing Service Worker with enhanced caching");
 
   event.waitUntil(
     caches.open(STATIC_CACHE).then(async (cache) => {
-      console.log('[SW] Caching static assets');
+      console.log("[SW] Caching static assets");
 
       // Cache static assets with error handling
       for (const url of STATIC_ASSETS) {
@@ -40,14 +41,14 @@ self.addEventListener('install', (event) => {
           const response = await fetch(url);
           if (response.ok) {
             await cache.put(url, response);
-            console.log('[SW] ✅ Cached:', url);
+            console.log("[SW] ✅ Cached:", url);
           }
         } catch (err) {
-          console.warn('[SW] ⚠️ Failed to cache:', url, err.message);
+          console.warn("[SW] ⚠️ Failed to cache:", url, err.message);
         }
       }
 
-      console.log('[SW] Installation complete');
+      console.log("[SW] Installation complete");
     })
   );
 });
@@ -56,8 +57,8 @@ self.addEventListener('install', (event) => {
 // ACTIVATION
 // ============================================================================
 
-self.addEventListener('activate', (event) => {
-  console.log('[SW v5.2] ✅ Activating Service Worker');
+self.addEventListener("activate", (event) => {
+  console.log("[SW v5.2] ✅ Activating Service Worker");
 
   event.waitUntil(
     (async () => {
@@ -74,10 +75,10 @@ self.addEventListener('activate', (event) => {
         );
 
         // Claim clients after cache cleanup
-        console.log('[SW v5.2] ✅ Activation complete, claiming clients');
+        console.log("[SW v5.2] ✅ Activation complete, claiming clients");
         await self.clients.claim();
       } catch (error) {
-        console.warn('[SW] ⚠️ Activation error:', error);
+        console.warn("[SW] ⚠️ Activation error:", error);
       }
     })()
   );
@@ -87,9 +88,9 @@ self.addEventListener('activate', (event) => {
 // FETCH - Network First with Offline Fallback
 // ============================================================================
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener("fetch", (event) => {
   // Sadece GET isteklerini işle
-  if (event.request.method !== 'GET') {
+  if (event.request.method !== "GET") {
     return;
   }
 
@@ -97,40 +98,43 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // API endpoints - NEVER cache
-  if (url.pathname.startsWith('/api/')) {
+  if (url.pathname.startsWith("/api/")) {
     return;
   }
 
   // Dynamic routes - NEVER cache
-  if (url.pathname.startsWith('/driver/') ||
-      url.pathname.startsWith('/guest/') ||
-      url.pathname.startsWith('/admin/')) {
+  if (
+    url.pathname.startsWith("/driver/") ||
+    url.pathname.startsWith("/guest/") ||
+    url.pathname.startsWith("/admin/")
+  ) {
     return;
   }
 
   // Socket.IO - NEVER cache
-  if (url.pathname.includes('socket.io')) {
+  if (url.pathname.includes("socket.io")) {
     return;
   }
 
   // ✅ ONLY cache static assets
-  const isStaticAsset = url.pathname.startsWith('/static/') && (
-    url.pathname.endsWith('.css') ||
-    url.pathname.endsWith('.png') ||
-    url.pathname.endsWith('.jpg') ||
-    url.pathname.endsWith('.jpeg') ||
-    url.pathname.endsWith('.gif') ||
-    url.pathname.endsWith('.svg') ||
-    url.pathname.endsWith('.ico') ||
-    url.pathname.endsWith('.woff') ||
-    url.pathname.endsWith('.woff2') ||
-    url.pathname.endsWith('.ttf')
-  );
+  const isStaticAsset =
+    url.pathname.startsWith("/static/") &&
+    (url.pathname.endsWith(".css") ||
+      url.pathname.endsWith(".png") ||
+      url.pathname.endsWith(".jpg") ||
+      url.pathname.endsWith(".jpeg") ||
+      url.pathname.endsWith(".gif") ||
+      url.pathname.endsWith(".svg") ||
+      url.pathname.endsWith(".ico") ||
+      url.pathname.endsWith(".woff") ||
+      url.pathname.endsWith(".woff2") ||
+      url.pathname.endsWith(".ttf"));
 
   // ✅ JS files: Cache with version check (NOT token data!)
-  const isVersionedJS = url.pathname.startsWith('/static/js/') &&
-                        url.pathname.endsWith('.js') &&
-                        !url.search; // No query params = versioned file
+  const isVersionedJS =
+    url.pathname.startsWith("/static/js/") &&
+    url.pathname.endsWith(".js") &&
+    !url.search; // No query params = versioned file
 
   if (!isStaticAsset && !isVersionedJS) {
     // Don't cache anything else
@@ -141,11 +145,15 @@ self.addEventListener('fetch', (event) => {
     fetch(event.request)
       .then((response) => {
         // Cache ONLY static assets and versioned JS
-        if (response && response.status === 200 && (isStaticAsset || isVersionedJS)) {
+        if (
+          response &&
+          response.status === 200 &&
+          (isStaticAsset || isVersionedJS)
+        ) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseClone).catch((err) => {
-              console.warn('[SW] Cache put error:', err.message);
+              console.warn("[SW] Cache put error:", err.message);
             });
           });
         }
@@ -157,16 +165,16 @@ self.addEventListener('fetch', (event) => {
           if (cachedResponse) {
             return cachedResponse;
           }
-          
+
           // HTML sayfası için offline sayfasını göster
-          if (event.request.headers.get('accept').includes('text/html')) {
+          if (event.request.headers.get("accept").includes("text/html")) {
             return caches.match(OFFLINE_URL);
           }
-          
+
           // Diğer kaynaklar için boş response
-          return new Response('Offline', {
+          return new Response("Offline", {
             status: 503,
-            statusText: 'Service Unavailable'
+            statusText: "Service Unavailable",
           });
         });
       })
@@ -177,70 +185,73 @@ self.addEventListener('fetch', (event) => {
 // PUSH NOTIFICATIONS
 // ============================================================================
 
-self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received');
-  
+self.addEventListener("push", (event) => {
+  console.log("[SW] Push notification received");
+
   let data = {};
   try {
     data = event.data ? event.data.json() : {};
   } catch (e) {
-    console.error('[SW] Error parsing push data:', e);
-    data = { title: 'Yeni Bildirim', body: 'Yeni bir bildiriminiz var' };
+    console.error("[SW] Error parsing push data:", e);
+    data = { title: "Yeni Bildirim", body: "Yeni bir bildiriminiz var" };
   }
-  
-  const title = data.title || 'Shuttle Call';
+
+  const title = data.title || "Shuttle Call";
   const options = {
-    body: data.body || 'Yeni bir bildiriminiz var',
-    icon: data.icon || '/static/icons/Icon-192.png',
-    badge: '/static/icons/Icon-96.png',
+    body: data.body || "Yeni bir bildiriminiz var",
+    icon: data.icon || "/static/icons/Icon-192.png",
+    badge: "/static/icons/Icon-96.png",
     vibrate: [200, 100, 200],
-    tag: data.tag || 'shuttle-notification',
+    tag: data.tag || "shuttle-notification",
     requireInteraction: data.requireInteraction || false,
-    data: data.data || {}
+    data: data.data || {},
   };
-  
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 // ============================================================================
 // NOTIFICATION CLICK
 // ============================================================================
 
-self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event.notification.tag);
+self.addEventListener("notificationclick", (event) => {
+  console.log("[SW] Notification clicked:", event.notification.tag);
   event.notification.close();
-  
+
   // Get notification data
   const notificationData = event.notification.data || {};
-  const targetUrl = notificationData.url || '/driver/dashboard';
-  
+  const targetUrl = notificationData.url || "/driver/dashboard";
+
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Try to find existing driver dashboard window
-      for (let client of clientList) {
-        if (client.url.includes('/driver/dashboard') && 'focus' in client) {
-          console.log('[SW] Focusing existing dashboard window');
-          return client.focus();
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        // Try to find existing driver dashboard window
+        for (let client of clientList) {
+          if (client.url.includes("/driver/dashboard") && "focus" in client) {
+            console.log("[SW] Focusing existing dashboard window");
+            return client.focus();
+          }
         }
-      }
-      
-      // Try to find any window in scope
-      for (let client of clientList) {
-        if (client.url.includes(self.registration.scope) && 'focus' in client) {
-          console.log('[SW] Focusing existing window and navigating');
-          client.navigate(targetUrl);
-          return client.focus();
+
+        // Try to find any window in scope
+        for (let client of clientList) {
+          if (
+            client.url.includes(self.registration.scope) &&
+            "focus" in client
+          ) {
+            console.log("[SW] Focusing existing window and navigating");
+            client.navigate(targetUrl);
+            return client.focus();
+          }
         }
-      }
-      
-      // Open new window
-      if (clients.openWindow) {
-        console.log('[SW] Opening new window:', targetUrl);
-        return clients.openWindow(targetUrl);
-      }
-    })
+
+        // Open new window
+        if (clients.openWindow) {
+          console.log("[SW] Opening new window:", targetUrl);
+          return clients.openWindow(targetUrl);
+        }
+      })
   );
 });
 
@@ -248,18 +259,19 @@ self.addEventListener('notificationclick', (event) => {
 // MESSAGE HANDLER
 // ============================================================================
 
-self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event.data);
-  
-  if (event.data && event.data.action === 'skipWaiting') {
+self.addEventListener("message", (event) => {
+  console.log("[SW] Message received:", event.data);
+
+  if (event.data && event.data.action === "skipWaiting") {
     self.skipWaiting();
   }
-  
+
   // Badge reset handler
-  if (event.data && event.data.action === 'resetBadgeCount') {
+  if (event.data && event.data.action === "resetBadgeCount") {
     // Badge API desteği varsa sıfırla
-    if ('setAppBadge' in self.navigator) {
-      self.navigator.clearAppBadge()
+    if ("setAppBadge" in self.navigator) {
+      self.navigator
+        .clearAppBadge()
         .then(() => {
           // MessageChannel ile cevap gönder
           if (event.ports && event.ports[0]) {
@@ -267,7 +279,7 @@ self.addEventListener('message', (event) => {
           }
         })
         .catch((error) => {
-          console.warn('[SW] Badge clear error:', error);
+          console.warn("[SW] Badge clear error:", error);
           if (event.ports && event.ports[0]) {
             event.ports[0].postMessage({ success: false, count: 0 });
           }
@@ -279,16 +291,16 @@ self.addEventListener('message', (event) => {
       }
     }
   }
-  
+
   // Network status handler
-  if (event.data && event.data.action === 'getNetworkStatus') {
+  if (event.data && event.data.action === "getNetworkStatus") {
     if (event.ports && event.ports[0]) {
-      event.ports[0].postMessage({ 
+      event.ports[0].postMessage({
         online: self.navigator.onLine,
-        type: self.navigator.connection?.effectiveType || 'unknown'
+        type: self.navigator.connection?.effectiveType || "unknown",
       });
     }
   }
 });
 
-console.log('[SW v5.1] Service Worker loaded successfully - PWA Ready!');
+console.log("[SW v5.1] Service Worker loaded successfully - PWA Ready!");

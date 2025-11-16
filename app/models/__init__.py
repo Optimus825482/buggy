@@ -9,16 +9,18 @@ import os
 
 def get_current_timestamp():
     """
-    Get current UTC timestamp (timezone-aware, then converted to naive)
+    Get current Cyprus timezone timestamp (timezone-naive for DB storage)
     
-    IMPORTANT: All timestamps in the database are stored in UTC.
-    Frontend should handle timezone conversion for display.
+    IMPORTANT: All timestamps in the database are stored in Cyprus local time.
+    This matches the hotel's operational timezone (Europe/Nicosia - GMT+2/+3).
     
     Returns:
-        datetime: Current UTC timestamp (naive datetime)
+        datetime: Current Cyprus timestamp (naive datetime)
     """
-    # Always use UTC for database storage (best practice for production)
-    return datetime.now(pytz.UTC).replace(tzinfo=None)
+    # ✅ Use Cyprus timezone for database storage (matches hotel operations)
+    cyprus_tz = pytz.timezone('Europe/Nicosia')
+    cyprus_time = datetime.now(cyprus_tz)
+    return cyprus_time.replace(tzinfo=None)
 
 
 # Base model class

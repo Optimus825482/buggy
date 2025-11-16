@@ -212,50 +212,8 @@ def _handle_driver_disconnect_async(user_id, buggy_data):
             pass
 
 
-@socketio.on('join_hotel')
-def handle_join_hotel(data):
-    """Join hotel room for real-time updates"""
-    logger = get_logger()
-    
-    logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-    logger.info(f'📥 [WEBSOCKET] join_hotel event received!')
-    logger.info(f'   Data: {data}')
-    logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-    
-    hotel_id = data.get('hotel_id')
-    role = data.get('role', 'guest')  # admin, driver, guest
-    
-    logger.info(f'   Hotel ID: {hotel_id}')
-    logger.info(f'   Role: {role}')
-
-    if hotel_id:
-        # Join hotel room
-        room = f'hotel_{hotel_id}'
-        join_room(room)
-        logger.info(f'✅ Joined room: {room}')
-
-        # Join role-specific room (use singular form for consistency)
-        if role == 'admin':
-            role_room = f'hotel_{hotel_id}_admin'
-            join_room(role_room)
-            logger.info(f'✅ [WEBSOCKET] Admin joined: {room} and {role_room}')
-        elif role == 'driver':
-            role_room = f'hotel_{hotel_id}_drivers'
-            join_room(role_room)
-            logger.info(f'✅ [WEBSOCKET] Driver joined room: {role_room}')
-        else:
-            logger.info(f'✅ [WEBSOCKET] Guest joined: {room}')
-
-        logger.info(f'📤 Emitting joined_hotel event...')
-        emit('joined_hotel', {
-            'hotel_id': hotel_id,
-            'role': role,
-            'room': role_room if role in ['admin', 'driver'] else room
-        })
-        logger.info(f'✅ joined_hotel event emitted!')
-    else:
-        logger.warning('❌ No hotel_id provided!')
-        logger.warning('join_hotel called without hotel_id')
+# ✅ REMOVED: Duplicate join_hotel handler (using the one in __init__.py instead)
+# This was causing conflicts - only one handler should exist per event
 
 
 @socketio.on('join_request')

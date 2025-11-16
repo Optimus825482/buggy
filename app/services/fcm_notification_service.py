@@ -17,6 +17,13 @@ from app.models.notification_log import NotificationLog
 from app.utils.logger import logger, log_fcm_event, log_error
 from typing import List, Dict, Optional, Tuple
 
+# ✅ Import Cyprus timezone helper
+def get_cyprus_now():
+    """Get current Cyprus time"""
+    import pytz
+    cyprus_tz = pytz.timezone('Europe/Nicosia')
+    return datetime.now(cyprus_tz).replace(tzinfo=None)
+
 
 class FCMNotificationService:
     """Firebase Cloud Messaging servisi - Production Ready"""
@@ -531,6 +538,7 @@ class FCMNotificationService:
         logger.info(f'📋 Request ID: {request_obj.id}')
         logger.info(f'🏨 Hotel ID: {request_obj.hotel_id}')
         logger.info(f'📍 Location: {request_obj.location.name}')
+        logger.info(f'⌚ Time: {request_obj.requested_at}')
         logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 
         # Tüm buggy'leri detaylı logla
@@ -788,7 +796,7 @@ class FCMNotificationService:
                     body=body,
                     status=status,
                     error_message=error,
-                    sent_at=datetime.utcnow().replace(tzinfo=None)  # UTC naive
+                    sent_at=get_cyprus_now()  # ✅ Cyprus timezone
                 )
                 db.session.add(log)
                 db.session.commit()
@@ -890,7 +898,7 @@ class FCMNotificationService:
             
             # Register token
             user.fcm_token = token
-            user.fcm_token_date = datetime.utcnow().replace(tzinfo=None)  # UTC naive
+            user.fcm_token_date = get_cyprus_now()  # ✅ Cyprus timezone
             db.session.commit()
 
             # ✅ CRITICAL: Expire session to clear cache
@@ -929,7 +937,7 @@ class FCMNotificationService:
             
             # Yeni token kaydet
             user.fcm_token = new_token
-            user.fcm_token_date = datetime.utcnow().replace(tzinfo=None)  # UTC naive
+            user.fcm_token_date = get_cyprus_now()  # ✅ Cyprus timezone
             db.session.commit()
             
             print(f"🔄 FCM token yenilendi: User {user_id}")

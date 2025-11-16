@@ -86,7 +86,7 @@ async function showRequestDetails(requestId) {
                     <p><strong>Telefon:</strong> ${req.phone || '-'}</p>
                     <p><strong>Lokasyon:</strong> ${req.location ? req.location.name : '-'}</p>
                     <p><strong>Durum:</strong> ${statusBadges[req.status] || req.status}</p>
-                    <p><strong>Talep Zamanı:</strong> ${new Date(req.requested_at).toLocaleString('tr-TR')}</p>
+                    <p><strong>Talep Zamanı:</strong> ${typeof TimezoneHelper !== 'undefined' ? TimezoneHelper.formatLocal(req.requested_at) : new Date(req.requested_at).toLocaleString('tr-TR')}</p>
                     ${req.driver ? `<p><strong>Sürücü:</strong> ${req.driver.full_name}</p>` : ''}
                     ${req.buggy ? `<p><strong>Shuttle:</strong> ${req.buggy.code}</p>` : ''}
                     ${req.notes ? `<p><strong>Notlar:</strong> ${req.notes}</p>` : ''}

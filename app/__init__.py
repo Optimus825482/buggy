@@ -219,6 +219,15 @@ def setup_logging(app):
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)  # En düşük seviye
     
+    # ✅ SQLAlchemy loglarını kapat (çok fazla log üretiyor)
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+    logging.getLogger('sqlalchemy.pool').setLevel(logging.WARNING)
+    logging.getLogger('sqlalchemy.dialects').setLevel(logging.WARNING)
+    logging.getLogger('sqlalchemy.orm').setLevel(logging.WARNING)
+    
+    # ✅ Werkzeug (Flask dev server) loglarını kapat
+    logging.getLogger('werkzeug').setLevel(logging.ERROR)  # Sadece ERROR göster
+    
     if not root_logger.handlers:
         # File handler: Sadece DEBUG ve ERROR
         try:
@@ -439,7 +448,19 @@ def register_error_handlers(app):
     def not_found_error(error):
         """Handle not found errors"""
         from flask import request
-        app.logger.warning(f'404 Not Found: {request.method} {request.path}')
+        
+        # ✅ Chrome DevTools ve diğer otomatik istekleri loglamayalım
+        ignored_paths = [
+            '/.well-known/',
+            '/favicon.ico',
+            '/__debug__',
+            '/apple-touch-icon'
+        ]
+        
+        should_log = not any(ignored in request.path for ignored in ignored_paths)
+        
+        if should_log:
+            app.logger.warning(f'404 Not Found: {request.method} {request.path}')
         
         if app.config['DEBUG']:
             return jsonify({'error': 'Not found', 'path': request.path}), 404

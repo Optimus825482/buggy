@@ -36,7 +36,10 @@ class Location(db.Model, BaseModel):
     
     # Relationships
     hotel = relationship('Hotel', back_populates='locations')
-    requests = relationship('BuggyRequest', back_populates='location', cascade='all, delete-orphan')
+    requests = relationship('BuggyRequest', 
+                          back_populates='location', 
+                          foreign_keys='BuggyRequest.location_id',
+                          cascade='all, delete-orphan')
     
     def to_dict(self):
         """Convert to dictionary"""
