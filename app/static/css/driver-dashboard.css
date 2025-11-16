@@ -1136,7 +1136,7 @@
     padding: 1rem 1.5rem;
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
-    z-index: 1005;
+    z-index: 9999 !important;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -1145,6 +1145,7 @@
     max-width: 350px;
     margin: 0 !important;
     transform: none !important;
+    pointer-events: all !important;
 }
 
 .guest-alert-icon {

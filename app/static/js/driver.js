@@ -124,13 +124,18 @@ const DriverDashboard = {
         console.log('🔌 Initializing WebSocket...');
 
         try {
-            this.socket = io({
+            this.socket = io('/', {
                 transports: ['websocket', 'polling'],
                 reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
-                reconnectionAttempts: this.maxReconnectAttempts
+                reconnectionAttempts: this.maxReconnectAttempts,
+                forceNew: false,
+                autoConnect: true
             });
+
+            // ✅ IMPORTANT: Setup ALL event listeners BEFORE connecting
+            console.log('📡 [WEBSOCKET] Setting up event listeners...');
 
             // Connection events
             this.socket.on('connect', () => this.onSocketConnect());
@@ -144,9 +149,21 @@ const DriverDashboard = {
             this.socket.on('request_cancelled', (data) => this.onRequestCancelled(data));
             this.socket.on('request_completed', (data) => this.onRequestCompleted(data));
 
-            // ✅ Guest events
-            this.socket.on('guest_connected', (data) => this.onGuestConnected(data));
+            // ✅ Guest events - WITH DETAILED LOGGING
+            this.socket.on('guest_connected', (data) => {
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('🚨 [WEBSOCKET] guest_connected event received RAW!');
+                console.log('   Raw Data:', JSON.stringify(data, null, 2));
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                this.onGuestConnected(data);
+            });
 
+            // ✅ Catch-all for debugging
+            this.socket.onAny((eventName, ...args) => {
+                console.log(`📨 [WEBSOCKET] Event received: ${eventName}`, args);
+            });
+
+            console.log('✅ [WEBSOCKET] All event listeners registered');
             console.log('✅ WebSocket initialized');
         } catch (error) {
             console.error('❌ WebSocket initialization failed:', error);
