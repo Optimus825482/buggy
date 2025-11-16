@@ -38,7 +38,9 @@ class Config:
         'pool_pre_ping': True,  # Test connections before use
         'max_overflow': 40,  # Additional connections (was 20) - Total: 60 connections
         'pool_timeout': 30,  # Wait 30s for connection before timeout
-        'echo_pool': False  # Don't log pool events (performance)
+        'echo_pool': False,  # Don't log pool events (performance)
+        # ✅ CRITICAL: Session cleanup settings
+        'pool_reset_on_return': 'rollback'  # Rollback on connection return
     }
     
     # JWT Configuration
@@ -165,7 +167,9 @@ class ProductionConfig(Config):
         'pool_pre_ping': True,  # Test connections before use (essential for production)
         'max_overflow': 60,  # Higher overflow for traffic spikes (was 5) - Total: 90 connections
         'pool_timeout': 30,  # Wait 30s for connection
-        'echo_pool': False  # Don't log pool events (performance)
+        'echo_pool': False,  # Don't log pool events (performance)
+        # ✅ CRITICAL: Session cleanup settings
+        'pool_reset_on_return': 'rollback'  # Rollback on connection return
     }
     
     # Use threading for production (gevent requires additional setup)

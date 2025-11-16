@@ -163,6 +163,7 @@ def _handle_driver_disconnect_async(user_id, buggy_data):
         from app import create_app
         app = create_app()
 
+        # ✅ CRITICAL: Ensure proper session cleanup in background thread
         with app.app_context():
             # Log audit trail
             AuditService.log_action(
@@ -202,6 +203,13 @@ def _handle_driver_disconnect_async(user_id, buggy_data):
         print(f'[DISCONNECT_ASYNC] Error sending notifications for user {user_id}: {str(e)}')
         import traceback
         traceback.print_exc()
+        # ✅ Session cleanup handled by app context manager
+    finally:
+        # ✅ Explicit cleanup for background thread
+        try:
+            db.session.remove()
+        except:
+            pass
 
 
 @socketio.on('join_hotel')

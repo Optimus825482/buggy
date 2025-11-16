@@ -136,3 +136,39 @@ def version():
         'python_version': sys.version,
         'timestamp': datetime.utcnow().isoformat()
     }), 200
+
+
+@health_bp.route('/db-pool-status', methods=['GET'])
+def db_pool_status():
+    """
+    ✅ MySQL Connection Pool Monitoring Endpoint
+    Returns detailed connection pool statistics
+    """
+    try:
+        from app.utils.db_monitor import DBConnectionMonitor
+        
+        # Get pool status
+        pool_status = DBConnectionMonitor.get_pool_status()
+        
+        # Get health check
+        is_healthy, warnings = DBConnectionMonitor.check_pool_health()
+        
+        # Get detailed info
+        connection_info = DBConnectionMonitor.get_connection_info()
+        
+        response = {
+            'status': 'healthy' if is_healthy else 'warning',
+            'timestamp': datetime.utcnow().isoformat(),
+            'pool': pool_status,
+            'warnings': warnings,
+            'details': connection_info
+        }
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500

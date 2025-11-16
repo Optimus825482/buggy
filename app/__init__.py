@@ -147,6 +147,9 @@ def create_app(config_name=None):
     
     # Register error handlers
     register_error_handlers(app)
+    
+    # ✅ CRITICAL: Register session cleanup handler
+    register_session_cleanup(app)
 
     # Register suspicious activity detection (disabled in testing)
     if not app.config['TESTING']:
@@ -598,6 +601,47 @@ def create_upload_folders(app):
             app.logger.error(f"❌ Failed to create upload folder {folder}: {e}")
             # Don't raise - app can still function without uploads
             pass
+
+
+def register_session_cleanup(app):
+    """
+    ✅ CRITICAL: Register database session cleanup handlers
+    Ensures connections are properly returned to the pool
+    """
+    
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        """
+        Clean up database session after each request/app context
+        This is CRITICAL for connection pool management
+        """
+        try:
+            if exception:
+                # Rollback on exception
+                db.session.rollback()
+                app.logger.debug(f"Session rolled back due to exception: {exception}")
+            else:
+                # Remove session (returns connection to pool)
+                db.session.remove()
+                app.logger.debug("Session cleaned up successfully")
+        except Exception as e:
+            app.logger.error(f"Error during session cleanup: {e}")
+            try:
+                db.session.rollback()
+            except:
+                pass
+    
+    @app.teardown_request
+    def teardown_request(exception=None):
+        """
+        Additional cleanup after each request
+        Ensures session is closed even if teardown_appcontext fails
+        """
+        if exception:
+            try:
+                db.session.rollback()
+            except:
+                pass
 
 
 def register_shell_context(app):

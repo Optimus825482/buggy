@@ -97,7 +97,8 @@ class BackgroundJobsService:
         try:
             from app import create_app
             app = create_app()
-
+            
+            # ✅ CRITICAL: Ensure proper session cleanup in background job
             with app.app_context():
                 logger.info("Starting retry_failed_notifications job")
 
@@ -207,9 +208,14 @@ class BackgroundJobsService:
         - Mark as permanently_failed if retry_count >= 3
         """
         try:
-            logger.info("Starting mark_permanently_failed job")
+            from app import create_app
+            app = create_app()
             
-            cutoff_time = datetime.utcnow() - timedelta(hours=24)
+            # ✅ CRITICAL: Ensure proper session cleanup in background job
+            with app.app_context():
+                logger.info("Starting mark_permanently_failed job")
+                
+                cutoff_time = datetime.utcnow() - timedelta(hours=24)
             
             # Find old failed notifications with max retries
             old_failed = NotificationLog.query.filter(
@@ -221,20 +227,23 @@ class BackgroundJobsService:
             if not old_failed:
                 logger.info("No notifications to mark as permanently failed")
                 return
-            
-            logger.info(f"Marking {len(old_failed)} notifications as permanently failed")
-            
-            for log in old_failed:
-                log.status = 'permanently_failed'
-                if not log.error_message:
-                    log.error_message = 'Max retry attempts exceeded'
-            
-            db.session.commit()
-            logger.info(f"Marked {len(old_failed)} notifications as permanently failed")
+                
+                logger.info(f"Marking {len(old_failed)} notifications as permanently failed")
+                
+                for log in old_failed:
+                    log.status = 'permanently_failed'
+                    if not log.error_message:
+                        log.error_message = 'Max retry attempts exceeded'
+                
+                db.session.commit()
+                logger.info(f"Marked {len(old_failed)} notifications as permanently failed")
             
         except Exception as e:
             logger.error(f"Error in mark_permanently_failed job: {str(e)}")
-            db.session.rollback()
+            try:
+                db.session.rollback()
+            except:
+                pass
     
     @staticmethod
     def cleanup_old_logs(days=30):
@@ -249,35 +258,43 @@ class BackgroundJobsService:
         - Keep permanently_failed logs for audit purposes
         """
         try:
-            logger.info(f"Starting cleanup_old_logs job (keeping last {days} days)")
+            from app import create_app
+            app = create_app()
             
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
-            
-            # Delete old logs except permanently_failed ones
-            deleted_count = NotificationLog.query.filter(
-                NotificationLog.sent_at < cutoff_date,
-                NotificationLog.status != 'permanently_failed'
-            ).delete(synchronize_session=False)
-            
-            db.session.commit()
-            
-            logger.info(f"Cleanup completed: {deleted_count} old logs deleted")
-            
-            # Also cleanup very old permanently_failed logs (90 days)
-            very_old_cutoff = datetime.utcnow() - timedelta(days=90)
-            very_old_deleted = NotificationLog.query.filter(
-                NotificationLog.sent_at < very_old_cutoff,
-                NotificationLog.status == 'permanently_failed'
-            ).delete(synchronize_session=False)
-            
-            db.session.commit()
-            
-            if very_old_deleted > 0:
-                logger.info(f"Cleanup completed: {very_old_deleted} very old permanently_failed logs deleted")
+            # ✅ CRITICAL: Ensure proper session cleanup in background job
+            with app.app_context():
+                logger.info(f"Starting cleanup_old_logs job (keeping last {days} days)")
+                
+                cutoff_date = datetime.utcnow() - timedelta(days=days)
+                
+                # Delete old logs except permanently_failed ones
+                deleted_count = NotificationLog.query.filter(
+                    NotificationLog.sent_at < cutoff_date,
+                    NotificationLog.status != 'permanently_failed'
+                ).delete(synchronize_session=False)
+                
+                db.session.commit()
+                
+                logger.info(f"Cleanup completed: {deleted_count} old logs deleted")
+                
+                # Also cleanup very old permanently_failed logs (90 days)
+                very_old_cutoff = datetime.utcnow() - timedelta(days=90)
+                very_old_deleted = NotificationLog.query.filter(
+                    NotificationLog.sent_at < very_old_cutoff,
+                    NotificationLog.status == 'permanently_failed'
+                ).delete(synchronize_session=False)
+                
+                db.session.commit()
+                
+                if very_old_deleted > 0:
+                    logger.info(f"Cleanup completed: {very_old_deleted} very old permanently_failed logs deleted")
             
         except Exception as e:
             logger.error(f"Error in cleanup_old_logs job: {str(e)}")
-            db.session.rollback()
+            try:
+                db.session.rollback()
+            except:
+                pass
     
     @staticmethod
     def check_request_timeouts():
@@ -308,6 +325,10 @@ class BackgroundJobsService:
             
         except Exception as e:
             logger.error(f"Error in check_request_timeouts job: {str(e)}")
+            try:
+                db.session.rollback()
+            except:
+                pass
     
     @staticmethod
     def shutdown_scheduler():
