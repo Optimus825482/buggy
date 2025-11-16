@@ -78,7 +78,7 @@ const Utils = {
     showToast(message, type = 'info') {
         // Create notification element with Tailwind classes
         const notification = document.createElement('div');
-        
+
         // Map type to Tailwind colors
         const colorClasses = {
             'success': 'bg-green-500 border-green-600',
@@ -86,10 +86,18 @@ const Utils = {
             'warning': 'bg-yellow-500 border-yellow-600',
             'info': 'bg-blue-500 border-blue-600'
         };
-        
-        notification.className = `fixed top-5 right-5 min-w-[300px] max-w-[500px] ${colorClasses[type] || colorClasses.info} text-white px-6 py-4 rounded-lg shadow-2xl border-l-4 flex items-center justify-between gap-3`;
-        // ✅ CRITICAL: Very high z-index to appear above everything (footer, modals, etc.)
-        notification.style.cssText = 'z-index: 999999; animation: slideInRight 0.3s ease-out;';
+
+        // ✅ CRITICAL: Calculate position below header
+        // Find the header element and get its height
+        const header = document.querySelector('.dashboard-header, .location-header, header');
+        const headerHeight = header ? header.offsetHeight : 0;
+        const topPosition = headerHeight > 0 ? headerHeight + 20 : 20; // 20px margin below header
+
+        console.log(`🔔 [TOAST] Positioning notification - Header height: ${headerHeight}px, Top position: ${topPosition}px`);
+
+        notification.className = `fixed right-5 min-w-[300px] max-w-[500px] ${colorClasses[type] || colorClasses.info} text-white px-6 py-4 rounded-lg shadow-2xl border-l-4 flex items-center justify-between gap-3`;
+        // ✅ CRITICAL: Position below header with very high z-index
+        notification.style.cssText = `top: ${topPosition}px; z-index: 999999; animation: slideInRight 0.3s ease-out;`;
         
         const icon = type === 'success' ? 'check-circle' : 
                      type === 'danger' ? 'times-circle' : 

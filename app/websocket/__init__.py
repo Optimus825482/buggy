@@ -234,17 +234,31 @@ def handle_guest_connected(data):
         guest_count = CONNECTED_GUESTS[hotel_id]
         
         logger.info(f"👤 Guest connected to hotel {hotel_id} (total: {guest_count})")
-        
-        # Broadcast to all drivers in this hotel (throttled)
-        throttled_emit('guest_connected', {
+
+        # Prepare event data
+        event_data = {
             'hotel_id': hotel_id,
             'location_id': location_id,
             'location_name': location_name,
             'guest_count': guest_count,
             'timestamp': socketio.server.get_current_time() if hasattr(socketio.server, 'get_current_time') else None
-        }, room=f'hotel_{hotel_id}_drivers', broadcast=True)
-        
-        logger.info(f"📡 Broadcast guest_connected to hotel_{hotel_id}_drivers")
+        }
+
+        drivers_room = f'hotel_{hotel_id}_drivers'
+
+        # Log detailed information
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        logger.info(f'📡 [GUEST_CONNECTED] Broadcasting to drivers:')
+        logger.info(f'   Room: {drivers_room}')
+        logger.info(f'   Hotel ID: {hotel_id}')
+        logger.info(f'   Location: {location_name}')
+        logger.info(f'   Guest Count: {guest_count}')
+        logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+        # Broadcast to all drivers in this hotel (throttled)
+        throttled_emit('guest_connected', event_data, room=drivers_room, broadcast=True)
+
+        logger.info(f"✅ [GUEST_CONNECTED] Event emitted to {drivers_room}")
         
     except Exception as e:
         logger.error(f"❌ Error in handle_guest_connected: {str(e)}")

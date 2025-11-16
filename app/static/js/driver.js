@@ -120,6 +120,7 @@ const DriverDashboard = {
             this.socket.on('connect', () => this.onSocketConnect());
             this.socket.on('disconnect', () => this.onSocketDisconnect());
             this.socket.on('connect_error', (error) => this.onSocketError(error));
+            this.socket.on('joined_hotel', (data) => this.onJoinedHotel(data));
 
             // Request events
             this.socket.on('new_request', (data) => this.onNewRequest(data));
@@ -145,6 +146,10 @@ const DriverDashboard = {
         this.reconnectAttempts = 0;
 
         // Join hotel drivers room
+        console.log('📤 [WEBSOCKET] Emitting join_hotel event...', {
+            hotel_id: this.state.hotelId,
+            role: 'driver'
+        });
         this.socket.emit('join_hotel', {
             hotel_id: this.state.hotelId,
             role: 'driver'
@@ -152,6 +157,17 @@ const DriverDashboard = {
 
         // Update UI
         this.updateConnectionStatus('connected');
+    },
+
+    /**
+     * Successfully joined hotel room
+     */
+    onJoinedHotel(data) {
+        console.log('✅ [WEBSOCKET] Successfully joined hotel room:', data);
+        console.log(`   - Hotel ID: ${data.hotel_id}`);
+        console.log(`   - Role: ${data.role}`);
+        console.log(`   - Room: ${data.room}`);
+        console.log('   - Now listening for guest_connected events...');
     },
 
     /**
@@ -268,16 +284,25 @@ const DriverDashboard = {
      * Guest connected notification
      */
     onGuestConnected(data) {
-        console.log('🚨 Guest Connected:', data);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('🚨 [GUEST_CONNECTED] Event received!');
+        console.log('   Data:', data);
+        console.log('   Location:', data.location_name || 'Bilinmeyen Lokasyon');
+        console.log('   Hotel ID:', data.hotel_id);
+        console.log('   Guest Count:', data.guest_count);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
         // Show toast notification
         const locationName = data.location_name || 'Bilinmeyen Lokasyon';
+        console.log('📢 [GUEST_CONNECTED] Showing toast notification...');
         BuggyCall.Utils.showToast(`🚨 Yeni Misafir Bağlandı!\n📍 ${locationName}`, 'info');
 
         // Play notification sound
+        console.log('🔊 [GUEST_CONNECTED] Playing notification sound...');
         this.playNotificationSound();
 
         // Optionally refresh pending requests
+        console.log('🔄 [GUEST_CONNECTED] Refreshing pending requests...');
         this.loadPendingRequests();
     },
 

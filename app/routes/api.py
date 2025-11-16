@@ -994,10 +994,22 @@ def create_request():
         
         # Emit WebSocket event for drivers and admins
         from app import socketio
+
+        # ✅ CRITICAL: Prepare event data safely (avoid DetachedInstanceError)
+        try:
+            location_dict = location.to_dict()
+        except Exception as location_error:
+            log_error('LOCATION_TO_DICT', str(location_error), {'location_id': location.id})
+            location_dict = {
+                'id': location.id,
+                'name': location.name,
+                'hotel_id': location.hotel_id
+            }
+
         event_data = {
             'request_id': buggy_request.id,
             'guest_name': buggy_request.guest_name,
-            'location': location.to_dict(),
+            'location': location_dict,
             'room_number': buggy_request.room_number,
             'phone_number': buggy_request.phone,
             'notes': buggy_request.notes,
@@ -1005,14 +1017,22 @@ def create_request():
         }
         
         # Send via SSE (Server-Sent Events) - Simple and reliable!
-        from app.routes.sse import send_to_all_drivers
-        sent_count = send_to_all_drivers(location.hotel_id, 'new_request', event_data)
-        log_websocket_event('SSE_NEW_REQUEST', {'request_id': buggy_request.id, 'drivers_notified': sent_count})
-        
+        try:
+            from app.routes.sse import send_to_all_drivers
+            sent_count = send_to_all_drivers(location.hotel_id, 'new_request', event_data)
+            log_websocket_event('SSE_NEW_REQUEST', {'request_id': buggy_request.id, 'drivers_notified': sent_count})
+        except Exception as sse_error:
+            log_error('SSE_NOTIFICATION', str(sse_error), {'request_id': buggy_request.id})
+            # Continue even if SSE fails
+
         # Also send via WebSocket for admin panel
-        admin_room = f'hotel_{location.hotel_id}_admin'
-        socketio.emit('new_request', event_data, room=admin_room, namespace='/')
-        log_websocket_event('WS_NEW_REQUEST_ADMIN', {'request_id': buggy_request.id, 'room': admin_room})
+        try:
+            admin_room = f'hotel_{location.hotel_id}_admin'
+            socketio.emit('new_request', event_data, room=admin_room, namespace='/')
+            log_websocket_event('WS_NEW_REQUEST_ADMIN', {'request_id': buggy_request.id, 'room': admin_room})
+        except Exception as ws_error:
+            log_error('WS_NOTIFICATION_ADMIN', str(ws_error), {'request_id': buggy_request.id})
+            # Continue even if WebSocket fails
         
         # Send push notifications to available drivers (FCM)
         try:
@@ -1023,15 +1043,52 @@ def create_request():
             log_error('FCM_NOTIFICATION', str(e), {'request_id': buggy_request.id})
             # Don't fail the request if notification fails
         
+        # ✅ CRITICAL: Prepare response data safely
+        try:
+            request_dict = buggy_request.to_dict(include_relations=False)
+        except Exception as dict_error:
+            log_error('REQUEST_TO_DICT', str(dict_error), {'request_id': buggy_request.id})
+            request_dict = {
+                'id': buggy_request.id,
+                'status': buggy_request.status.value if buggy_request.status else 'PENDING',
+                'guest_name': buggy_request.guest_name,
+                'location_id': buggy_request.location_id
+            }
+
         return jsonify({
             'success': True,
             'message': 'Buggy çağrınız alındı',
             'request_id': buggy_request.id,
-            'request': buggy_request.to_dict()
+            'request': request_dict
         }), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+
+        # ✅ Enhanced error logging for production debugging
+        import traceback
+        error_details = {
+            'error_type': type(e).__name__,
+            'error_message': str(e),
+            'traceback': traceback.format_exc(),
+            'request_data': data if 'data' in locals() else 'N/A'
+        }
+
+        log_error('CREATE_REQUEST_FAILED', str(e), error_details)
+
+        # Log to console for immediate visibility
+        print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        print('❌ [CREATE_REQUEST] CRITICAL ERROR:')
+        print(f'   Type: {type(e).__name__}')
+        print(f'   Message: {str(e)}')
+        print('   Traceback:')
+        print(traceback.format_exc())
+        print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+        return jsonify({
+            'error': str(e),
+            'error_type': type(e).__name__,
+            'message': 'Request oluşturulamadı. Lütfen tekrar deneyin.'
+        }), 500
 
 
 @api_bp.route('/requests', methods=['GET'])
@@ -1070,18 +1127,30 @@ def get_requests():
         
         # Get requests
         requests = query.order_by(BuggyRequest.requested_at.desc()).all()
-        
+
         result = []
         for req in requests:
-            req_dict = req.to_dict()
-            # Add location info
-            if req.location:
-                req_dict['location'] = req.location.to_dict()
-            # Add buggy info
-            if req.buggy:
-                req_dict['buggy'] = req.buggy.to_dict()
-            result.append(req_dict)
-        
+            try:
+                # ✅ Use safe to_dict with relations
+                req_dict = req.to_dict(include_relations=False)
+                # Add location info safely
+                try:
+                    if req.location:
+                        req_dict['location'] = req.location.to_dict()
+                except Exception:
+                    req_dict['location'] = None
+                # Add buggy info safely
+                try:
+                    if req.buggy:
+                        req_dict['buggy'] = req.buggy.to_dict()
+                except Exception:
+                    req_dict['buggy'] = None
+                result.append(req_dict)
+            except Exception as req_error:
+                log_error('GET_REQUESTS_ITEM', str(req_error), {'request_id': req.id})
+                # Skip failed items
+                continue
+
         return jsonify({
             'success': True,
             'requests': result
@@ -1096,22 +1165,38 @@ def get_request(request_id):
     """Get single request (Guest - no auth required)"""
     try:
         buggy_request = BuggyRequest.query.get(request_id)
-        
+
         if not buggy_request:
             return jsonify({'error': 'Talep bulunamadı'}), 404
-        
-        req_dict = buggy_request.to_dict()
-        # Add location info
-        if buggy_request.location:
-            req_dict['location'] = buggy_request.location.to_dict()
-        # Add buggy info
-        if buggy_request.buggy:
-            req_dict['buggy'] = {
-                'id': buggy_request.buggy.id,
-                'code': buggy_request.buggy.code,
-                'icon': buggy_request.buggy.icon
+
+        # ✅ Safe to_dict call
+        try:
+            req_dict = buggy_request.to_dict(include_relations=False)
+        except Exception as dict_error:
+            log_error('GET_REQUEST_TO_DICT', str(dict_error), {'request_id': request_id})
+            req_dict = {
+                'id': buggy_request.id,
+                'status': buggy_request.status.value if buggy_request.status else 'PENDING'
             }
-        
+
+        # Add location info safely
+        try:
+            if buggy_request.location:
+                req_dict['location'] = buggy_request.location.to_dict()
+        except Exception:
+            req_dict['location'] = None
+
+        # Add buggy info safely
+        try:
+            if buggy_request.buggy:
+                req_dict['buggy'] = {
+                    'id': buggy_request.buggy.id,
+                    'code': buggy_request.buggy.code,
+                    'icon': buggy_request.buggy.icon
+                }
+        except Exception:
+            req_dict['buggy'] = None
+
         return jsonify({
             'success': True,
             'request': req_dict

@@ -62,9 +62,15 @@ class BuggyRequest(db.Model, BaseModel):
     buggy = relationship('Buggy', back_populates='requests')
     accepted_by_driver = relationship('SystemUser', back_populates='accepted_requests', foreign_keys=[accepted_by_id])
     
-    def to_dict(self):
-        """Convert to dictionary"""
-        return {
+    def to_dict(self, include_relations=False):
+        """
+        Convert to dictionary
+
+        Args:
+            include_relations: Include nested location, buggy, driver dicts (default: False)
+                              Set to False to avoid DetachedInstanceError in production
+        """
+        result = {
             'id': self.id,
             'hotel_id': self.hotel_id,
             'location_id': self.location_id,
@@ -84,8 +90,24 @@ class BuggyRequest(db.Model, BaseModel):
             'cancelled_at': self.cancelled_at.isoformat() if self.cancelled_at else None,
             'timeout_at': self.timeout_at.isoformat() if self.timeout_at else None,
             'response_time': self.response_time,
-            'completion_time': self.completion_time,
-            'location': self.location.to_dict() if self.location else None,
-            'buggy': self.buggy.to_dict() if self.buggy else None,
-            'driver': self.accepted_by_driver.to_dict() if self.accepted_by_driver else None
+            'completion_time': self.completion_time
         }
+
+        # ✅ CRITICAL: Only include relations if explicitly requested and safely accessible
+        if include_relations:
+            try:
+                result['location'] = self.location.to_dict() if self.location else None
+            except Exception:
+                result['location'] = None
+
+            try:
+                result['buggy'] = self.buggy.to_dict() if self.buggy else None
+            except Exception:
+                result['buggy'] = None
+
+            try:
+                result['driver'] = self.accepted_by_driver.to_dict() if self.accepted_by_driver else None
+            except Exception:
+                result['driver'] = None
+
+        return result

@@ -199,24 +199,27 @@ def handle_join_hotel(data):
     """Join hotel room for real-time updates"""
     hotel_id = data.get('hotel_id')
     role = data.get('role', 'guest')  # admin, driver, guest
-    
+
     if hotel_id:
         # Join hotel room
         room = f'hotel_{hotel_id}'
         join_room(room)
-        
+
         # Join role-specific room (use singular form for consistency)
         if role == 'admin':
             role_room = f'hotel_{hotel_id}_admin'
             join_room(role_room)
-            print(f'Client joined: {room} and {role_room}')
+            print(f'✅ [WEBSOCKET] Client joined: {room} and {role_room}')
+            logger.info(f'✅ [WEBSOCKET] Admin joined: {room} and {role_room}')
         elif role == 'driver':
             role_room = f'hotel_{hotel_id}_drivers'
             join_room(role_room)
-            print(f'Client joined: {room} and {role_room}')
+            print(f'✅ [WEBSOCKET] Driver joined room: {role_room}')
+            logger.info(f'✅ [WEBSOCKET] Driver joined room: {role_room}')
         else:
-            print(f'Client joined: {room}')
-        
+            print(f'✅ [WEBSOCKET] Client joined: {room}')
+            logger.info(f'✅ [WEBSOCKET] Guest joined: {room}')
+
         emit('joined_hotel', {
             'hotel_id': hotel_id,
             'role': role,
