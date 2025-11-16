@@ -2380,8 +2380,10 @@ def driver_complete_request(request_id):
         buggy_request.completed_at = get_current_timestamp()
         buggy_request.completion_location_id = completion_location_id
         
-        # Buggy konumunu güncelle
+        # ✅ Buggy'yi AVAILABLE yap ve konumunu güncelle
+        from app.models.buggy import BuggyStatus
         user.buggy.current_location_id = completion_location_id
+        user.buggy.status = BuggyStatus.AVAILABLE
         user.buggy.is_busy = False
         
         db.session.commit()
@@ -2430,6 +2432,14 @@ def driver_complete_request(request_id):
         socketio.emit('request_status_changed', {
             'request_id': buggy_request.id,
             'status': 'completed'
+        }, room=f'hotel_{user.hotel_id}_admin')
+        
+        # ✅ Buggy status değişikliğini bildir
+        socketio.emit('buggy_status_changed', {
+            'buggy_id': user.buggy.id,
+            'status': 'available',
+            'location_id': completion_location_id,
+            'location_name': completion_location.name
         }, room=f'hotel_{user.hotel_id}_admin')
         
         return jsonify({

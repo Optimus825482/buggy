@@ -401,6 +401,22 @@ class FCMNotificationService:
                     )
                     raise  # Re-raise to be caught by retry logic
                 
+                # INTERNAL error - Firebase sunucu hatası (retry yapılabilir)
+                if 'INTERNAL' in error_str or '500' in error_str:
+                    logger.error(f"❌ FCM INTERNAL ERROR (500): {error_str}")
+                    logger.error(f"   Token: {token[:20]}...")
+                    logger.error(f"   Bu genellikle Firebase sunucu hatası veya geçersiz credentials")
+                    # Token'ı temizleme, retry yapılabilir
+                    FCMNotificationService._log_notification(
+                        token=token,
+                        title=title,
+                        body=body,
+                        status='failed',
+                        priority=priority,
+                        error=f"FCM Internal Error: {error_str}"
+                    )
+                    raise  # Re-raise to be caught by retry logic
+                
                 logger.error(f"❌ FCM bildirim hatası: {error_str}")
                 logger.error(f"❌ Traceback: {traceback.format_exc()}")
                 FCMNotificationService._log_notification(
@@ -506,7 +522,14 @@ class FCMNotificationService:
                         error_code = resp.exception.code if hasattr(resp.exception, 'code') else 'UNKNOWN'
                         error_msg = str(resp.exception) if resp.exception else 'No error message'
                         print(f"   Token {idx+1}: {token[:20]}... - Error: {error_code} - {error_msg}")
-                        FCMNotificationService._remove_invalid_token(token)
+                        
+                        # INTERNAL error için token temizleme, sadece logla
+                        if error_code == 'INTERNAL' or '500' in error_msg:
+                            print(f"   ⚠️ INTERNAL ERROR - Token korunuyor, Firebase sunucu hatası olabilir")
+                            print(f"   💡 Firebase credentials ve quota kontrol edin")
+                        else:
+                            # Diğer hatalar için token temizle
+                            FCMNotificationService._remove_invalid_token(token)
             
             return {
                 'success': response.success_count,
