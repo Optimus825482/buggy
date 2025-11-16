@@ -1,0 +1,38 @@
+# =============================================================================
+# Shuttle Call Backend API - Python Dependencies
+# Python 3.13 Compatible
+# =============================================================================
+
+# FastAPI Framework
+fastapi==0.115.0
+uvicorn[standard]==0.32.0  # ASGI server
+
+# Database
+sqlalchemy==2.0.35
+psycopg==3.2.3  # PostgreSQL adapter (Python 3.13 uyumlu)
+alembic==1.13.3  # Database migrations
+
+# Pydantic & Settings
+pydantic==2.9.2
+pydantic-settings==2.6.0
+
+# Authentication & Security
+pyjwt[crypto]==2.9.0  # JWT (python-jose yerine)
+passlib[bcrypt]==1.7.4  # Password hashing
+python-multipart==0.0.12  # Form data
+bcrypt==4.2.0  # Bcrypt explicit
+
+# Firebase Cloud Messaging
+firebase-admin==6.6.0
+
+# WebSocket
+python-socketio==5.11.4
+websockets==13.1
+
+# Rate Limiting
+slowapi==0.1.9
+
+# Utilities
+python-dotenv>=1.0.0  # .env file support
+qrcode[pil]==7.4.2  # QR code generation
+pillow==10.4.0  # Image processing for QR codes

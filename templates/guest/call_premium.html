@@ -1043,7 +1043,21 @@ extra_css %}
     };
 
     // ==================== INITIALIZATION ====================
-    const initializePage = () => {
+    const initializePage = async () => {
+      // ✅ iOS Safari Fix: Initialize notification manager early
+      try {
+        console.log("🔔 [Init] Initializing notification manager...");
+        if (window.GuestNotificationManager) {
+          window.guestNotificationManager =
+            new window.GuestNotificationManager();
+          await window.guestNotificationManager.init();
+          console.log("✅ [Init] Notification manager ready");
+        }
+      } catch (error) {
+        console.warn("⚠️ [Init] Notification manager init failed:", error);
+        // Continue anyway
+      }
+
       // Flask template'den gelen location_id'yi öncelikli kullan
       const container = document.querySelector(".guest-call-container");
       const templateLocationId = container
@@ -1630,25 +1644,27 @@ extra_css %}
           console.log("✅ Request created successfully!");
           console.log("📋 Request ID:", data.request.id);
 
+          const requestId = data.request.id;
+
           // Sürücülere bildirim gönder (arka planda, blocking değil)
           checkActiveDrivers().catch((err) => {
             console.error("⚠️ Driver notification failed (non-blocking):", err);
           });
 
-          // Bildirim izni iste (arka planda, blocking değil)
-          console.log("🔔 Requesting notification permission...");
-          requestNotificationPermissionForGuest(data.request.id).catch(
-            (err) => {
-              console.error(
-                "⚠️ Notification permission failed (non-blocking):",
-                err
-              );
-            }
-          );
+          // ✅ iOS Safari Fix: Notification permission'ı await et
+          // Sonra redirect yap - bu iOS'ta daha güvenilir
+          try {
+            console.log("🔔 Requesting notification permission...");
+            await requestNotificationPermissionForGuest(requestId);
+            console.log("✅ Notification permission completed");
+          } catch (err) {
+            console.error("⚠️ Notification permission failed:", err);
+            // Hata olsa bile devam et
+          }
 
-          // Hemen success notification göster ve redirect et
+          // Success notification göster ve redirect et
           console.log("🎉 Showing success notification and redirecting...");
-          showSuccessNotification(data.request.id);
+          showSuccessNotification(requestId);
         } else {
           console.error("❌ Request creation failed:", data.error);
           showToast(data.error || "Talep oluşturulamadı", "error");
@@ -1664,32 +1680,41 @@ extra_css %}
 
     // ==================== PUSH NOTIFICATIONS ====================
     const requestNotificationPermissionForGuest = async (requestId) => {
-      // Guest Notification Manager kullan (Firebase Admin SDK)
-      if (!window.guestNotificationManager) {
-        console.log("[Guest] Notification manager not available");
-        return;
-      }
-
       try {
+        // ✅ Initialize GuestNotificationManager if not exists
+        if (!window.guestNotificationManager) {
+          console.log("🔔 [Guest] Creating notification manager...");
+          window.guestNotificationManager =
+            new window.GuestNotificationManager();
+
+          const initialized = await window.guestNotificationManager.init();
+          if (!initialized) {
+            console.warn("⚠️ [Guest] Notification manager init failed");
+            return null;
+          }
+        }
+
         // FCM token al ve kaydet
-        console.log("🔔 Getting FCM token for request:", requestId);
+        console.log("🔔 [Guest] Getting FCM token for request:", requestId);
         const token =
           await window.guestNotificationManager.requestPermissionAndGetToken(
             requestId
           );
 
         if (token) {
-          console.log("✅ FCM token received:", token.substring(0, 20) + "...");
-          showToast(
-            "✅ Shuttle yola çıktığında bildirim alacaksınız!",
-            "success"
+          console.log(
+            "✅ [Guest] FCM token received:",
+            token.substring(0, 20) + "..."
           );
+          return token;
         } else {
-          console.log("⚠️ No FCM token received");
+          console.log("⚠️ [Guest] No FCM token received");
+          return null;
         }
       } catch (error) {
-        console.error("❌ [FCM] Notification error:", error);
+        console.error("❌ [Guest] Notification error:", error);
         // Don't block the flow, continue anyway
+        return null;
       }
     };
 
@@ -1815,14 +1840,35 @@ extra_css %}
       document.body.appendChild(overlay);
       console.log("✅ Success overlay added to DOM");
 
-      // Redirect after delay
-      console.log(
-        `⏳ Redirecting to /guest/status/${requestId} in ${REDIRECT_DELAY}ms...`
-      );
-      setTimeout(() => {
+      // ✅ iOS Safari Fix: Redirect'i daha güvenilir yap
+      const redirectUrl = `/guest/status/${requestId}`;
+      console.log(`⏳ Redirecting to ${redirectUrl} in ${REDIRECT_DELAY}ms...`);
+
+      // Multiple redirect methods for iOS Safari compatibility
+      const performRedirect = () => {
         console.log("🚀 Redirecting now...");
-        window.location.href = `/guest/status/${requestId}`;
-      }, REDIRECT_DELAY);
+
+        // Method 1: Standard redirect
+        window.location.href = redirectUrl;
+
+        // Method 2: Fallback for iOS Safari (after 500ms)
+        setTimeout(() => {
+          if (window.location.pathname !== `/guest/status/${requestId}`) {
+            console.log("🔄 Fallback redirect triggered");
+            window.location.replace(redirectUrl);
+          }
+        }, 500);
+
+        // Method 3: Force reload fallback (after 1000ms)
+        setTimeout(() => {
+          if (window.location.pathname !== `/guest/status/${requestId}`) {
+            console.log("🔄 Force redirect triggered");
+            window.location = redirectUrl;
+          }
+        }, 1000);
+      };
+
+      setTimeout(performRedirect, REDIRECT_DELAY);
     };
 
     // ==================== UTILITY MODALS ====================
@@ -2008,6 +2054,9 @@ extra_css %}
 
 <!-- Multi-Language Support (Load First) -->
 <script src="{{ url_for('static', filename='js/i18n-guest.js') }}"></script>
+
+<!-- ✅ Firebase Config (MUST load before Firebase SDK) -->
+<script src="{{ url_for('static', filename='js/firebase-config.js') }}"></script>
 
 <!-- Firebase SDK for FCM -->
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
