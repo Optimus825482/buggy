@@ -333,7 +333,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: var(--z-modal-backdrop);
     padding: 1rem;
     animation: fadeIn 0.3s ease;
 }
@@ -630,7 +630,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10000;
+    z-index: var(--z-modal-backdrop);
     animation: fadeIn 0.3s ease;
 }
 
@@ -1136,7 +1136,7 @@
     padding: 1rem 1.5rem;
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
-    z-index: 99999 !important;
+    z-index: 1005;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -1183,7 +1183,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10001;
+    z-index: var(--z-modal-backdrop);
     animation: fadeIn 0.3s ease;
 }
 
@@ -1254,7 +1254,7 @@
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    z-index: 99999;
+    z-index: 1005;
     max-width: 400px;
     animation: slideInRight 0.3s ease;
 }

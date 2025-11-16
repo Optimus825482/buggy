@@ -131,6 +131,7 @@
 
   /* ========== Z-Index Scale ========== */
   --z-dropdown: 1000;
+  --z-mobile-menu: 1010;
   --z-sticky: 1020;
   --z-fixed: 1030;
   --z-modal-backdrop: 1040;
