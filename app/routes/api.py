@@ -1029,6 +1029,17 @@ def create_request():
             log_error('SSE_NOTIFICATION', str(sse_error), {'request_id': buggy_request.id})
             # Continue even if SSE fails
 
+        # ✅ Send via WebSocket to DRIVERS (for real-time dialog)
+        try:
+            drivers_room = f'hotel_{location.hotel_id}_drivers'
+            socketio.emit('new_request', event_data, room=drivers_room, namespace='/')
+            print(f'🔔 WebSocket: New request notification sent to {drivers_room}')
+            print(f'   Request ID: {buggy_request.id}, Location: {location.name}')
+            log_websocket_event('WS_NEW_REQUEST_DRIVERS', {'request_id': buggy_request.id, 'room': drivers_room})
+        except Exception as ws_error:
+            log_error('WS_NOTIFICATION_DRIVERS', str(ws_error), {'request_id': buggy_request.id})
+            # Continue even if WebSocket fails
+
         # Also send via WebSocket for admin panel
         try:
             admin_room = f'hotel_{location.hotel_id}_admin'

@@ -724,7 +724,7 @@ const DriverDashboard = {
                             <span class="info-label">Kabul Zamanı:</span>
                             <span class="info-value">${acceptedAt}</span>
                         </div>
-                        <div class="info-row">
+                        <div class="info-row" style="display:none">
                             <span class="info-label">Geçen Süre:</span>
                             <span class="info-value" id="elapsed-time">-</span>
                         </div>
@@ -844,13 +844,15 @@ const DriverDashboard = {
             existingDialog.remove();
         }
 
+        // ✅ Handle both 'id' and 'request_id' fields
+        const requestId = requestData.id || requestData.request_id;
         const locationName = requestData.location?.name || 'Bilinmeyen lokasyon';
         const roomNumber = requestData.room_number || 'Belirtilmemiş';
         const guestName = requestData.guest_name || '';
-        const phone = requestData.phone || '';
+        const phone = requestData.phone_number || requestData.phone || '';
         const notes = requestData.notes || '';
 
-        console.log('📋 [DIALOG] Dialog data:', {locationName, roomNumber, guestName, phone, notes});
+        console.log('📋 [DIALOG] Dialog data:', {requestId, locationName, roomNumber, guestName, phone, notes});
 
         const dialogHTML = `
             <div class="request-dialog-overlay" id="new-request-dialog">
@@ -912,7 +914,7 @@ const DriverDashboard = {
                             <i class="fas fa-times"></i>
                             Kapat
                         </button>
-                        <button class="btn btn-primary" onclick="DriverDashboard.acceptRequestFromDialog(${requestData.id})">
+                        <button class="btn btn-primary" onclick="DriverDashboard.acceptRequestFromDialog(${requestId})">
                             <i class="fas fa-check"></i>
                             Kabul Et
                         </button>
@@ -921,10 +923,23 @@ const DriverDashboard = {
             </div>
         `;
 
+        // Add to DOM
         document.body.insertAdjacentHTML('beforeend', dialogHTML);
+        console.log('✅ [DIALOG] Dialog added to DOM');
+
+        // Verify dialog is visible
+        const dialog = document.getElementById('new-request-dialog');
+        if (dialog) {
+            console.log('✅ [DIALOG] Dialog element found in DOM');
+            console.log('📐 [DIALOG] Dialog position:', dialog.getBoundingClientRect());
+            console.log('🎨 [DIALOG] Dialog computed style:', window.getComputedStyle(dialog).display);
+        } else {
+            console.error('❌ [DIALOG] Dialog element NOT found in DOM!');
+        }
 
         // Auto-close after 30 seconds
         setTimeout(() => {
+            console.log('⏰ [DIALOG] Auto-closing dialog after 30 seconds');
             this.closeNewRequestDialog();
         }, 30000);
     },
