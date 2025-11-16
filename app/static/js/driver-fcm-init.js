@@ -203,6 +203,7 @@ class DriverFCMSystem {
      */
     async getToken(registration) {
         console.log('🎫 [DRIVER_FCM] Getting FCM token...');
+        console.log('🔑 [DRIVER_FCM] VAPID Key:', this.firebaseConfig.vapidKey ? this.firebaseConfig.vapidKey.substring(0, 20) + '...' : 'MISSING!');
 
         try {
             if (!this.messaging) {
@@ -215,11 +216,24 @@ class DriverFCMSystem {
                 return null;
             }
 
-            // Get token
-            const token = await this.messaging.getToken({
+            if (!this.firebaseConfig.vapidKey) {
+                console.error('❌ [DRIVER_FCM] VAPID key is missing!');
+                return null;
+            }
+
+            console.log('📤 [DRIVER_FCM] Requesting token from Firebase...');
+
+            // ✅ Add timeout to prevent hanging
+            const tokenPromise = this.messaging.getToken({
                 vapidKey: this.firebaseConfig.vapidKey,
                 serviceWorkerRegistration: registration
             });
+
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Token request timeout after 15s')), 15000)
+            );
+
+            const token = await Promise.race([tokenPromise, timeoutPromise]);
 
             if (token) {
                 console.log('✅ [DRIVER_FCM] Token received:', token.substring(0, 20) + '...');
@@ -244,6 +258,9 @@ class DriverFCMSystem {
             }
             if (error.message) {
                 console.error('   Error message:', error.message);
+            }
+            if (error.stack) {
+                console.error('   Stack:', error.stack);
             }
 
             return null;
@@ -816,6 +833,35 @@ if (!document.getElementById('driver-fcm-animations')) {
         }
     `;
     document.head.appendChild(fcmAnimationStyle);
+}
+
+/**
+ * ========================================
+ * TOKEN REFRESH HEARTBEAT
+ * ========================================
+ */
+function startTokenRefreshHeartbeat() {
+    // Re-register token every 10 minutes to ensure backend has it
+    setInterval(async () => {
+        console.log('💓 [DRIVER_FCM] Token refresh heartbeat...');
+
+        const savedToken = localStorage.getItem('fcm_token');
+        if (savedToken && window.driverFCM) {
+            console.log('🔄 [DRIVER_FCM] Re-registering token with backend...');
+            const success = await window.driverFCM.registerTokenWithBackend(savedToken);
+            if (success) {
+                console.log('✅ [DRIVER_FCM] Token re-registered successfully');
+            } else {
+                console.warn('⚠️ [DRIVER_FCM] Token re-registration failed');
+            }
+        }
+    }, 10 * 60 * 1000); // Every 10 minutes
+}
+
+// Start heartbeat when driver logs in
+if (document.body.dataset.userId) {
+    console.log('💓 [DRIVER_FCM] Starting token refresh heartbeat (every 10 min)');
+    startTokenRefreshHeartbeat();
 }
 
 console.log('📦 [DRIVER_FCM] Module loaded and ready');

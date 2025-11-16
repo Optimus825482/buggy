@@ -93,18 +93,55 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // API isteklerini cache'leme
-  if (event.request.url.includes('/api/')) {
+  // ✅ CRITICAL: NEVER cache dynamic content
+  const url = new URL(event.request.url);
+
+  // API endpoints - NEVER cache
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // Dynamic routes - NEVER cache
+  if (url.pathname.startsWith('/driver/') ||
+      url.pathname.startsWith('/guest/') ||
+      url.pathname.startsWith('/admin/')) {
+    return;
+  }
+
+  // Socket.IO - NEVER cache
+  if (url.pathname.includes('socket.io')) {
+    return;
+  }
+
+  // ✅ ONLY cache static assets
+  const isStaticAsset = url.pathname.startsWith('/static/') && (
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.jpg') ||
+    url.pathname.endsWith('.jpeg') ||
+    url.pathname.endsWith('.gif') ||
+    url.pathname.endsWith('.svg') ||
+    url.pathname.endsWith('.ico') ||
+    url.pathname.endsWith('.woff') ||
+    url.pathname.endsWith('.woff2') ||
+    url.pathname.endsWith('.ttf')
+  );
+
+  // ✅ JS files: Cache with version check (NOT token data!)
+  const isVersionedJS = url.pathname.startsWith('/static/js/') &&
+                        url.pathname.endsWith('.js') &&
+                        !url.search; // No query params = versioned file
+
+  if (!isStaticAsset && !isVersionedJS) {
+    // Don't cache anything else
     return;
   }
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Başarılı response'u cache'e kaydet
-        // Sadece http/https URL'leri cache'le (chrome-extension, data: vb. hariç)
-        if (response && response.status === 200 && 
-            (event.request.url.startsWith('http://') || event.request.url.startsWith('https://'))) {
+        // Cache ONLY static assets and versioned JS
+        if (response && response.status === 200 && (isStaticAsset || isVersionedJS)) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseClone).catch((err) => {

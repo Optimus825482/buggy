@@ -839,17 +839,14 @@ const GuestCall = (() => {
 
     // ==================== INITIALIZATION ====================
     const initializePage = () => {
-        // DEBUG: Check active drivers on page load
-        checkActiveDrivers();
-        
         // Flask template'den gelen location_id'yi öncelikli kullan
         const container = document.querySelector('.guest-call-container');
         const templateLocationId = container ? container.dataset.locationId : null;
-        
+
         // Eğer template'den gelmemişse URL'den oku
         const urlParams = new URLSearchParams(window.location.search);
-        const urlLocationId = urlParams.get('location');
-        
+        const urlLocationId = urlParams.get('location') || urlParams.get('l');  // Support both ?location= and ?l=
+
         // Template veya URL'den location ID al
         const locationId = templateLocationId || urlLocationId;
 
@@ -863,6 +860,11 @@ const GuestCall = (() => {
         if (locationId) {
             console.log('✅ Location ID bulundu, form gösteriliyor:', locationId);
             state.selectedLocationId = parseInt(locationId, 10);
+
+            // ✅ CRITICAL: Set location ID BEFORE checking active drivers
+            // This ensures notify event includes correct location name
+            checkActiveDrivers();
+
             transitionToCallForm();
             // DOM'un hazır olması için kısa bir gecikme
             setTimeout(() => {
@@ -871,6 +873,9 @@ const GuestCall = (() => {
         } else {
             console.log('❌ Location ID bulunamadı, QR scanner gösteriliyor');
             loadHotelName();
+
+            // Check drivers without location
+            checkActiveDrivers();
         }
     };
 
@@ -1735,11 +1740,30 @@ document.head.appendChild(animationStyles);
             window.dispatchEvent(event);
         });
 
+        // ✅ CRITICAL: Try to get token on page load (if permission already granted)
+        console.log('🔄 [GUEST] Checking notification permission on page load...');
+        if (Notification.permission === 'granted') {
+            try {
+                console.log('✅ [GUEST] Permission already granted, getting fresh token...');
+                const token = await window.guestNotificationManager.requestPermissionAndGetToken();
+                if (token) {
+                    console.log('✅ [GUEST] Fresh FCM token obtained on page load');
+                    // Store in session for later use when request is created
+                    sessionStorage.setItem('guest_fcm_token_ready', 'true');
+                }
+            } catch (error) {
+                console.error('❌ [GUEST] Failed to get token on page load:', error);
+            }
+        } else {
+            console.log('ℹ️ [GUEST] Permission not granted yet, will request when creating request');
+        }
+
         // Request oluşturulduğunda bildirim izni iste
         window.addEventListener('request-created', async (event) => {
             const requestId = event.detail.requestId;
 
-            // Bildirim izni iste ve token al
+            // Bildirim izni iste ve token al (request ID ile)
+            console.log('🔔 [GUEST] Request created, registering token with request ID:', requestId);
             await window.guestNotificationManager.requestPermissionAndGetToken(requestId);
         });
 

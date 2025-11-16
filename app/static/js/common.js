@@ -87,8 +87,9 @@ const Utils = {
             'info': 'bg-blue-500 border-blue-600'
         };
         
-        notification.className = `fixed top-5 right-5 min-w-[300px] max-w-[500px] ${colorClasses[type] || colorClasses.info} text-white px-6 py-4 rounded-lg shadow-2xl border-l-4 z-50 flex items-center justify-between gap-3`;
-        notification.style.animation = 'slideInRight 0.3s ease-out';
+        notification.className = `fixed top-5 right-5 min-w-[300px] max-w-[500px] ${colorClasses[type] || colorClasses.info} text-white px-6 py-4 rounded-lg shadow-2xl border-l-4 flex items-center justify-between gap-3`;
+        // ✅ CRITICAL: Very high z-index to appear above everything (footer, modals, etc.)
+        notification.style.cssText = 'z-index: 999999; animation: slideInRight 0.3s ease-out;';
         
         const icon = type === 'success' ? 'check-circle' : 
                      type === 'danger' ? 'times-circle' : 

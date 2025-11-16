@@ -452,3 +452,202 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* ==================== NEW REQUEST DIALOG ==================== */
+.request-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.request-dialog {
+    background: white;
+    border-radius: 20px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    overflow: hidden;
+}
+
+.request-dialog-header {
+    background: linear-gradient(135deg, #1A2B4A 0%, #2A3B5A 100%);
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+    position: relative;
+}
+
+.request-dialog-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    font-size: 2rem;
+    animation: pulse-scale 2s infinite;
+}
+
+@keyframes pulse-scale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.request-dialog-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.request-dialog-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.request-dialog-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.request-dialog-body {
+    padding: 1.5rem;
+}
+
+.request-detail {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+}
+
+.request-detail i {
+    width: 24px;
+    color: #1A2B4A;
+    font-size: 1.125rem;
+    margin-top: 2px;
+}
+
+.request-detail div {
+    flex: 1;
+}
+
+.request-detail strong {
+    display: block;
+    color: #1A2B4A;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.request-detail span {
+    color: #6b7280;
+}
+
+.request-dialog-footer {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.request-dialog-footer .btn {
+    flex: 1;
+    padding: 0.875rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    font-size: 1rem;
+}
+
+.request-dialog-footer .btn-secondary {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.request-dialog-footer .btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.request-dialog-footer .btn-primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+}
+
+.request-dialog-footer .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .request-dialog {
+        width: 95%;
+        max-width: none;
+    }
+
+    .request-dialog-header h3 {
+        font-size: 1.25rem;
+    }
+
+    .request-dialog-body,
+    .request-dialog-footer {
+        padding: 1rem;
+    }
+
+    .request-dialog-footer {
+        flex-direction: column;
+    }
+}
+

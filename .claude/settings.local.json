@@ -9,13 +9,15 @@
       "Bash(/c/Python313/python.exe -m pytest:*)",
       "Bash(timeout 30 /c/Python313/python.exe -m pytest:*)",
       "Bash(C:Python313python.exe -m pytest tests/ -v --tb=short)",
-      "Bash(/c/Python313/python.exe:*)"
+      "Bash(/c/Python313/python.exe:*)",
+      "Bash(echo:*)",
+      "Bash(\"D:\\buggycall\\app\\static\\css\\driver-dashboard.css\")"
     ],
     "deny": [],
     "ask": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "MCP_DOCKER"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

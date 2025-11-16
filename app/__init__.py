@@ -322,18 +322,44 @@ def register_blueprints(app):
     @app.after_request
     def add_cache_headers(response):
         from flask import request
-        # Cache static files for 1 year (immutable)
+
+        # ✅ CACHE STRATEGY: Only cache CSS/Images/Fonts, NEVER cache dynamic content
+
+        # Static assets - cache aggressively (ONLY images, CSS, fonts)
         if request.path.startswith('/static/'):
-            # CSS, JS, Images, Fonts - cache aggressively
-            if any(request.path.endswith(ext) for ext in ['.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.woff', '.woff2', '.ttf', '.ico']):
+            # Images and fonts - safe to cache forever
+            if any(request.path.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf']):
                 response.cache_control.public = True
                 response.cache_control.max_age = 31536000  # 1 year
+                response.cache_control.immutable = True
                 response.headers['Expires'] = 'Thu, 31 Dec 2099 23:59:59 GMT'
-        # No cache for HTML/API responses
-        elif request.path.startswith('/api/') or request.path.endswith('.html'):
+            # CSS - cache but allow revalidation
+            elif request.path.endswith('.css'):
+                response.cache_control.public = True
+                response.cache_control.max_age = 86400  # 1 day
+                response.cache_control.must_revalidate = True
+            # JS files - NEVER cache (contains dynamic logic and tokens!)
+            elif request.path.endswith('.js'):
+                response.cache_control.no_cache = True
+                response.cache_control.no_store = True
+                response.cache_control.must_revalidate = True
+                response.headers['Pragma'] = 'no-cache'
+                response.headers['Expires'] = '0'
+
+        # ✅ CRITICAL: NEVER cache dynamic content
+        elif (request.path.startswith('/api/') or
+              request.path.startswith('/driver/') or
+              request.path.startswith('/guest/') or
+              request.path.startswith('/admin/') or
+              request.path.endswith('.html') or
+              'socket.io' in request.path):
             response.cache_control.no_cache = True
             response.cache_control.no_store = True
             response.cache_control.must_revalidate = True
+            response.cache_control.private = True
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+
         return response
     
     # 3️⃣ robots.txt ekle

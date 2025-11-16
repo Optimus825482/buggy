@@ -892,8 +892,11 @@ class FCMNotificationService:
             user.fcm_token = token
             user.fcm_token_date = datetime.utcnow().replace(tzinfo=None)  # UTC naive
             db.session.commit()
-            
-            logger.info(f"✅ FCM token kaydedildi: User {user_id}")
+
+            # ✅ CRITICAL: Expire session to clear cache
+            db.session.expire(user)
+
+            logger.info(f"✅ FCM token kaydedildi: User {user_id}, Token: {token[:20]}...")
             return True
             
         except Exception as e:

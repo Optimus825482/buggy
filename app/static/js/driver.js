@@ -127,6 +127,9 @@ const DriverDashboard = {
             this.socket.on('request_cancelled', (data) => this.onRequestCancelled(data));
             this.socket.on('request_completed', (data) => this.onRequestCompleted(data));
 
+            // ✅ Guest events
+            this.socket.on('guest_connected', (data) => this.onGuestConnected(data));
+
             console.log('✅ WebSocket initialized');
         } catch (error) {
             console.error('❌ WebSocket initialization failed:', error);
@@ -199,6 +202,9 @@ const DriverDashboard = {
 
         // Show toast notification
         BuggyCall.Utils.showToast(`🔔 Yeni talep: ${data.location?.name || 'Bilinmeyen lokasyon'}`, 'info');
+
+        // ✅ Show request dialog/modal
+        this.showNewRequestDialog(data);
     },
 
     /**
@@ -256,6 +262,23 @@ const DriverDashboard = {
 
         // Update UI
         this.updateCounters();
+    },
+
+    /**
+     * Guest connected notification
+     */
+    onGuestConnected(data) {
+        console.log('🚨 Guest Connected:', data);
+
+        // Show toast notification
+        const locationName = data.location_name || 'Bilinmeyen Lokasyon';
+        BuggyCall.Utils.showToast(`🚨 Yeni Misafir Bağlandı!\n📍 ${locationName}`, 'info');
+
+        // Play notification sound
+        this.playNotificationSound();
+
+        // Optionally refresh pending requests
+        this.loadPendingRequests();
     },
 
     /**
@@ -413,6 +436,23 @@ const DriverDashboard = {
 
             // Clear current request
             this.state.currentRequest = null;
+
+            // ✅ CRITICAL: Refresh FCM token after completing request
+            console.log('🔄 [DRIVER] Task completed, refreshing FCM token...');
+            if (window.driverFCM) {
+                try {
+                    const savedToken = localStorage.getItem('fcm_token');
+                    if (savedToken) {
+                        await window.driverFCM.registerTokenWithBackend(savedToken);
+                        console.log('✅ [DRIVER] FCM token refreshed after task completion');
+                    } else {
+                        console.warn('⚠️ [DRIVER] No token found, triggering full setup...');
+                        await window.driverFCM.setupComplete();
+                    }
+                } catch (error) {
+                    console.error('❌ [DRIVER] FCM token refresh failed:', error);
+                }
+            }
 
             // Reload data
             await this.loadPendingRequests();
@@ -647,6 +687,129 @@ const DriverDashboard = {
         if (this._locationModalResolve) {
             this._locationModalResolve(null);
             this._locationModalResolve = null;
+        }
+    },
+
+    /**
+     * ========================================
+     * NEW REQUEST DIALOG
+     * ========================================
+     */
+
+    /**
+     * Show new request dialog with accept/reject options
+     */
+    showNewRequestDialog(requestData) {
+        console.log('🔔 [DIALOG] Showing new request dialog:', requestData);
+
+        // Remove existing dialog if any
+        const existingDialog = document.getElementById('new-request-dialog');
+        if (existingDialog) {
+            console.log('⚠️ [DIALOG] Removing existing dialog');
+            existingDialog.remove();
+        }
+
+        const locationName = requestData.location?.name || 'Bilinmeyen lokasyon';
+        const roomNumber = requestData.room_number || 'Belirtilmemiş';
+        const guestName = requestData.guest_name || '';
+        const phone = requestData.phone || '';
+        const notes = requestData.notes || '';
+
+        console.log('📋 [DIALOG] Dialog data:', {locationName, roomNumber, guestName, phone, notes});
+
+        const dialogHTML = `
+            <div class="request-dialog-overlay" id="new-request-dialog">
+                <div class="request-dialog">
+                    <div class="request-dialog-header">
+                        <div class="request-dialog-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <h3>🚗 YENİ SHUTTLE TALEBİ!</h3>
+                        <button class="request-dialog-close" onclick="DriverDashboard.closeNewRequestDialog()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="request-dialog-body">
+                        <div class="request-detail">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>
+                                <strong>Lokasyon:</strong>
+                                <span>${this.escapeHtml(locationName)}</span>
+                            </div>
+                        </div>
+                        <div class="request-detail">
+                            <i class="fas fa-door-open"></i>
+                            <div>
+                                <strong>Oda:</strong>
+                                <span>${this.escapeHtml(roomNumber)}</span>
+                            </div>
+                        </div>
+                        ${guestName ? `
+                        <div class="request-detail">
+                            <i class="fas fa-user"></i>
+                            <div>
+                                <strong>Misafir:</strong>
+                                <span>${this.escapeHtml(guestName)}</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${phone ? `
+                        <div class="request-detail">
+                            <i class="fas fa-phone"></i>
+                            <div>
+                                <strong>Telefon:</strong>
+                                <span>${this.escapeHtml(phone)}</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${notes ? `
+                        <div class="request-detail">
+                            <i class="fas fa-sticky-note"></i>
+                            <div>
+                                <strong>Not:</strong>
+                                <span>${this.escapeHtml(notes)}</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="request-dialog-footer">
+                        <button class="btn btn-secondary" onclick="DriverDashboard.closeNewRequestDialog()">
+                            <i class="fas fa-times"></i>
+                            Kapat
+                        </button>
+                        <button class="btn btn-primary" onclick="DriverDashboard.acceptRequestFromDialog(${requestData.id})">
+                            <i class="fas fa-check"></i>
+                            Kabul Et
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', dialogHTML);
+
+        // Auto-close after 30 seconds
+        setTimeout(() => {
+            this.closeNewRequestDialog();
+        }, 30000);
+    },
+
+    /**
+     * Accept request from dialog
+     */
+    async acceptRequestFromDialog(requestId) {
+        this.closeNewRequestDialog();
+        await this.acceptRequest(requestId);
+    },
+
+    /**
+     * Close new request dialog
+     */
+    closeNewRequestDialog() {
+        const dialog = document.getElementById('new-request-dialog');
+        if (dialog) {
+            dialog.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => dialog.remove(), 300);
         }
     },
 

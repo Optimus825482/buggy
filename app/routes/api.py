@@ -1176,40 +1176,28 @@ def accept_request(request_id):
         
         # Guest'e FCM bildirimi gönder
         try:
-            from app.routes.guest_notification_api import get_guest_token
-            import requests
+            from app.routes.guest_notification_api import get_guest_token, send_fcm_http_notification
 
             # ✅ Use database-backed token retrieval
             guest_token = get_guest_token(request_id)
-            token_data = {'token': guest_token} if guest_token else None
-            if token_data:
-                # FCM bildirimi gönder
-                fcm_url = 'https://fcm.googleapis.com/fcm/send'
-                fcm_headers = {
-                    'Authorization': f'key={current_app.config.get("FCM_SERVER_KEY")}',
-                    'Content-Type': 'application/json'
+            if guest_token:
+                message_data = {
+                    'title': '🎉 Shuttle Kabul Edildi!',
+                    'body': f'Shuttle size doğru geliyor. Buggy: {buggy.code}'
                 }
-                fcm_payload = {
-                    'to': token_data['token'],
-                    'notification': {
-                        'title': '🚀 Shuttle Yola Çıktı!',
-                        'body': f'Shuttle\'ınız {buggy.code} yola çıktı. Yakında yanınızda!',
-                        'icon': '/static/img/shuttle-icon.png',
-                        'click_action': f'/guest/status/{request_id}'
-                    },
-                    'data': {
-                        'request_id': str(request_id),
-                        'status': 'accepted',
-                        'buggy_code': buggy.code,
-                        'buggy_license_plate': buggy.license_plate
-                    }
-                }
-                
-                response = requests.post(fcm_url, json=fcm_payload, headers=fcm_headers, timeout=5)
-                if response.status_code == 200:
+
+                # ✅ Use centralized FCM notification function
+                success, message = send_fcm_http_notification(
+                    guest_token,
+                    message_data,
+                    'accepted',
+                    request_id=request_id
+                )
+
+                if success:
                     logger.info(f'✅ FCM notification sent to guest for request {request_id}')
                 else:
-                    logger.warning(f'⚠️ FCM notification failed: {response.text}')
+                    logger.warning(f'⚠️ FCM notification failed: {message}')
             else:
                 logger.info(f'ℹ️ No FCM token found for request {request_id}')
         except Exception as notif_error:
