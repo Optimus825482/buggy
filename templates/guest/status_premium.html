@@ -791,6 +791,57 @@ function updateToAccepted(request) {
         if (buggyCode) buggyCode.textContent = request.buggy_code;
         if (driverInfo) driverInfo.classList.add('show');
     }
+    
+    // ✅ TOAST NOTIFICATION: Show "Aracınız yola çıkmıştır" toast
+    showVehicleDepartedToast();
+}
+
+function showVehicleDepartedToast() {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 20px 24px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+        z-index: 10002;
+        animation: slideInRight 0.3s ease;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        max-width: 400px;
+    `;
+    toast.innerHTML = `
+        <div style="
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        ">
+            🚗
+        </div>
+        <div>
+            <div style="font-size: 1.1rem; margin-bottom: 4px;">Aracınız Yola Çıkmıştır!</div>
+            <div style="font-size: 0.9rem; opacity: 0.9;">Kısa süre içinde yanınızda olacak</div>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
 }
 
 function updateToCompleted(request) {

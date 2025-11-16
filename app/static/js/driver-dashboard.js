@@ -427,14 +427,36 @@ const DriverDashboard = {
         
         // Listen to guest connected (pre-alert)
         this.socket.on('guest_connected', (data) => {
-            console.log('🚨 [DRIVER] Misafir bağlandı:', data);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('🚨 [GUEST_CONNECTED] Event received!');
+            console.log('   Data:', data);
+            console.log('   Location:', data.location_name || 'Bilinmeyen Lokasyon');
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            
+            // ✅ Show toast notification
             this.showGuestConnectedAlert(data);
+            
+            // ✅ Play notification sound
+            this.playNotificationSound();
         });
         
         // Listen to new requests
         this.socket.on('new_request', (data) => {
             console.log('🎉 [DRIVER] Yeni talep:', data.request_id);
-            this.handleNewRequest(data);
+            
+            // Add to pending list
+            this.pendingRequests.unshift(data);
+            this.renderPendingRequests();
+            this.updatePendingCount();
+            
+            // Play notification sound
+            this.playNotificationSound();
+            
+            // ✅ FOREGROUND DIALOG: Show dialog notification
+            this.showNewRequestDialog(data);
+            
+            // Show push notification if available
+            this.showPushNotification(data);
         });
         
         // Listen to request taken by another driver
@@ -1219,7 +1241,235 @@ const DriverDashboard = {
     },
 
     /**
-     * Show themed new request notification
+     * ✅ FOREGROUND DIALOG: Show new request dialog
+     */
+    showNewRequestDialog(data) {
+        console.log('🔔 [DIALOG] Showing new request dialog:', data);
+
+        // Remove existing dialog if any
+        const existingDialog = document.getElementById('new-request-dialog');
+        if (existingDialog) {
+            console.log('⚠️ [DIALOG] Removing existing dialog');
+            existingDialog.remove();
+        }
+
+        const locationName = data.location?.name || 'Bilinmeyen lokasyon';
+        const roomNumber = data.room_number || 'Belirtilmemiş';
+        const guestName = data.guest_name || '';
+        const phone = data.phone_number || '';
+        const notes = data.notes || '';
+
+        console.log('📋 [DIALOG] Dialog data:', {locationName, roomNumber, guestName, phone, notes});
+
+        const dialogHTML = `
+            <div class="request-dialog-overlay" id="new-request-dialog" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease;
+            ">
+                <div class="request-dialog" style="
+                    background: white;
+                    border-radius: 16px;
+                    max-width: 500px;
+                    width: 90%;
+                    padding: 0;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                    animation: slideUp 0.3s ease;
+                ">
+                    <div class="request-dialog-header" style="
+                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                        color: white;
+                        padding: 1.5rem;
+                        border-radius: 16px 16px 0 0;
+                        text-align: center;
+                        position: relative;
+                    ">
+                        <div class="request-dialog-icon" style="
+                            width: 80px;
+                            height: 80px;
+                            margin: 0 auto 1rem;
+                            background: rgba(255, 255, 255, 0.2);
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 2.5rem;
+                            animation: pulse 2s infinite;
+                        ">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <h3 style="margin: 0; font-size: 1.5rem; font-weight: 700;">🚗 YENİ SHUTTLE TALEBİ!</h3>
+                        <button class="request-dialog-close" onclick="DriverDashboard.closeNewRequestDialog()" style="
+                            position: absolute;
+                            top: 1rem;
+                            right: 1rem;
+                            background: rgba(255, 255, 255, 0.2);
+                            border: none;
+                            color: white;
+                            width: 32px;
+                            height: 32px;
+                            border-radius: 50%;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 1.25rem;
+                        ">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="request-dialog-body" style="padding: 1.5rem;">
+                        <div style="
+                            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+                            border-radius: 12px;
+                            padding: 1rem;
+                            margin-bottom: 1rem;
+                            border: 2px solid #0ea5e9;
+                        ">
+                            <div style="
+                                font-size: 1.25rem;
+                                font-weight: 600;
+                                color: #0c4a6e;
+                                margin-bottom: 0.75rem;
+                                display: flex;
+                                align-items: center;
+                                gap: 0.5rem;
+                            ">
+                                <i class="fas fa-map-marker-alt" style="color: #0ea5e9;"></i>
+                                ${this.escapeHtml(locationName)}
+                            </div>
+                            ${roomNumber !== 'Belirtilmemiş' ? `
+                            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; color: #334155;">
+                                <i class="fas fa-door-open" style="width: 24px; color: #0ea5e9;"></i>
+                                <div><strong>Oda:</strong> ${this.escapeHtml(roomNumber)}</div>
+                            </div>
+                            ` : ''}
+                            ${guestName ? `
+                            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; color: #334155;">
+                                <i class="fas fa-user" style="width: 24px; color: #0ea5e9;"></i>
+                                <div><strong>Misafir:</strong> ${this.escapeHtml(guestName)}</div>
+                            </div>
+                            ` : ''}
+                            ${phone ? `
+                            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; color: #334155;">
+                                <i class="fas fa-phone" style="width: 24px; color: #0ea5e9;"></i>
+                                <div><strong>Telefon:</strong> ${this.escapeHtml(phone)}</div>
+                            </div>
+                            ` : ''}
+                            ${notes ? `
+                            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; color: #334155;">
+                                <i class="fas fa-sticky-note" style="width: 24px; color: #0ea5e9;"></i>
+                                <div><strong>Not:</strong> ${this.escapeHtml(notes)}</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div style="
+                            background: #fef3c7;
+                            border-left: 4px solid #f59e0b;
+                            padding: 0.75rem;
+                            border-radius: 8px;
+                            margin-bottom: 1rem;
+                        ">
+                            <p style="margin: 0; color: #92400e; font-size: 0.875rem; font-weight: 500;">
+                                <i class="fas fa-info-circle"></i> Bu talep 30 saniye sonra otomatik kapanacak
+                            </p>
+                        </div>
+                    </div>
+                    <div class="request-dialog-footer" style="
+                        padding: 1rem 1.5rem;
+                        border-top: 1px solid #e5e7eb;
+                        display: flex;
+                        gap: 0.75rem;
+                    ">
+                        <button onclick="DriverDashboard.closeNewRequestDialog()" style="
+                            flex: 1;
+                            padding: 0.75rem;
+                            background: #f3f4f6;
+                            border: none;
+                            border-radius: 8px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 0.5rem;
+                        ">
+                            <i class="fas fa-times"></i>
+                            Kapat
+                        </button>
+                        <button onclick="DriverDashboard.acceptRequestFromDialog(${data.id || data.request_id})" style="
+                            flex: 2;
+                            padding: 0.75rem;
+                            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 0.5rem;
+                        ">
+                            <i class="fas fa-check"></i>
+                            Kabul Et
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideUp {
+                    from { transform: translateY(50px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.1); }
+                }
+            </style>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', dialogHTML);
+
+        // Auto-close after 30 seconds
+        setTimeout(() => {
+            this.closeNewRequestDialog();
+        }, 30000);
+    },
+
+    /**
+     * Accept request from dialog
+     */
+    async acceptRequestFromDialog(requestId) {
+        this.closeNewRequestDialog();
+        await this.acceptRequest(requestId);
+    },
+
+    /**
+     * Close new request dialog
+     */
+    closeNewRequestDialog() {
+        const dialog = document.getElementById('new-request-dialog');
+        if (dialog) {
+            dialog.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => dialog.remove(), 300);
+        }
+    },
+
+    /**
+     * Show themed new request notification (DEPRECATED - use showNewRequestDialog instead)
      */
     showNewRequestNotification(data) {
         const locationName = data.location?.name || 'Bilinmeyen Lokasyon';
