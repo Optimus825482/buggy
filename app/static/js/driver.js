@@ -42,33 +42,45 @@ const DriverDashboard = {
      * ========================================
      */
     async init() {
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log('🚀 Driver Dashboard v3.0 Initializing...');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
         try {
             // Load state from DOM
+            console.log('📊 [INIT] Loading state from DOM...');
             this.loadStateFromDOM();
 
             // Validate buggy assignment
             if (!this.state.buggyId || this.state.buggyId === '0') {
+                console.warn('⚠️ [INIT] No buggy assigned to driver');
                 await this.showNoBuggyWarning();
                 return;
             }
 
             // Initialize components
+            console.log('🔧 [INIT] Initializing components...');
             await this.initializeComponents();
 
             // Load initial data
+            console.log('📥 [INIT] Loading initial data...');
             await this.loadInitialData();
 
             // Setup event listeners
+            console.log('👂 [INIT] Setting up event listeners...');
             this.setupEventListeners();
 
             // Start background tasks
+            console.log('⏰ [INIT] Starting background tasks...');
             this.startBackgroundTasks();
 
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             console.log('✅ Driver Dashboard Initialized Successfully');
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         } catch (error) {
+            console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             console.error('❌ Initialization Error:', error);
+            console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             await BuggyCall.Utils.showError('Dashboard başlatılamadı: ' + error.message);
         }
     },
@@ -78,9 +90,9 @@ const DriverDashboard = {
      */
     loadStateFromDOM() {
         const body = document.body;
-        this.state.hotelId = body.dataset.hotelId || 1;
-        this.state.userId = body.dataset.userId;
-        this.state.buggyId = body.dataset.buggyId;
+        this.state.hotelId = parseInt(body.dataset.hotelId) || 1;
+        this.state.userId = parseInt(body.dataset.userId) || 0;
+        this.state.buggyId = parseInt(body.dataset.buggyId) || 0;
 
         console.log('📊 State loaded:', this.state);
     },
@@ -141,15 +153,20 @@ const DriverDashboard = {
      * Socket connected
      */
     onSocketConnect() {
-        console.log('✅ WebSocket Connected');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('✅ [WEBSOCKET] Socket Connected!');
+        console.log('   - Socket ID:', this.socket.id);
+        console.log('   - Transport:', this.socket.io.engine.transport.name);
+        console.log('   - Hotel ID:', this.state.hotelId);
+        console.log('   - User ID:', this.state.userId);
+        console.log('   - Buggy ID:', this.state.buggyId);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        
         this.state.isOnline = true;
         this.reconnectAttempts = 0;
 
         // Join hotel drivers room
-        console.log('📤 [WEBSOCKET] Emitting join_hotel event...', {
-            hotel_id: this.state.hotelId,
-            role: 'driver'
-        });
+        console.log('📤 [WEBSOCKET] Emitting join_hotel event...');
         this.socket.emit('join_hotel', {
             hotel_id: this.state.hotelId,
             role: 'driver'
@@ -163,11 +180,18 @@ const DriverDashboard = {
      * Successfully joined hotel room
      */
     onJoinedHotel(data) {
-        console.log('✅ [WEBSOCKET] Successfully joined hotel room:', data);
-        console.log(`   - Hotel ID: ${data.hotel_id}`);
-        console.log(`   - Role: ${data.role}`);
-        console.log(`   - Room: ${data.room}`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('✅ [WEBSOCKET] Successfully joined hotel room!');
+        console.log('   - Hotel ID:', data.hotel_id);
+        console.log('   - Role:', data.role);
+        console.log('   - Room:', data.room);
+        console.log('   - Socket ID:', this.socket.id);
         console.log('   - Now listening for guest_connected events...');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        
+        // Test: Emit a test event to verify connection
+        console.log('🧪 [TEST] Testing socket connection...');
+        this.socket.emit('test_connection', { message: 'Driver dashboard connected' });
     },
 
     /**
@@ -292,18 +316,83 @@ const DriverDashboard = {
         console.log('   Guest Count:', data.guest_count);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-        // Show toast notification
-        const locationName = data.location_name || 'Bilinmeyen Lokasyon';
-        console.log('📢 [GUEST_CONNECTED] Showing toast notification...');
-        BuggyCall.Utils.showToast(`🚨 Yeni Misafir Bağlandı!\n📍 ${locationName}`, 'info');
+        try {
+            // ✅ Show animated toast alert (not simple toast)
+            console.log('📢 [GUEST_CONNECTED] Calling showGuestConnectedAlert...');
+            this.showGuestConnectedAlert(data);
+            console.log('✅ [GUEST_CONNECTED] Alert shown successfully');
+        } catch (error) {
+            console.error('❌ [GUEST_CONNECTED] Error showing alert:', error);
+        }
 
-        // Play notification sound
-        console.log('🔊 [GUEST_CONNECTED] Playing notification sound...');
-        this.playNotificationSound();
+        try {
+            // Play notification sound
+            console.log('🔊 [GUEST_CONNECTED] Playing notification sound...');
+            this.playNotificationSound();
+        } catch (error) {
+            console.error('❌ [GUEST_CONNECTED] Error playing sound:', error);
+        }
 
-        // Optionally refresh pending requests
-        console.log('🔄 [GUEST_CONNECTED] Refreshing pending requests...');
-        this.loadPendingRequests();
+        try {
+            // Optionally refresh pending requests
+            console.log('🔄 [GUEST_CONNECTED] Refreshing pending requests...');
+            this.loadPendingRequests();
+        } catch (error) {
+            console.error('❌ [GUEST_CONNECTED] Error refreshing requests:', error);
+        }
+    },
+
+    /**
+     * Show guest connected alert with animation
+     */
+    showGuestConnectedAlert(data) {
+        console.log('🎨 [ALERT] Creating guest connected alert...');
+        console.log('🎨 [ALERT] Data:', data);
+        
+        try {
+            // Create alert element
+            const alertId = 'guest-alert-' + Date.now();
+            console.log('🎨 [ALERT] Alert ID:', alertId);
+            
+            const alert = document.createElement('div');
+            alert.id = alertId;
+            alert.className = 'guest-alert';
+            console.log('🎨 [ALERT] Alert element created');
+            
+            alert.innerHTML = `
+                <div class="guest-alert-icon">
+                    🚨
+                </div>
+                <div class="guest-alert-content">
+                    <div class="guest-alert-title">Yeni Misafir Bağlandı!</div>
+                    <div class="guest-alert-location">${data.location_name || 'Bilinmeyen Lokasyon'}</div>
+                </div>
+            `;
+        
+            console.log('🎨 [ALERT] Alert HTML set');
+            
+            // Add to page - prepend to body to ensure it's on top
+            document.body.insertBefore(alert, document.body.firstChild);
+            console.log('🎨 [ALERT] Alert added to DOM');
+            console.log('🎨 [ALERT] Alert position:', alert.getBoundingClientRect());
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                console.log('🎨 [ALERT] Starting fadeout animation');
+                alert.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => {
+                    if (document.getElementById(alertId)) {
+                        document.body.removeChild(alert);
+                        console.log('🎨 [ALERT] Alert removed from DOM');
+                    }
+                }, 300);
+            }, 5000);
+            
+            console.log('✅ [ALERT] Guest connected alert created successfully');
+        } catch (error) {
+            console.error('❌ [ALERT] Error creating alert:', error);
+            console.error('❌ [ALERT] Stack:', error.stack);
+        }
     },
 
     /**

@@ -910,11 +910,14 @@ def get_active_drivers():
                 if location:
                     location_name = location.name
             
-            # WebSocket event data
+            # WebSocket event data - ✅ hotel_id ve guest_count eklendi
             event_data = {
                 'type': 'guest_connected',
                 'message': '🚨 Yeni Misafir Bağlandı!',
+                'hotel_id': hotel_id,
+                'location_id': location_id,
                 'location_name': location_name,
+                'guest_count': len(active_drivers),  # Aktif sürücü sayısı
                 'timestamp': datetime.utcnow().isoformat()
             }
             
@@ -922,6 +925,7 @@ def get_active_drivers():
             drivers_room = f'hotel_{hotel_id}_drivers'
             socketio.emit('guest_connected', event_data, room=drivers_room, namespace='/')
             print(f'🚨 WebSocket: Guest connected notification sent to {drivers_room}')
+            print(f'   Event Data: {event_data}')
         
         return jsonify({
             'success': True,

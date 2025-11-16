@@ -108,6 +108,8 @@
     --z-modal: 1050;
     --z-popover: 1060;
     --z-tooltip: 1070;
+    --z-toast: 99999;
+    --z-mobile-menu: 10000;
 }
 
 /* ==================== Reset & Base Styles ==================== */
@@ -1043,6 +1045,7 @@ a:hover {
         right: var(--spacing-md);
         top: 50%;
         transform: translateY(-50%);
+        z-index: var(--z-mobile-menu);
     }
 
     /* Hide nav by default on mobile */
@@ -1061,7 +1064,7 @@ a:hover {
         padding: 2rem 1.5rem;
         box-shadow: var(--shadow-lg);
         gap: 1rem;
-        z-index: var(--z-dropdown);
+        z-index: var(--z-mobile-menu);
         animation: slideDown 0.3s ease-out;
     }
 

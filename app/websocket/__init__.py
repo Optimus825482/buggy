@@ -96,6 +96,70 @@ def handle_leave_room(data):
         print(f'Client left room: {room}')
 
 
+@socketio.on('join_hotel')
+def handle_join_hotel(data):
+    """
+    Handle joining hotel room (for drivers and admins)
+    """
+    try:
+        hotel_id = data.get('hotel_id')
+        role = data.get('role', 'unknown')
+        
+        if not hotel_id:
+            logger.warning("⚠️ join_hotel: hotel_id missing")
+            return
+        
+        # Determine room based on role
+        if role == 'driver':
+            room = f'hotel_{hotel_id}_drivers'
+        elif role == 'admin':
+            room = f'hotel_{hotel_id}_admin'
+        else:
+            room = f'hotel_{hotel_id}'
+        
+        # Join the room
+        join_room(room)
+        
+        logger.info(f"✅ Client joined room: {room} (Role: {role})")
+        
+        # Emit confirmation back to client
+        emit('joined_hotel', {
+            'hotel_id': hotel_id,
+            'role': role,
+            'room': room,
+            'message': f'Successfully joined {room}'
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error in handle_join_hotel: {str(e)}")
+
+
+@socketio.on('join_user')
+def handle_join_user(data):
+    """
+    Handle joining user-specific room (for session management)
+    """
+    try:
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            logger.warning("⚠️ join_user: user_id missing")
+            return
+        
+        room = f'user_{user_id}'
+        join_room(room)
+        
+        logger.info(f"✅ Client joined user room: {room}")
+        
+        emit('joined_user', {
+            'user_id': user_id,
+            'room': room
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error in handle_join_user: {str(e)}")
+
+
 @socketio.on('ping')
 def handle_ping():
     """Handle ping"""

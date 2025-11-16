@@ -1928,45 +1928,20 @@ const DriverDashboard = {
         const alertId = 'guest-alert-' + Date.now();
         const alert = document.createElement('div');
         alert.id = alertId;
-        alert.style.cssText = `
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            font-weight: 600;
-            animation: slideInRight 0.3s ease, blink 1s ease-in-out infinite;
-            max-width: 350px;
-        `;
+        alert.className = 'guest-alert';
         
         alert.innerHTML = `
-            <div style="
-                width: 40px;
-                height: 40px;
-                background: rgba(255, 255, 255, 0.2);
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 1.5rem;
-            ">
+            <div class="guest-alert-icon">
                 🚨
             </div>
-            <div style="flex: 1;">
-                <div style="font-size: 1rem; margin-bottom: 0.25rem;">Yeni Misafir Bağlandı!</div>
-                <div style="font-size: 0.875rem; opacity: 0.9;">${data.location_name}</div>
+            <div class="guest-alert-content">
+                <div class="guest-alert-title">Yeni Misafir Bağlandı!</div>
+                <div class="guest-alert-location">${data.location_name}</div>
             </div>
         `;
         
-        // Add to page
-        document.body.appendChild(alert);
+        // Add to page - prepend to body to ensure it's on top
+        document.body.insertBefore(alert, document.body.firstChild);
         
         // Play sound
         this.playAlertSound();
