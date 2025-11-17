@@ -1651,8 +1651,15 @@ extra_css %}
             console.error("⚠️ Driver notification failed (non-blocking):", err);
           });
 
+          // ✅ iOS/Safari Detection
+          const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+          const isSafari =
+            /Safari/i.test(navigator.userAgent) &&
+            !/Chrome|CriOS|FxiOS/i.test(navigator.userAgent);
+
+          console.log("🔍 Device detection:", { isIOS, isSafari });
+
           // ✅ iOS Safari Fix: Notification permission'ı await et
-          // Sonra redirect yap - bu iOS'ta daha güvenilir
           try {
             console.log("🔔 Requesting notification permission...");
             await requestNotificationPermissionForGuest(requestId);
@@ -1662,9 +1669,15 @@ extra_css %}
             // Hata olsa bile devam et
           }
 
-          // Success notification göster ve redirect et
-          console.log("🎉 Showing success notification and redirecting...");
-          showSuccessNotification(requestId);
+          // ✅ CRITICAL: iOS/Safari için aynı sayfada status göster
+          if (isIOS || isSafari) {
+            console.log("📱 iOS/Safari detected - showing status in modal");
+            showStatusInModal(requestId, data.request);
+          } else {
+            // Normal tarayıcılar için redirect
+            console.log("🖥️ Desktop browser - redirecting to status page");
+            showSuccessNotification(requestId);
+          }
         } else {
           console.error("❌ Request creation failed:", data.error);
           showToast(data.error || "Talep oluşturulamadı", "error");
@@ -1675,6 +1688,443 @@ extra_css %}
         showToast("Bir hata oluştu. Lütfen tekrar deneyin.", "error");
       } finally {
         state.isProcessing = false;
+      }
+    };
+
+    // ==================== STATUS IN MODAL (iOS/Safari) ====================
+    const showStatusInModal = (requestId, initialRequest) => {
+      console.log("📱 Creating status modal for request:", requestId);
+
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay";
+      overlay.id = "status-modal";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-labelledby", "status-modal-title");
+
+      overlay.innerHTML = `
+        <div style="
+          background: white;
+          border-radius: 24px;
+          max-width: 540px;
+          width: 95%;
+          max-height: 90vh;
+          overflow-y: auto;
+          padding: 32px 24px;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+          animation: slideUp 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        ">
+          <!-- Status Icon -->
+          <div id="status-icon-container" style="
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 12px 24px rgba(16, 185, 129, 0.3);
+          ">
+            <i class="fas fa-check" style="font-size: 48px; color: white;"></i>
+          </div>
+
+          <!-- Status Title -->
+          <h3 id="status-modal-title" style="
+            font-size: 24px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 12px;
+            text-align: center;
+          ">
+            ✅ Talebiniz Alındı!
+          </h3>
+
+          <!-- Status Message -->
+          <p id="status-message" style="
+            font-size: 15px;
+            color: #6B7280;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            text-align: center;
+          ">
+            Shuttle çağrınız başarıyla gönderildi. Sürücü aranıyor...
+          </p>
+
+          <!-- Timeline -->
+          <div id="timeline-container" style="margin: 24px 0;">
+            <!-- Step 1: Talep Oluşturuldu -->
+            <div class="timeline-step completed" id="step-requested" style="
+              display: flex;
+              align-items: flex-start;
+              gap: 16px;
+              margin-bottom: 24px;
+              position: relative;
+            ">
+              <div class="timeline-dot" style="
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #10b981, #059669);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                color: white;
+                font-size: 20px;
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+              ">
+                <i class="fas fa-check"></i>
+              </div>
+              <div style="flex: 1; padding-top: 8px;">
+                <div style="font-size: 17px; font-weight: 600; color: #059669; margin-bottom: 4px;">
+                  Talep Oluşturuldu
+                </div>
+                <div id="time-requested" style="font-size: 14px; color: #6B7280;">
+                  ${new Date().toLocaleTimeString("tr-TR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: İşleme Alındı -->
+            <div class="timeline-step active" id="step-accepted" style="
+              display: flex;
+              align-items: flex-start;
+              gap: 16px;
+              margin-bottom: 24px;
+              position: relative;
+            ">
+              <div class="timeline-dot" style="
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                color: white;
+                font-size: 20px;
+                box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
+                animation: pulse-dot 2s ease-in-out infinite;
+              ">
+                <i class="fas fa-user-check"></i>
+              </div>
+              <div style="flex: 1; padding-top: 8px;">
+                <div style="font-size: 18px; font-weight: 600; color: #d97706; margin-bottom: 4px;">
+                  İşleme Alındı
+                </div>
+                <div id="time-accepted" style="font-size: 14px; color: #f59e0b; font-weight: 600;">
+                  Bekleniyor...
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3: Tamamlandı -->
+            <div class="timeline-step" id="step-completed" style="
+              display: flex;
+              align-items: flex-start;
+              gap: 16px;
+            ">
+              <div class="timeline-dot" style="
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                background: #e5e7eb;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                color: #9ca3af;
+                font-size: 20px;
+              ">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div style="flex: 1; padding-top: 8px;">
+                <div style="font-size: 17px; font-weight: 600; color: #334155; margin-bottom: 4px;">
+                  Tamamlandı
+                </div>
+                <div id="time-completed" style="font-size: 14px; color: #6B7280;">
+                  -
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Driver Info (hidden initially) -->
+          <div id="driver-info-modal" style="
+            display: none;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(228, 191, 71, 0.05));
+            border-radius: 16px;
+            padding: 20px;
+            margin: 24px 0;
+          ">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="
+                width: 56px;
+                height: 56px;
+                background: linear-gradient(135deg, var(--primary-navy), #2a3b5a);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 24px;
+              ">
+                <i class="fas fa-shuttle-van"></i>
+              </div>
+              <div>
+                <h4 id="driver-name-modal" style="font-size: 16px; font-weight: 700; color: #1e293b; margin: 0 0 4px 0;">
+                  Shuttle
+                </h4>
+                <p style="font-size: 14px; color: #64748b; margin: 0;">
+                  Talebiniz <span id="buggy-code-modal">-</span> plakalı shuttle tarafından işleme alınmıştır.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Completed Box (hidden initially) -->
+          <div id="completed-box-modal" style="
+            display: none;
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(46, 204, 113, 0.05));
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            margin: 24px 0;
+          ">
+            <div style="font-size: 48px; color: #27ae60; margin-bottom: 16px;">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <h3 style="font-size: 20px; font-weight: 700; color: #27ae60; margin-bottom: 8px;">
+              ✅ Tamamlandı!
+            </h3>
+            <p style="font-size: 16px; color: #065f46; margin-bottom: 16px; font-weight: 600;">
+              Shuttle Call kullandığınız için teşekkür ederiz! 🙏
+            </p>
+          </div>
+
+          <!-- Close Button -->
+          <button onclick="closeStatusModal()" style="
+            width: 100%;
+            padding: 16px;
+            background: #F3F4F6;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #6B7280;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.2s;
+          " onmouseover="this.style.background='#E5E7EB'" onmouseout="this.style.background='#F3F4F6'">
+            <i class="fas fa-times"></i> Kapat
+          </button>
+
+          <style>
+            @keyframes pulse-dot {
+              0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
+              }
+              50% {
+                transform: scale(1.1);
+                box-shadow: 0 6px 20px rgba(245, 158, 11, 0.7);
+              }
+            }
+          </style>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+      console.log("✅ Status modal added to DOM");
+
+      // Start polling for status updates
+      startStatusPolling(requestId);
+
+      // Setup WebSocket listener
+      setupWebSocketForModal(requestId);
+    };
+
+    // ==================== STATUS POLLING (for modal) ====================
+    // ✅ Make it accessible from global scope
+    window.statusPollInterval = null;
+
+    const startStatusPolling = (requestId) => {
+      console.log("🔄 Starting status polling for request:", requestId);
+
+      // Clear existing interval
+      if (window.statusPollInterval) {
+        clearInterval(window.statusPollInterval);
+      }
+
+      // Poll every 5 seconds
+      window.statusPollInterval = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/requests/${requestId}`);
+          const data = await response.json();
+
+          if (data.success && data.request) {
+            updateModalStatus(data.request);
+
+            // Stop polling if completed or cancelled
+            if (
+              ["COMPLETED", "CANCELLED", "completed", "cancelled"].includes(
+                data.request.status
+              )
+            ) {
+              clearInterval(window.statusPollInterval);
+              window.statusPollInterval = null;
+              console.log("✅ Status polling stopped - request completed");
+            }
+          }
+        } catch (error) {
+          console.error("❌ Status polling error:", error);
+        }
+      }, 5000);
+    };
+
+    const updateModalStatus = (request) => {
+      console.log("🔄 Updating modal status:", request.status);
+
+      const status = request.status.toUpperCase();
+
+      // Update icon and title based on status
+      const iconContainer = document.getElementById("status-icon-container");
+      const statusTitle = document.getElementById("status-modal-title");
+      const statusMessage = document.getElementById("status-message");
+
+      if (status === "ACCEPTED") {
+        // Update icon to shuttle
+        if (iconContainer) {
+          iconContainer.style.background =
+            "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)";
+          iconContainer.innerHTML =
+            '<i class="fas fa-shuttle-van" style="font-size: 48px; color: white;"></i>';
+        }
+
+        // Update title and message
+        if (statusTitle) statusTitle.textContent = "🚗 Shuttle Yolda!";
+        if (statusMessage)
+          statusMessage.textContent =
+            "Kısa bir süre içerisinde aracınız konumunuza ulaşmış olacak...";
+
+        // Update timeline
+        const stepAccepted = document.getElementById("step-accepted");
+        if (stepAccepted) {
+          stepAccepted.classList.add("completed");
+          stepAccepted.classList.remove("active");
+          const dot = stepAccepted.querySelector(".timeline-dot");
+          if (dot) {
+            dot.style.background = "linear-gradient(135deg, #10b981, #059669)";
+            dot.style.animation = "none";
+          }
+        }
+
+        // Update time
+        const timeAccepted = document.getElementById("time-accepted");
+        if (timeAccepted && request.accepted_at) {
+          const time = new Date(request.accepted_at).toLocaleTimeString(
+            "tr-TR",
+            { hour: "2-digit", minute: "2-digit" }
+          );
+          timeAccepted.textContent = time;
+          timeAccepted.style.color = "#059669";
+          timeAccepted.style.fontWeight = "500";
+        }
+
+        // Show driver info
+        const driverInfo = document.getElementById("driver-info-modal");
+        const buggyCode = document.getElementById("buggy-code-modal");
+        if (driverInfo && request.buggy_code) {
+          driverInfo.style.display = "block";
+          if (buggyCode) buggyCode.textContent = request.buggy_code;
+        }
+
+        // Show toast
+        showToast("🎉 Shuttle kabul edildi! Size doğru geliyor...", "success");
+      } else if (status === "COMPLETED") {
+        // Update icon to success
+        if (iconContainer) {
+          iconContainer.style.background =
+            "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+          iconContainer.innerHTML =
+            '<i class="fas fa-check-circle" style="font-size: 48px; color: white;"></i>';
+        }
+
+        // Hide title and message
+        if (statusTitle) statusTitle.style.display = "none";
+        if (statusMessage) statusMessage.style.display = "none";
+
+        // Hide timeline
+        const timeline = document.getElementById("timeline-container");
+        if (timeline) timeline.style.display = "none";
+
+        // Hide driver info
+        const driverInfo = document.getElementById("driver-info-modal");
+        if (driverInfo) driverInfo.style.display = "none";
+
+        // Show completed box
+        const completedBox = document.getElementById("completed-box-modal");
+        if (completedBox) completedBox.style.display = "block";
+
+        // Show toast
+        showToast("✅ Shuttle ulaştı! İyi yolculuklar...", "success");
+      }
+    };
+
+    const closeStatusModal = () => {
+      // Stop polling
+      if (window.statusPollInterval) {
+        clearInterval(window.statusPollInterval);
+        window.statusPollInterval = null;
+        console.log("🛑 Status polling stopped");
+      }
+
+      // Remove modal
+      const modal = document.getElementById("status-modal");
+      if (modal) {
+        modal.style.animation = "fadeOut 0.3s ease";
+        setTimeout(() => modal.remove(), 300);
+      }
+    };
+
+    const setupWebSocketForModal = (requestId) => {
+      // WebSocket setup (if available)
+      if (typeof io !== "undefined") {
+        const socket = io();
+
+        socket.on("connect", () => {
+          console.log("✅ WebSocket connected for modal");
+          socket.emit("join_request", { request_id: requestId });
+        });
+
+        socket.on("request_accepted", (data) => {
+          if (data.request_id === requestId || data.request_id == requestId) {
+            console.log("📡 WebSocket: request_accepted");
+            // Reload status
+            fetch(`/api/requests/${requestId}`)
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.success) updateModalStatus(data.request);
+              });
+          }
+        });
+
+        socket.on("request_completed", (data) => {
+          if (data.request_id === requestId || data.request_id == requestId) {
+            console.log("📡 WebSocket: request_completed");
+            // Reload status
+            fetch(`/api/requests/${requestId}`)
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.success) updateModalStatus(data.request);
+              });
+          }
+        });
       }
     };
 
@@ -1840,35 +2290,50 @@ extra_css %}
       document.body.appendChild(overlay);
       console.log("✅ Success overlay added to DOM");
 
-      // ✅ iOS Safari Fix: Redirect'i daha güvenilir yap
+      // ✅ iOS Safari Fix: Immediate redirect with multiple fallbacks
       const redirectUrl = `/guest/status/${requestId}`;
-      console.log(`⏳ Redirecting to ${redirectUrl} in ${REDIRECT_DELAY}ms...`);
+      console.log(`🚀 Redirecting to ${redirectUrl}...`);
 
-      // Multiple redirect methods for iOS Safari compatibility
+      // ✅ CRITICAL: iOS Safari requires immediate redirect
+      // Don't wait for animations or delays
       const performRedirect = () => {
-        console.log("🚀 Redirecting now...");
+        console.log("🔄 Performing redirect...");
 
-        // Method 1: Standard redirect
+        // Method 1: Standard redirect (immediate)
         window.location.href = redirectUrl;
 
-        // Method 2: Fallback for iOS Safari (after 500ms)
+        // Method 2: Fallback for iOS Safari (after 100ms)
         setTimeout(() => {
           if (window.location.pathname !== `/guest/status/${requestId}`) {
-            console.log("🔄 Fallback redirect triggered");
+            console.log("🔄 Fallback 1: window.location.replace");
             window.location.replace(redirectUrl);
           }
-        }, 500);
+        }, 100);
 
-        // Method 3: Force reload fallback (after 1000ms)
+        // Method 3: Force reload fallback (after 300ms)
         setTimeout(() => {
           if (window.location.pathname !== `/guest/status/${requestId}`) {
-            console.log("🔄 Force redirect triggered");
+            console.log("🔄 Fallback 2: window.location assignment");
             window.location = redirectUrl;
           }
-        }, 1000);
+        }, 300);
+
+        // Method 4: Last resort (after 500ms)
+        setTimeout(() => {
+          if (window.location.pathname !== `/guest/status/${requestId}`) {
+            console.log("🔄 Fallback 3: Force navigation");
+            try {
+              window.top.location.href = redirectUrl;
+            } catch (e) {
+              console.error("Final redirect failed:", e);
+            }
+          }
+        }, 500);
       };
 
-      setTimeout(performRedirect, REDIRECT_DELAY);
+      // ✅ Redirect immediately (don't wait 3 seconds)
+      // Show overlay for 1 second then redirect
+      setTimeout(performRedirect, 1000);
     };
 
     // ==================== UTILITY MODALS ====================
@@ -1978,6 +2443,24 @@ extra_css %}
       showConfirmationModal,
     };
   })();
+
+  // ✅ Global function for modal close button
+  window.closeStatusModal = () => {
+    if (typeof GuestCall !== "undefined" && GuestCall.closeStatusModal) {
+      GuestCall.closeStatusModal();
+    } else {
+      // Fallback: Direct close
+      if (window.statusPollInterval) {
+        clearInterval(window.statusPollInterval);
+        window.statusPollInterval = null;
+      }
+      const modal = document.getElementById("status-modal");
+      if (modal) {
+        modal.style.animation = "fadeOut 0.3s ease";
+        setTimeout(() => modal.remove(), 300);
+      }
+    }
+  };
 
   // Add keyframe animations
   const animationStyles = document.createElement("style");

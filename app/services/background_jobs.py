@@ -20,12 +20,16 @@ class BackgroundJobsService:
     """Service for managing background scheduled jobs"""
     
     scheduler = None
+    app_instance = None  # ✅ CRITICAL: App instance'ı sakla, her job'da yeniden create etme
     
     @staticmethod
     def init_scheduler(app):
         """Initialize the background scheduler"""
         if BackgroundJobsService.scheduler is not None:
             return BackgroundJobsService.scheduler
+        
+        # ✅ CRITICAL: App instance'ı sakla
+        BackgroundJobsService.app_instance = app
         
         BackgroundJobsService.scheduler = BackgroundScheduler(
             daemon=True,
@@ -95,8 +99,11 @@ class BackgroundJobsService:
         - Mark as permanently_failed after 3 attempts
         """
         try:
-            from app import create_app
-            app = create_app()
+            # ✅ CRITICAL: Mevcut app instance'ı kullan, yeniden create etme
+            app = BackgroundJobsService.app_instance
+            if not app:
+                logger.error("App instance not available for background job")
+                return
             
             # ✅ CRITICAL: Ensure proper session cleanup in background job
             with app.app_context():
@@ -208,8 +215,11 @@ class BackgroundJobsService:
         - Mark as permanently_failed if retry_count >= 3
         """
         try:
-            from app import create_app
-            app = create_app()
+            # ✅ CRITICAL: Mevcut app instance'ı kullan, yeniden create etme
+            app = BackgroundJobsService.app_instance
+            if not app:
+                logger.error("App instance not available for background job")
+                return
             
             # ✅ CRITICAL: Ensure proper session cleanup in background job
             with app.app_context():
@@ -258,8 +268,11 @@ class BackgroundJobsService:
         - Keep permanently_failed logs for audit purposes
         """
         try:
-            from app import create_app
-            app = create_app()
+            # ✅ CRITICAL: Mevcut app instance'ı kullan, yeniden create etme
+            app = BackgroundJobsService.app_instance
+            if not app:
+                logger.error("App instance not available for background job")
+                return
             
             # ✅ CRITICAL: Ensure proper session cleanup in background job
             with app.app_context():
@@ -308,8 +321,11 @@ class BackgroundJobsService:
         - Calculate response time
         """
         try:
-            from app import create_app
-            app = create_app()
+            # ✅ CRITICAL: Mevcut app instance'ı kullan, yeniden create etme
+            app = BackgroundJobsService.app_instance
+            if not app:
+                logger.error("App instance not available for background job")
+                return
             
             with app.app_context():
                 logger.info("Starting check_request_timeouts job")

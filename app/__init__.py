@@ -183,6 +183,9 @@ def create_app(config_name=None):
 def setup_logging(app):
     """Setup comprehensive logging configuration"""
     
+    # ✅ CRITICAL: Önce tüm handler'ları temizle (duplicate log önleme)
+    app.logger.handlers.clear()
+    
     # Set log level
     log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO'))
     app.logger.setLevel(log_level)
@@ -219,6 +222,9 @@ def setup_logging(app):
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)  # En düşük seviye
     
+    # ✅ CRITICAL: Root logger handler'larını da temizle
+    root_logger.handlers.clear()
+    
     # ✅ SQLAlchemy loglarını kapat (çok fazla log üretiyor)
     logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
     logging.getLogger('sqlalchemy.pool').setLevel(logging.WARNING)
@@ -228,26 +234,25 @@ def setup_logging(app):
     # ✅ Werkzeug (Flask dev server) loglarını kapat
     logging.getLogger('werkzeug').setLevel(logging.ERROR)  # Sadece ERROR göster
     
-    if not root_logger.handlers:
-        # File handler: Sadece DEBUG ve ERROR
-        try:
-            root_file_handler = RotatingFileHandler(
-                'log.txt',
-                maxBytes=10 * 1024 * 1024,
-                backupCount=5
-            )
-            root_file_handler.setFormatter(log_format)
-            root_file_handler.addFilter(lambda record: record.levelno in [logging.DEBUG, logging.ERROR])
-            root_file_handler.setLevel(logging.DEBUG)
-            root_logger.addHandler(root_file_handler)
-        except:
-            pass
-        
-        # Console handler: Tüm seviyeler
-        root_console_handler = logging.StreamHandler()
-        root_console_handler.setFormatter(log_format)
-        root_console_handler.setLevel(log_level)
-        root_logger.addHandler(root_console_handler)
+    # File handler: Sadece DEBUG ve ERROR
+    try:
+        root_file_handler = RotatingFileHandler(
+            'log.txt',
+            maxBytes=10 * 1024 * 1024,
+            backupCount=5
+        )
+        root_file_handler.setFormatter(log_format)
+        root_file_handler.addFilter(lambda record: record.levelno in [logging.DEBUG, logging.ERROR])
+        root_file_handler.setLevel(logging.DEBUG)
+        root_logger.addHandler(root_file_handler)
+    except:
+        pass
+    
+    # Console handler: Tüm seviyeler
+    root_console_handler = logging.StreamHandler()
+    root_console_handler.setFormatter(log_format)
+    root_console_handler.setLevel(log_level)
+    root_logger.addHandler(root_console_handler)
     
     # Log startup info
     app.logger.info('='*60)
