@@ -8,6 +8,9 @@ from app.services.request_service import RequestService
 from app.services.audit_service import AuditService
 from app.services.qr_service import QRCodeService
 from app.services.report_service import ReportService
+from app.services.fcm_notification_service import FCMNotificationService
+from app.services.web_push_service import WebPushService
+from app.services.background_jobs import BackgroundJobsService
 
 __all__ = [
     'AuthService',
@@ -16,5 +19,8 @@ __all__ = [
     'RequestService',
     'AuditService',
     'QRCodeService',
-    'ReportService'
+    'ReportService',
+    'FCMNotificationService',
+    'WebPushService',
+    'BackgroundJobsService'
 ]

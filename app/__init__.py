@@ -186,6 +186,7 @@ def setup_logging(app):
     
     # ✅ CRITICAL: Önce tüm handler'ları temizle (duplicate log önleme)
     app.logger.handlers.clear()
+    app.logger.propagate = False  # ÖNEMLI: Root logger'a yayilmayi engelle (duplicate log onleme)
     
     # Set log level
     log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO'))
