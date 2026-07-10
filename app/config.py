@@ -159,7 +159,7 @@ class ProductionConfig(Config):
     
     # Override with production-specific settings
     SQLALCHEMY_ECHO = False
-    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
     
     # Stricter rate limits for production
     RATELIMIT_DEFAULT = "50 per hour"
