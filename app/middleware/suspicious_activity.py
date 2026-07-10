@@ -23,8 +23,8 @@ THRESHOLDS = {
 MONITORED_ENDPOINTS = {
     'auth.login',
     'auth.change_password',
-    'api.create_request',
-    'api.delete_request',
+    'api_requests.create_request',
+    'api_requests.delete_request',
     'admin.delete_user',
     'admin.delete_buggy',
     'admin.delete_location',

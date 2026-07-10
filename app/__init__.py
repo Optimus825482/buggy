@@ -21,7 +21,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
 socketio = SocketIO()
-# Rate limiter completely removed for high-traffic hotel environments
+limiter = Limiter(key_func=get_remote_address, default_limits=[])
 csrf = CSRFProtect()
 cache = Cache()
 
@@ -90,7 +90,8 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     jwt.init_app(app)
     
-    # Rate limiter completely removed
+    # Rate limiter: sadece login endpoint'inde, yüksek toleranslı
+    limiter.init_app(app)
     
     # Initialize CSRF protection
     # Note: API blueprints (api_bp, auth_bp, health_bp) are explicitly exempted
@@ -198,8 +199,12 @@ def setup_logging(app):
     
     # ✅ FILE HANDLER: Sadece DEBUG ve ERROR (INFO yok)
     try:
+        log_dir = os.path.dirname(app.config.get('LOG_FILE', 'logs/buggycall.log'))
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
+        
         file_handler = RotatingFileHandler(
-            'log.txt',
+            app.config.get('LOG_FILE', 'logs/buggycall.log'),
             maxBytes=10 * 1024 * 1024,  # 10MB
             backupCount=5
         )
@@ -208,9 +213,9 @@ def setup_logging(app):
         file_handler.addFilter(lambda record: record.levelno in [logging.DEBUG, logging.ERROR])
         file_handler.setLevel(logging.DEBUG)  # DEBUG'dan başlat ama filter ile kontrol et
         app.logger.addHandler(file_handler)
-        print(f"✅ File logging enabled: log.txt (DEBUG + ERROR only)")
+        app.logger.info(f"File logging: {app.config.get('LOG_FILE', 'logs/buggycall.log')} (DEBUG + ERROR only)")
     except Exception as e:
-        print(f"❌ Could not setup file logging: {e}")
+        app.logger.warning(f"Could not setup file logging: {e}")
     
     # ✅ CONSOLE HANDLER: Tüm seviyeler (INFO dahil)
     console_handler = logging.StreamHandler()
@@ -237,7 +242,7 @@ def setup_logging(app):
     # File handler: Sadece DEBUG ve ERROR
     try:
         root_file_handler = RotatingFileHandler(
-            'log.txt',
+            app.config.get('LOG_FILE', 'logs/buggycall.log'),
             maxBytes=10 * 1024 * 1024,
             backupCount=5
         )
@@ -284,7 +289,9 @@ def register_blueprints(app):
     from app.routes.admin import admin_bp
     from app.routes.driver import driver_bp
     from app.routes.guest import guest_bp
-    from app.routes.api import api_bp
+    from app.routes.api_locations import api_locations_bp
+    from app.routes.api_buggies import api_buggies_bp
+    from app.routes.api_requests import api_requests_bp
     from app.routes.reports import reports_bp
     from app.routes.health import health_bp
     from app.routes.audit import audit_bp
@@ -298,6 +305,10 @@ def register_blueprints(app):
     from app.routes.guest_notification_api import guest_notification_api_bp
     from app.routes.fcm_api import fcm_api
     from app.routes.performance_api import performance_bp
+    from app.routes.api_health import api_health_bp
+    from app.routes.api_driver import api_driver_bp
+    from app.routes.api_users import api_users_bp
+    from app.routes.api_admin import api_admin_bp
 
     app.register_blueprint(setup_bp)  # No prefix, setup routes at root level
     app.register_blueprint(system_reset_bp)  # No prefix, system reset at root level
@@ -310,12 +321,21 @@ def register_blueprints(app):
     csrf.exempt(map_api)  # Map API uses GET requests for thumbnails
     csrf.exempt(guest_notification_api_bp)  # Guest notification API
     csrf.exempt(fcm_api)  # FCM API uses JWT authentication
+    csrf.exempt(api_locations_bp)  # API uses JWT/session
+    csrf.exempt(api_buggies_bp)  # API uses JWT/session
+    csrf.exempt(api_requests_bp)  # API uses JWT/session (guest endpoints need no CSRF)
+    csrf.exempt(api_health_bp)  # Health check — no auth needed
+    csrf.exempt(api_driver_bp)  # Driver API uses JWT/session
+    csrf.exempt(api_users_bp)  # Users API uses JWT/session
+    csrf.exempt(api_admin_bp)  # Admin API uses JWT/session
     
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(driver_bp, url_prefix='/driver')
     app.register_blueprint(guest_bp, url_prefix='/guest')
-    app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(api_locations_bp)
+    app.register_blueprint(api_buggies_bp)
+    app.register_blueprint(api_requests_bp)
     app.register_blueprint(reports_bp, url_prefix='/api/reports')
     app.register_blueprint(audit_bp, url_prefix='/api')
     app.register_blueprint(admin_notification_api)  # Admin notification monitoring
@@ -325,6 +345,10 @@ def register_blueprints(app):
     app.register_blueprint(health_bp)  # No prefix for health endpoints
     app.register_blueprint(sse_bp, url_prefix='/sse')  # SSE for real-time notifications
     app.register_blueprint(performance_bp)  # Performance monitoring API
+    app.register_blueprint(api_health_bp)  # Backward-compat API health
+    app.register_blueprint(api_driver_bp)  # Driver API endpoints
+    app.register_blueprint(api_users_bp)  # Users API endpoints
+    app.register_blueprint(api_admin_bp)  # Admin API endpoints
     
     # Test routes (sadece development'ta)
     if app.config.get('DEBUG'):

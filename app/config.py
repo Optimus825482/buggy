@@ -119,6 +119,9 @@ class Config:
         'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
     }
     
+    # System Reset
+    SYSTEM_RESET_PASSWORD = os.getenv('SYSTEM_RESET_PASSWORD', 'change-me-in-production')
+    
     # Pagination
     ITEMS_PER_PAGE = 20
     MAX_ITEMS_PER_PAGE = 100

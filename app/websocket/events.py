@@ -300,53 +300,153 @@ def handle_join_user(data):
         emit('joined_user_room', {'user_id': user_id})
 
 
+@socketio.on('request_accepted')
 @socketio.on('request_accepted_event')
-def handle_request_accepted_event(data):
-    """Broadcast request acceptance to guest and admins"""
-    request_id = data.get('request_id')
-    hotel_id = data.get('hotel_id')
-    buggy_data = data.get('buggy')
-    driver_data = data.get('driver')
+def handle_request_accepted(data):
+    """
+    Unified handler for request_accepted and request_accepted_event.
     
-    if request_id and hotel_id:
-        # Notify guest
-        emit('request_accepted', {
-            'request_id': request_id,
-            'buggy': buggy_data,
-            'driver': driver_data
-        }, room=f'request_{request_id}')
+    Supports both payload formats:
+    - Legacy (request_accepted): {request_id, buggy_code, driver_name, hotel_id}
+    - Current (request_accepted_event): {request_id, hotel_id, buggy, driver}
+    """
+    try:
+        request_id = data.get('request_id')
+        hotel_id = data.get('hotel_id')
         
-        # Notify admins
-        emit('request_status_changed', {
-            'request_id': request_id,
-            'status': 'accepted',
-            'buggy': buggy_data,
-            'driver': driver_data
-        }, room=f'hotel_{hotel_id}_admin')
+        if not request_id or not hotel_id:
+            print(f'[REQUEST_ACCEPTED] missing request_id or hotel_id')
+            return
         
-        print(f'Request {request_id} accepted by driver')
+        if data.get('buggy') and data.get('driver'):
+            # Current format with objects
+            emit('request_accepted', {
+                'request_id': request_id,
+                'buggy': data['buggy'],
+                'driver': data['driver']
+            }, room=f'request_{request_id}')
+            
+            emit('request_status_changed', {
+                'request_id': request_id,
+                'status': 'accepted',
+                'buggy': data['buggy'],
+                'driver': data['driver']
+            }, room=f'hotel_{hotel_id}_admin')
+        else:
+            # Legacy format with simple fields
+            buggy_code = data.get('buggy_code')
+            driver_name = data.get('driver_name')
+            
+            emit('request_accepted', {
+                'request_id': request_id,
+                'buggy_code': buggy_code,
+                'driver_name': driver_name,
+                'status': 'accepted'
+            }, room=f'request_{request_id}')
+            
+            emit('request_taken', {
+                'request_id': request_id,
+                'buggy_code': buggy_code
+            }, room=f'hotel_{hotel_id}_drivers')
+            
+            emit('request_status_changed', {
+                'request_id': request_id,
+                'status': 'accepted',
+                'buggy_code': buggy_code,
+                'driver_name': driver_name
+            }, room=f'hotel_{hotel_id}_admin')
+        
+        print(f'[REQUEST_ACCEPTED] Request {request_id} broadcast')
+        
+    except Exception as e:
+        print(f'[REQUEST_ACCEPTED] Error: {str(e)}')
 
 
+@socketio.on('request_completed')
 @socketio.on('request_completed_event')
-def handle_request_completed_event(data):
-    """Broadcast request completion to guest and admins"""
-    request_id = data.get('request_id')
-    hotel_id = data.get('hotel_id')
+def handle_request_completed(data):
+    """
+    Unified handler for request_completed and request_completed_event.
     
-    if request_id and hotel_id:
+    Supports both payload formats:
+    - Legacy (request_completed): {request_id, hotel_id, buggy_id, location_id}
+    - Current (request_completed_event): {request_id, hotel_id}
+    """
+    try:
+        request_id = data.get('request_id')
+        hotel_id = data.get('hotel_id')
+        
+        if not request_id or not hotel_id:
+            print(f'[REQUEST_COMPLETED] missing request_id or hotel_id')
+            return
+        
         # Notify guest
         emit('request_completed', {
             'request_id': request_id,
+            'status': 'completed',
             'message': 'Buggy\'niz geldi!'
         }, room=f'request_{request_id}')
         
-        # Notify admins
+        # Notify admin
         emit('request_status_changed', {
             'request_id': request_id,
             'status': 'completed'
         }, room=f'hotel_{hotel_id}_admin')
         
-        print(f'Request {request_id} completed')
+        # Legacy: update buggy status if buggy_id provided
+        buggy_id = data.get('buggy_id')
+        location_id = data.get('location_id')
+        if buggy_id:
+            emit('buggy_status_changed', {
+                'buggy_id': buggy_id,
+                'status': 'available',
+                'location_id': location_id
+            }, room=f'hotel_{hotel_id}_admin')
+        
+        print(f'[REQUEST_COMPLETED] Request {request_id} completed')
+        
+    except Exception as e:
+        print(f'[REQUEST_COMPLETED] Error: {str(e)}')
+
+
+@socketio.on('buggy_status_changed')
+def handle_buggy_status_changed(data):
+    """
+    Handle buggy status change event
+    Updates admin dashboard in real-time
+    
+    Args:
+        data: {
+            'buggy_id': int,
+            'status': str ('available', 'busy', 'offline'),
+            'hotel_id': int,
+            'location_id': int (optional),
+            'driver_id': int (optional)
+        }
+    """
+    try:
+        buggy_id = data.get('buggy_id')
+        status = data.get('status')
+        hotel_id = data.get('hotel_id')
+        location_id = data.get('location_id')
+        driver_id = data.get('driver_id')
+        
+        if not buggy_id or not status or not hotel_id:
+            print(f'[BUGGY_STATUS] missing required fields')
+            return
+        
+        # Broadcast to admin dashboard
+        emit('buggy_status_changed', {
+            'buggy_id': buggy_id,
+            'status': status,
+            'location_id': location_id,
+            'driver_id': driver_id
+        }, room=f'hotel_{hotel_id}_admin')
+        
+        print(f'[BUGGY_STATUS] Buggy {buggy_id} status changed to {status}')
+        
+    except Exception as e:
+        print(f'[BUGGY_STATUS] Error: {str(e)}')
 
 
 @socketio.on('driver_location_updated_event')

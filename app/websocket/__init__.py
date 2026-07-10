@@ -2,6 +2,10 @@
 Buggy Call - WebSocket Events
 Enhanced with guest connection tracking and real-time status updates
 Performance optimized with throttling and queue management
+
+NOT: Event handler'lar events.py'dedir.
+    Kritik is mantigi (race condition fix, DB update, request/buggy event'leri) events.py'de.
+    Bu dosya sadece join/leave/guest event'leri ve throttling icerir.
 """
 from flask_socketio import emit, join_room, leave_room
 from flask import session, request
@@ -15,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Track connected guests per hotel (hotel_id -> count)
 CONNECTED_GUESTS = {}
+GUEST_LOCK = Lock()
 
 # Performance Optimization: Throttling & Queue Management
 # Max 10 events per second per room
@@ -25,55 +30,6 @@ THROTTLE_WINDOW = 1.0  # seconds
 event_queues = defaultdict(deque)
 throttle_counters = defaultdict(lambda: {'count': 0, 'window_start': time.time()})
 queue_lock = Lock()
-
-
-@socketio.on('connect')
-def handle_connect():
-    """
-    Handle client connection with error handling
-    """
-    try:
-        from flask import session
-        user_id = session.get('user_id', 'unknown')
-        role = session.get('role', 'unknown')
-        
-        logger.info(f"🔌 Client connected: User {user_id}, Role {role}")
-        emit('connected', {
-            'message': 'Connected to Buggy Call server',
-            'timestamp': time.time()
-        })
-        
-        # Log connection
-        from app.utils.logger import WebSocketLogger
-        if user_id != 'unknown':
-            WebSocketLogger.log_connection(user_id, role)
-    
-    except Exception as e:
-        logger.error(f"❌ Error in handle_connect: {str(e)}")
-        from app.utils.logger import log_error
-        log_error('WS_CONNECT', str(e), {'exception_type': type(e).__name__})
-
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    """
-    Handle client disconnection with cleanup
-    """
-    try:
-        from flask import session
-        user_id = session.get('user_id', 'unknown')
-        
-        logger.info(f"🔌 Client disconnected: User {user_id}")
-        
-        # Log disconnection
-        from app.utils.logger import WebSocketLogger
-        if user_id != 'unknown':
-            WebSocketLogger.log_disconnection(user_id, reason='client_disconnect')
-    
-    except Exception as e:
-        logger.error(f"❌ Error in handle_disconnect: {str(e)}")
-        from app.utils.logger import log_error
-        log_error('WS_DISCONNECT', str(e), {'exception_type': type(e).__name__})
 
 
 @socketio.on('join_room')
@@ -147,38 +103,6 @@ def handle_join_hotel(data):
         logger.error(f"❌ Error in handle_join_hotel: {str(e)}")
         logger.error(f"   Exception type: {type(e).__name__}")
         logger.error(f"   Exception details: {str(e)}")
-
-
-@socketio.on('join_user')
-def handle_join_user(data):
-    """
-    Handle joining user-specific room (for session management)
-    """
-    try:
-        user_id = data.get('user_id')
-        
-        if not user_id:
-            logger.warning("⚠️ join_user: user_id missing")
-            return
-        
-        room = f'user_{user_id}'
-        join_room(room)
-        
-        logger.info(f"✅ Client joined user room: {room}")
-        
-        emit('joined_user', {
-            'user_id': user_id,
-            'room': room
-        })
-        
-    except Exception as e:
-        logger.error(f"❌ Error in handle_join_user: {str(e)}")
-
-
-@socketio.on('ping')
-def handle_ping():
-    """Handle ping"""
-    emit('pong', {'timestamp': 'now'})
 
 
 def throttled_emit(event_name, data, room=None, broadcast=False):
@@ -306,11 +230,12 @@ def handle_guest_connected(data):
             return
         
         # Increment guest count for this hotel
-        if hotel_id not in CONNECTED_GUESTS:
-            CONNECTED_GUESTS[hotel_id] = 0
-        CONNECTED_GUESTS[hotel_id] += 1
+        with GUEST_LOCK:
+            if hotel_id not in CONNECTED_GUESTS:
+                CONNECTED_GUESTS[hotel_id] = 0
+            CONNECTED_GUESTS[hotel_id] += 1
         
-        guest_count = CONNECTED_GUESTS[hotel_id]
+            guest_count = CONNECTED_GUESTS[hotel_id]
         
         logger.info(f"👤 Guest connected to hotel {hotel_id} (total: {guest_count})")
 
@@ -362,9 +287,10 @@ def handle_guest_disconnected(data):
             return
         
         # Decrement guest count
-        if hotel_id in CONNECTED_GUESTS and CONNECTED_GUESTS[hotel_id] > 0:
-            CONNECTED_GUESTS[hotel_id] -= 1
-            guest_count = CONNECTED_GUESTS[hotel_id]
+        with GUEST_LOCK:
+            if hotel_id in CONNECTED_GUESTS and CONNECTED_GUESTS[hotel_id] > 0:
+                CONNECTED_GUESTS[hotel_id] -= 1
+                guest_count = CONNECTED_GUESTS[hotel_id]
             
             logger.info(f"👤 Guest disconnected from hotel {hotel_id} (remaining: {guest_count})")
             
@@ -378,137 +304,3 @@ def handle_guest_disconnected(data):
         logger.error(f"❌ Error in handle_guest_disconnected: {str(e)}")
 
 
-@socketio.on('request_accepted')
-def handle_request_accepted(data):
-    """
-    Handle request accepted event
-    Notifies guest and updates driver dashboards
-    
-    Args:
-        data: {
-            'request_id': int,
-            'buggy_code': str,
-            'driver_name': str,
-            'hotel_id': int
-        }
-    """
-    try:
-        request_id = data.get('request_id')
-        buggy_code = data.get('buggy_code')
-        driver_name = data.get('driver_name')
-        hotel_id = data.get('hotel_id')
-        
-        logger.info(f"✅ Request {request_id} accepted by {driver_name} (Buggy: {buggy_code})")
-        
-        # Notify guest
-        emit('request_accepted', {
-            'request_id': request_id,
-            'buggy_code': buggy_code,
-            'driver_name': driver_name,
-            'status': 'accepted'
-        }, room=f'request_{request_id}', broadcast=True)
-        
-        # Notify all drivers (remove from pending list)
-        emit('request_taken', {
-            'request_id': request_id,
-            'buggy_code': buggy_code
-        }, room=f'hotel_{hotel_id}_drivers', broadcast=True)
-        
-        # Notify admin dashboard
-        emit('request_status_changed', {
-            'request_id': request_id,
-            'status': 'accepted',
-            'buggy_code': buggy_code,
-            'driver_name': driver_name
-        }, room=f'hotel_{hotel_id}_admin', broadcast=True)
-        
-        logger.info(f"📡 Broadcast request_accepted for request {request_id}")
-        
-    except Exception as e:
-        logger.error(f"❌ Error in handle_request_accepted: {str(e)}")
-
-
-@socketio.on('request_completed')
-def handle_request_completed(data):
-    """
-    Handle request completed event
-    Notifies guest and updates dashboards
-    
-    Args:
-        data: {
-            'request_id': int,
-            'hotel_id': int,
-            'buggy_id': int,
-            'location_id': int (optional)
-        }
-    """
-    try:
-        request_id = data.get('request_id')
-        hotel_id = data.get('hotel_id')
-        buggy_id = data.get('buggy_id')
-        location_id = data.get('location_id')
-        
-        logger.info(f"🎉 Request {request_id} completed")
-        
-        # Notify guest
-        emit('request_completed', {
-            'request_id': request_id,
-            'status': 'completed'
-        }, room=f'request_{request_id}', broadcast=True)
-        
-        # Notify admin dashboard
-        emit('request_status_changed', {
-            'request_id': request_id,
-            'status': 'completed'
-        }, room=f'hotel_{hotel_id}_admin', broadcast=True)
-        
-        # Notify buggy status change (if buggy_id provided)
-        if buggy_id:
-            emit('buggy_status_changed', {
-                'buggy_id': buggy_id,
-                'status': 'available',
-                'location_id': location_id
-            }, room=f'hotel_{hotel_id}_admin', broadcast=True)
-        
-        logger.info(f"📡 Broadcast request_completed for request {request_id}")
-        
-    except Exception as e:
-        logger.error(f"❌ Error in handle_request_completed: {str(e)}")
-
-
-@socketio.on('buggy_status_changed')
-def handle_buggy_status_changed(data):
-    """
-    Handle buggy status change event
-    Updates admin dashboard in real-time
-    
-    Args:
-        data: {
-            'buggy_id': int,
-            'status': str ('available', 'busy', 'offline'),
-            'hotel_id': int,
-            'location_id': int (optional),
-            'driver_id': int (optional)
-        }
-    """
-    try:
-        buggy_id = data.get('buggy_id')
-        status = data.get('status')
-        hotel_id = data.get('hotel_id')
-        location_id = data.get('location_id')
-        driver_id = data.get('driver_id')
-        
-        logger.info(f"🚗 Buggy {buggy_id} status changed to {status}")
-        
-        # Broadcast to admin dashboard
-        emit('buggy_status_changed', {
-            'buggy_id': buggy_id,
-            'status': status,
-            'location_id': location_id,
-            'driver_id': driver_id
-        }, room=f'hotel_{hotel_id}_admin', broadcast=True)
-        
-        logger.info(f"📡 Broadcast buggy_status_changed for buggy {buggy_id}")
-        
-    except Exception as e:
-        logger.error(f"❌ Error in handle_buggy_status_changed: {str(e)}")

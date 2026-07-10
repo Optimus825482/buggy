@@ -76,7 +76,8 @@ class LocationService:
     
     @staticmethod
     def create_location(hotel_id, name, description=None, latitude=None, 
-                       longitude=None, display_order=0, is_active=True):
+                       longitude=None, display_order=0, is_active=True,
+                       qr_code_data=None, location_image=None):
         """
         Create new location
         
@@ -88,6 +89,8 @@ class LocationService:
             longitude: Longitude (optional)
             display_order: Display order
             is_active: Active status
+            qr_code_data: Custom QR code data (URL). None = auto-generate.
+            location_image: Location image path or base64 (optional)
         
         Returns:
             Created location
@@ -109,12 +112,11 @@ class LocationService:
         if existing:
             raise ValidationException(f'Lokasyon adı "{name}" bu otel için zaten kullanılıyor')
         
-        # Generate unique QR code data
-        qr_code_data = generate_unique_code(prefix='LOC_', length=12)
-        
-        # Ensure QR code is unique
-        while Location.query.filter_by(qr_code_data=qr_code_data).first():
+        # Use provided QR data or auto-generate
+        if not qr_code_data:
             qr_code_data = generate_unique_code(prefix='LOC_', length=12)
+            while Location.query.filter_by(qr_code_data=qr_code_data).first():
+                qr_code_data = generate_unique_code(prefix='LOC_', length=12)
         
         # Create location
         location = Location(
@@ -125,19 +127,21 @@ class LocationService:
             latitude=latitude,
             longitude=longitude,
             display_order=display_order,
-            is_active=is_active
+            is_active=is_active,
+            location_image=location_image
         )
         
         db.session.add(location)
         db.session.flush()  # Get ID before generating QR code
         
-        # Generate QR code image
-        qr_image_path = QRCodeService.generate_qr_code(
-            location.id,
-            qr_code_data,
-            location.name
-        )
-        location.qr_code_image = qr_image_path
+        # Generate QR code image (only if no image provided)
+        if not qr_code_data:
+            qr_image_path = QRCodeService.generate_qr_code(
+                location.id,
+                qr_code_data,
+                location.name
+            )
+            location.qr_code_image = qr_image_path
         
         db.session.commit()
         

@@ -16,7 +16,6 @@ class BuggyRequestSchema(Schema):
     room_number = fields.Str(allow_none=True, validate=validate.Length(max=50))
     phone = fields.Str(allow_none=True, validate=validate.Length(max=50))
     has_room = fields.Bool(missing=True)
-    guest_device_id = fields.Str(allow_none=True, validate=validate.Length(max=255))
     notes = fields.Str(allow_none=True)
     status = fields.Str(validate=validate.OneOf(['PENDING', 'accepted', 'completed', 'cancelled']))
     requested_at = fields.DateTime(dump_only=True)

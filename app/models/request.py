@@ -39,7 +39,7 @@ class BuggyRequest(db.Model, BaseModel):
     has_room = Column(db.Boolean, default=True, nullable=False)  # Does guest have a room number?
     phone = Column(String(50))
     notes = Column(Text)
-    guest_device_id = Column(Text)  # ⚠️ DEPRECATED - No longer used for privacy. Always NULL.
+    # guest_device_id removed for privacy
     guest_push_subscription = Column(Text)  # Web Push API subscription (JSON)
     guest_fcm_token = Column(String(500))  # Firebase Cloud Messaging token for guest notifications
     guest_fcm_token_expires_at = Column(DateTime)  # FCM token expiration timestamp (TTL: 1 hour)
@@ -84,7 +84,6 @@ class BuggyRequest(db.Model, BaseModel):
             'has_room': self.has_room,
             'phone': self.phone,
             'notes': self.notes,
-            'guest_device_id': self.guest_device_id,
             'status': self.status.value if self.status else None,
             'cancelled_by': self.cancelled_by,
             'requested_at': self._format_cyprus_time(self.requested_at),

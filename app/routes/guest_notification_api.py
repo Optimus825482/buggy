@@ -195,81 +195,12 @@ def send_guest_notification(request_id):
             'body': message_template['body'].format(buggy_code=buggy_code) if '{buggy_code}' in message_template['body'] else message_template['body']
         }
         
-        # FCM bildirimi gönder
-        try:
-            import firebase_admin
-            from firebase_admin import messaging, credentials
-            
-            # Firebase Admin SDK'yı başlat (eğer başlatılmamışsa)
-            if not firebase_admin._apps:
-                # Firebase service account key dosyası gerekli
-                # Production'da environment variable'dan alınmalı
-                cred_path = current_app.config.get('FIREBASE_CREDENTIALS_PATH')
-                if cred_path:
-                    cred = credentials.Certificate(cred_path)
-                    firebase_admin.initialize_app(cred)
-                else:
-                    logger.warning('⚠️ Firebase credentials not configured')
-                    # Fallback: Web Push API kullan (FCM HTTP v1)
-                    return send_fcm_http_notification(fcm_token, message_data, status)
-            
-            # FCM mesajı oluştur
-            message = messaging.Message(
-                notification=messaging.Notification(
-                    title=message_data['title'],
-                    body=message_data['body'],
-                    image='/static/icons/Icon-192.png'
-                ),
-                data={
-                    'type': notification_type,
-                    'request_id': str(request_id),
-                    'status': status,
-                    'priority': 'high' if status == 'accepted' else 'normal'
-                },
-                token=fcm_token,
-                android=messaging.AndroidConfig(
-                    priority='high',
-                    notification=messaging.AndroidNotification(
-                        sound='default',
-                        channel_id='shuttle_updates'
-                    )
-                ),
-                apns=messaging.APNSConfig(
-                    payload=messaging.APNSPayload(
-                        aps=messaging.Aps(
-                            sound='default',
-                            badge=1
-                        )
-                    )
-                ),
-                webpush=messaging.WebpushConfig(
-                    notification=messaging.WebpushNotification(
-                        icon='/static/icons/Icon-192.png',
-                        badge='/static/icons/Icon-96.png',
-                        vibrate=[200, 100, 200, 100, 200],
-                        require_interaction=(status == 'accepted')
-                    )
-                )
-            )
-            
-            # Bildirimi gönder
-            response = messaging.send(message)
-            logger.info(f'✅ FCM notification sent successfully: {response}')
-            
-            return jsonify({
-                'success': True,
-                'message': 'Bildirim başarıyla gönderildi',
-                'response': response
-            }), 200
-            
-        except Exception as fcm_error:
-            logger.error(f'❌ FCM send error: {str(fcm_error)}')
-            # Fallback: HTTP API kullan
-            success, message = send_fcm_http_notification(fcm_token, message_data, status)
-            if success:
-                return jsonify({'success': True, 'message': message}), 200
-            else:
-                return jsonify({'success': False, 'message': message}), 500
+        # FCM bildirimi gönder — FCMNotificationService üzerinden
+        success, message = send_fcm_http_notification(fcm_token, message_data, status, request_id=request_id)
+        if success:
+            return jsonify({'success': True, 'message': message}), 200
+        else:
+            return jsonify({'success': False, 'message': message}), 500
         
     except Exception as e:
         logger.error(f'❌ Error sending guest notification: {str(e)}')
@@ -336,7 +267,7 @@ def test_guest_notification():
     Test bildirimi gönder
     """
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         request_id = data.get('request_id')
         
         if not request_id:

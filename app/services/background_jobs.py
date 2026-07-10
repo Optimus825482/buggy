@@ -85,6 +85,15 @@ class BackgroundJobsService:
             replace_existing=True
         )
         
+        # Job 5: Process WebSocket event queues every 5 seconds
+        BackgroundJobsService.scheduler.add_job(
+            func=BackgroundJobsService.process_ws_queues,
+            trigger=IntervalTrigger(seconds=5),
+            id='process_ws_queues',
+            name='Process WebSocket Throttled Queues',
+            replace_existing=True
+        )
+        
         logger.info("All background jobs added to scheduler")
     
     @staticmethod
@@ -226,17 +235,17 @@ class BackgroundJobsService:
                 logger.info("Starting mark_permanently_failed job")
                 
                 cutoff_time = datetime.utcnow() - timedelta(hours=24)
-            
-            # Find old failed notifications with max retries
-            old_failed = NotificationLog.query.filter(
-                NotificationLog.status == 'failed',
-                NotificationLog.sent_at < cutoff_time,
-                NotificationLog.retry_count >= 3
-            ).all()
-            
-            if not old_failed:
-                logger.info("No notifications to mark as permanently failed")
-                return
+                
+                # Find old failed notifications with max retries
+                old_failed = NotificationLog.query.filter(
+                    NotificationLog.status == 'failed',
+                    NotificationLog.sent_at < cutoff_time,
+                    NotificationLog.retry_count >= 3
+                ).all()
+                
+                if not old_failed:
+                    logger.info("No notifications to mark as permanently failed")
+                    return
                 
                 logger.info(f"Marking {len(old_failed)} notifications as permanently failed")
                 
@@ -254,6 +263,15 @@ class BackgroundJobsService:
                 db.session.rollback()
             except:
                 pass
+
+    @staticmethod
+    def process_ws_queues():
+        """Process WebSocket throttled event queues (runs every 5s)"""
+        try:
+            from app.websocket import process_event_queues
+            process_event_queues()
+        except Exception as e:
+            logger.error(f"Error processing WS queues: {e}")
     
     @staticmethod
     def cleanup_old_logs(days=30):

@@ -31,7 +31,7 @@ def admin_required(fn):
             return jsonify({'error': 'Unauthorized'}), 401
 
         user = SystemUser.query.get(session['user_id'])
-        if not user or user.role != 'admin':
+        if not user or user.role != UserRole.ADMIN:
             return jsonify({'error': 'Forbidden', 'message': 'Admin yetkisi gerekli'}), 403
 
         return fn(*args, **kwargs)

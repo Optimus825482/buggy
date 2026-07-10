@@ -74,7 +74,7 @@ class RequestService:
     
     @staticmethod
     def create_request(location_id, room_number=None, guest_name=None, 
-                      phone=None, has_room=True, notes=None, guest_device_id=None):
+                      phone=None, has_room=True, notes=None):
         """
         Create new buggy request (Guest)
         
@@ -85,7 +85,6 @@ class RequestService:
             phone: Phone number (optional)
             has_room: Whether guest has a room
             notes: Additional notes (optional)
-            guest_device_id: Device ID for tracking (optional)
         
         Returns:
             Created request
@@ -152,7 +151,6 @@ class RequestService:
             phone=phone,
             has_room=has_room,
             notes=notes,
-            guest_device_id=guest_device_id,
             status=RequestStatus.PENDING,
             requested_at=current_time  # ✅ Cyprus timezone (timezone-naive for DB)
         )
@@ -222,8 +220,8 @@ class RequestService:
             BusinessLogicException: If request already accepted or buggy busy
             ForbiddenException: If driver not authorized
         """
-        # Get request
-        request_obj = BuggyRequest.query.get(request_id)
+        # Get request with row-level lock (race condition prevention)
+        request_obj = BuggyRequest.query.filter_by(id=request_id).with_for_update().first()
         if not request_obj:
             raise ResourceNotFoundException('Request', request_id)
         
@@ -236,8 +234,14 @@ class RequestService:
         if not buggy:
             raise ResourceNotFoundException('Buggy', buggy_id)
         
-        # Check if driver is assigned to this buggy
-        if buggy.driver_id != driver_id:
+        # Check if driver is assigned to this buggy (via BuggyDriver association)
+        from app.models.buggy_driver import BuggyDriver
+        is_assigned = BuggyDriver.query.filter_by(
+            buggy_id=buggy_id,
+            driver_id=driver_id,
+            is_active=True
+        ).first() is not None
+        if not is_assigned:
             raise ForbiddenException('Bu buggy size atanmamış')
         
         # Check if buggy is available
@@ -305,14 +309,14 @@ class RequestService:
                 }
 
                 # Direkt FCM gönder - request_id ve type ekle
-                result = send_fcm_http_notification(
+                success, fcm_message = send_fcm_http_notification(
                     guest_token, 
                     message_data, 
                     'accepted', 
                     request_id=request_id
                 )
                 
-                if result:
+                if success:
                     logger.info(f"✅ Guest FCM bildirimi gönderildi - Request ID: {request_id}")
                     log_fcm_event('GUEST_NOTIFIED', request_id, {
                         'type': 'accepted',

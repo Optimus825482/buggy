@@ -3,7 +3,7 @@ Buggy Call - Authentication Routes
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
-from app import db, csrf
+from app import db, csrf, limiter
 from app.models.user import SystemUser
 from datetime import datetime
 
@@ -23,8 +23,7 @@ def login_page():
 
 
 @auth_bp.route('/login', methods=['POST'])
-# Rate limiter disabled for high-traffic hotel environments
-# @limiter.limit("5 per minute")  # Rate limit: 5 login attempts per minute
+@limiter.limit("20 per minute")  # Yüksek tolerans — sadece brute force önleme
 def login():
     """Handle login"""
     from app.services import AuthService

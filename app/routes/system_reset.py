@@ -2,7 +2,7 @@
 Buggy Call - System Reset Route
 Emergency system reset functionality
 """
-from flask import Blueprint, jsonify, request, render_template_string
+from flask import Blueprint, jsonify, request, render_template_string, current_app
 from app import db
 from app.models.hotel import Hotel
 from app.models.user import SystemUser
@@ -16,9 +16,6 @@ from datetime import datetime
 import os
 
 system_reset_bp = Blueprint('system_reset', __name__)
-
-# Secret password for system reset
-RESET_PASSWORD = "518518Erkan"
 
 
 @system_reset_bp.route('/buggysystemreset', methods=['GET'])
@@ -462,7 +459,7 @@ def check_reset_password():
         data = request.get_json()
         password = data.get('password')
         
-        if password != RESET_PASSWORD:
+        if password != current_app.config['SYSTEM_RESET_PASSWORD']:
             # Log failed attempt
             AuditService.log_action(
                 action='system_reset_password_failed',
@@ -511,7 +508,7 @@ def execute_system_reset():
         data = request.get_json()
         password = data.get('password')
         
-        if password != RESET_PASSWORD:
+        if password != current_app.config['SYSTEM_RESET_PASSWORD']:
             # Log failed attempt
             AuditService.log_action(
                 action='system_reset_execution_failed',
