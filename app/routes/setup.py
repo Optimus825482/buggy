@@ -16,11 +16,7 @@ setup_bp = Blueprint('setup', __name__)
 def setup_page():
     """Setup wizard page"""
     if is_setup_completed():
-        return render_template('error.html', 
-            error='Setup already completed',
-            message='Kurulum zaten tamamlanmış. Giriş sayfasına yönlendiriliyorsunuz...',
-            redirect='/auth/login'
-        ), 400
+        return redirect(url_for('auth.login'))
     
     return render_template('setup/index.html')
 
